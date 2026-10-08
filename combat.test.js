@@ -15,24 +15,24 @@ test('misses resolve individually and the turn ends after the final hit', () => 
   assert.equal(attack(state), state);
   assert.equal(advanceEnemy(state, 1599), state);
   state = advanceEnemy(state, 1600);
-  assert.equal(state.playerHp, 20);
+  assert.equal(state.playerHp, 33);
   assert.equal(state.hitIndex, 1);
   assert.equal(state.impactAt, 2300);
   assert.equal(state.phase, 'enemy');
   state = advanceEnemy(state, 3200);
-  assert.equal(state.playerHp, 0);
+  assert.equal(state.playerHp, 19);
   assert.equal(state.enemyHp, 40);
-  assert.equal(state.phase, 'defeat');
+  assert.equal(state.phase, 'player');
 });
 
 test('parries block individual hits; only a perfect combo counters', () => {
   const incoming = attack(newCombat(), 100);
   const first = advanceEnemy(parry(incoming, incoming.impactAt), incoming.impactAt);
-  assert.equal(first.playerHp, 30);
+  assert.equal(first.playerHp, 40);
   assert.equal(first.enemyHp, 40);
   assert.equal(first.defenseResult, null);
   const result = perfectCombo(incoming);
-  assert.equal(result.playerHp, 30);
+  assert.equal(result.playerHp, 40);
   assert.equal(result.enemyHp, 36);
   assert.equal(result.phase, 'player');
 });
@@ -42,7 +42,7 @@ test('missing a middle hit prevents a counter even with a final parry', () => {
   state = advanceEnemy(parry(state, 1500), 1500);
   state = advanceEnemy(state, 2200);
   state = advanceEnemy(parry(state, 3100), 3100);
-  assert.equal(state.playerHp, 20);
+  assert.equal(state.playerHp, 33);
   assert.equal(state.enemyHp, 40);
   assert.equal(state.allParried, false);
   assert.equal(state.phase, 'player');
@@ -57,7 +57,7 @@ test('timing boundaries work; early attempts cannot be retried on the same hit',
   assert.equal(early.defenseResult, 'miss');
   assert.equal(parry(early, incoming.impactAt), early);
   const late = parry(incoming, incoming.impactAt + 1);
-  assert.equal(late.playerHp, 20);
+  assert.equal(late.playerHp, 33);
   assert.equal(late.hitIndex, 1);
   assert.equal(late.defenseResult, 'miss');
 });
@@ -86,7 +86,7 @@ test('new turns reset combo history and new fights reset health', () => {
   assert.equal(next.hitIndex, 0);
   assert.equal(next.defenseResult, null);
   assert.equal(next.impactAt, 11800);
-  assert.equal(newCombat().playerHp, 30);
+  assert.equal(newCombat().playerHp, 40);
 });
 
 test('attack upgrades persist, retain current health, and increase enemy health', () => {
@@ -94,7 +94,7 @@ test('attack upgrades persist, retain current health, and increase enemy health'
   const next = nextFight(won, 'attack');
   assert.equal(next.fight, 2);
   assert.equal(next.playerHp, 12);
-  assert.equal(next.playerMaxHp, 30);
+  assert.equal(next.playerMaxHp, 40);
   assert.equal(next.attackDamage, 10);
   assert.equal(next.enemyHp, 56);
   assert.equal(next.enemyMaxHp, 56);
@@ -108,8 +108,8 @@ test('attack upgrades persist, retain current health, and increase enemy health'
 test('health upgrades heal fully and cannot be purchased outside victory', () => {
   const won = { ...newCombat(), playerHp: 6, enemyHp: 0, phase: 'victory' };
   const next = nextFight(won, 'health');
-  assert.equal(next.playerHp, 36);
-  assert.equal(next.playerMaxHp, 36);
+  assert.equal(next.playerHp, 46);
+  assert.equal(next.playerMaxHp, 46);
   assert.equal(next.attackDamage, 8);
   assert.equal(nextFight(next, 'health'), next);
   assert.equal(nextFight(won, 'unknown'), won);
@@ -132,7 +132,7 @@ test('enemies alternate and the Duelist uses its own rhythm', () => {
   assert.equal(incoming.impactAt, 2900);
   assert.equal(advanceEnemy(incoming, 2800), incoming);
   const result = advanceEnemy(parry(incoming, 2900), 2900);
-  assert.equal(result.playerHp, 36);
+  assert.equal(result.playerHp, 46);
   assert.equal(result.enemyHp, 44);
   assert.equal(result.phase, 'player');
   const third = nextFight({ ...second, phase: 'victory', enemyHp: 0 }, 'attack');
@@ -152,7 +152,7 @@ test('each enemy cycles through three distinct patterns and all support perfect 
       for (const impact of state.impactTimes) {
         state = advanceEnemy(parry(state, state.comboStartedAt + impact), state.comboStartedAt + impact);
       }
-      assert.equal(state.playerHp, 30);
+      assert.equal(state.playerHp, 40);
       assert.equal(state.enemyHp, 100 - (turn + 1) * 12);
       assert.equal(state.phase, 'player');
     }
@@ -169,7 +169,7 @@ test('starting balance requires four perfect rounds and exposes all three patter
     assert.equal(state.phase, 'enemy');
     assert.equal(state.patternIndex, turn % 3);
     state = perfectCombo(state);
-    assert.equal(state.playerHp, 30);
+    assert.equal(state.playerHp, 40);
     assert.equal(state.enemyHp, 48 - (turn + 1) * 12);
     assert.equal(state.phase, turn === 3 ? 'victory' : 'player');
   }
@@ -181,16 +181,16 @@ test('dodge has a wider inclusive window and shares the one-attempt limit', () =
     const dodged = dodge(state, now);
     assert.equal(dodged.defenseResult, 'dodge');
     assert.equal(parry(dodged, state.impactAt), dodged);
-    assert.equal(advanceEnemy(dodged, state.impactAt).playerHp, 30);
+    assert.equal(advanceEnemy(dodged, state.impactAt).playerHp, 40);
   }
   assert.equal(parry(state, state.impactAt - DODGE_WINDOW_MS).defenseResult, 'miss');
   const early = dodge(state, state.impactAt - DODGE_WINDOW_MS - 1);
   assert.equal(early.defenseResult, 'miss');
   assert.equal(parry(early, state.impactAt), early);
   assert.equal(dodge(early, state.impactAt), early);
-  assert.equal(advanceEnemy(early, state.impactAt).playerHp, 20);
+  assert.equal(advanceEnemy(early, state.impactAt).playerHp, 33);
   const late = dodge(state, state.impactAt + 1);
-  assert.equal(late.playerHp, 20);
+  assert.equal(late.playerHp, 33);
   assert.equal(late.defenseResult, 'miss');
   const idle = newCombat();
   assert.equal(dodge(idle, 0), idle);
@@ -204,7 +204,7 @@ test('one dodge among parries blocks damage but forfeits the combo counter', () 
       state = (hit === dodgeIndex ? dodge : parry)(state, impact);
       state = advanceEnemy(state, impact);
     }
-    assert.equal(state.playerHp, 30);
+    assert.equal(state.playerHp, 40);
     assert.equal(state.enemyHp, 40);
     assert.equal(state.allParried, false);
     assert.equal(state.phase, 'player');
