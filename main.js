@@ -1,8 +1,16 @@
 import { newCombat, nextFight, attack, heavyStrike, heal, parry, dodge, advanceEnemy, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE, HEAL, RUN_LENGTH } from './combat.js';
+import { createScene } from './scene.js';
 import { enemyPose } from './animation.js';
 import { playCue } from './sound.js';
 import { loadRun, saveRun, clearRun } from './save.js';
 
+let scene;
+try {
+  scene = createScene(document.querySelector('#battle-canvas'));
+  if (scene) document.querySelector('.arena').classList.add('has-webgl');
+} catch (error) {
+  console.warn('WebGL unavailable; using symbol scene.', error);
+}
 let state = loadRun();
 let enemyFrame;
 const attackButton = document.querySelector('#attack');
@@ -30,6 +38,7 @@ function saveIfEnded() {
 
 function feedback(kind, target) {
   const colors = { attack: '#d1aa72', heavy: '#ffa75b', hit: '#ef6868', parry: '#91e8ff', dodge: '#94a2be', counter: '#fff0a0', heal: '#8ae4a0' };
+  scene?.flash(target === playerFigure ? 'player' : 'enemy', colors[kind]);
   target.animate([
     { filter: `brightness(1.8) drop-shadow(0 0 22px ${colors[kind]})`, opacity: kind === 'dodge' ? 0.3 : 1 },
     { filter: 'brightness(1)', opacity: 1 },
@@ -79,7 +88,10 @@ function render() {
   parryButton.disabled = state.phase !== 'enemy' || state.defenseResult !== null;
   dodgeButton.disabled = parryButton.disabled;
   timeline.hidden = state.phase !== 'enemy' || !practice.checked;
-  if (state.phase !== 'enemy') enemyFigure.style.transform = '';
+  if (state.phase !== 'enemy') {
+    enemyFigure.style.transform = '';
+    scene?.render(state.enemy.name);
+  }
   if (state.phase === 'enemy') {
     document.querySelector('#dodge-window').style.width = `${DODGE_WINDOW_MS / hitDuration() * 100}%`;
     document.querySelector('#parry-window').style.width = `${PARRY_WINDOW_MS / hitDuration() * 100}%`;
@@ -104,6 +116,7 @@ function updateEnemy(now) {
   if (state.phase !== 'enemy') return;
   const progress = 1 - (state.impactAt - now) / hitDuration();
   const pose = enemyPose(state.impactAt - now, hitDuration());
+  scene?.render(state.enemy.name, pose);
   enemyFigure.style.transform = `translate(${pose.x}px, ${pose.y}px) rotate(${pose.rotation}deg)`;
   marker.style.left = `${Math.max(0, progress) * 100}%`;
   enemyFrame = requestAnimationFrame(updateEnemy);
