@@ -1,4 +1,4 @@
-import { newCombat, nextFight, attack, parry, advanceEnemy, ENEMY_ATTACK, PARRY_WINDOW_MS } from './combat.js';
+import { newCombat, nextFight, attack, parry, advanceEnemy, PARRY_WINDOW_MS } from './combat.js';
 
 let state = newCombat();
 let enemyFrame;
@@ -10,6 +10,8 @@ const marker = document.querySelector('#marker');
 
 function render() {
   document.querySelector('#player-hp').textContent = `${state.playerHp} / ${state.playerMaxHp}`;
+  document.querySelector('#enemy-name').textContent = state.enemy.name;
+  document.querySelector('#enemy-symbol').textContent = state.enemy.symbol;
   document.querySelector('#enemy-hp').textContent = `${state.enemyHp} / ${state.enemyMaxHp}`;
   document.querySelector('#player-health').max = state.playerMaxHp;
   document.querySelector('#enemy-health').max = state.enemyMaxHp;
@@ -24,13 +26,13 @@ function render() {
   timeline.hidden = state.phase !== 'enemy';
   if (state.phase === 'enemy') {
     document.querySelector('#parry-window').style.width = `${PARRY_WINDOW_MS / hitDuration() * 100}%`;
-    document.querySelector('#hit-label').textContent = `Strike ${state.hitIndex + 1} / ${ENEMY_ATTACK.impactTimes.length}`;
+    document.querySelector('#hit-label').textContent = `Strike ${state.hitIndex + 1} / ${state.enemy.impactTimes.length}`;
   }
 }
 
 function hitDuration() {
-  const previous = state.hitIndex === 0 ? 0 : ENEMY_ATTACK.impactTimes[state.hitIndex - 1];
-  return ENEMY_ATTACK.impactTimes[state.hitIndex] - previous;
+  const previous = state.hitIndex === 0 ? 0 : state.enemy.impactTimes[state.hitIndex - 1];
+  return state.enemy.impactTimes[state.hitIndex] - previous;
 }
 
 function updateEnemy(now) {

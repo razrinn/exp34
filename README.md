@@ -4,15 +4,17 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 5
+## Checkpoint 6
 
-One character, one enemy, alternating turns, health, victory, restart, timed parries, and counters.
+One character, two alternating enemies, alternating turns, health, victory, restart, timed parries, and counters.
 Combat rules live in `combat.js`; `main.js` connects them to the screen.
 The `phase` field determines which actions are allowed: player → enemy → player,
 or victory/defeat when health reaches zero.
 
 The sentinel strikes at 1500, 2200, and 3100 ms from the combo's start.
-Timings and per-hit damage live in `ENEMY_ATTACK` in `combat.js`.
+The Duelist strikes at 1200, 1600, and 2800 ms: two quick hits and a delayed finisher.
+Names, symbols, timings, and per-hit damage live in `ENEMIES` in `combat.js`.
+The run alternates Sentinel → Duelist → Sentinel, using the same combat rules.
 Press Space or click Parry in the final 180 ms (the gold zone) before each hit.
 Each parry blocks that hit; each miss deals 6 damage. Parry the whole combo
 for one automatic 4-damage counter at the end. You get one attempt per hit.
@@ -34,8 +36,8 @@ Use your usual SSH hostname or alias in place of `YOUR_SSH_HOST`.
 Run `npm test` to check the combat rules.
 
 After victory, choose +2 attack damage (keep current health) or +6 max health
-with a full heal. Each next sentinel has 8 more health. Upgrades accumulate
+with a full heal. Each next opponent has 8 more health. Upgrades accumulate
 within the run. Restart run resets everything; refreshing also resets the run.
 `nextFight` carries player progression into a fresh combat state.
 
-Different enemy rhythms, a final boss, and saving progress are not implemented yet.
+A final boss and saving progress are not implemented yet.

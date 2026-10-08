@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newCombat, nextFight, attack, parry, retaliate, advanceEnemy, ENEMY_ATTACK, PARRY_WINDOW_MS } from './combat.js';
+import { newCombat, nextFight, attack, parry, retaliate, advanceEnemy, ENEMIES, PARRY_WINDOW_MS } from './combat.js';
 
 function perfectCombo(state) {
-  for (const offset of ENEMY_ATTACK.impactTimes) {
+  for (const offset of state.enemy.impactTimes) {
     const impact = state.comboStartedAt + offset;
     state = advanceEnemy(parry(state, impact), impact);
   }
@@ -117,4 +117,24 @@ test('health upgrades heal fully and cannot be purchased outside victory', () =>
   assert.equal(nextFight(dead, 'health'), dead);
   assert.equal(newCombat().fight, 1);
   assert.equal(newCombat().attackDamage, 8);
+});
+
+test('enemies alternate and the Duelist uses its own rhythm', () => {
+  const initial = newCombat();
+  assert.equal(initial.enemy, ENEMIES[0]);
+  const second = nextFight({ ...initial, phase: 'victory', enemyHp: 0 }, 'health');
+  assert.equal(second.enemy, ENEMIES[1]);
+  let incoming = attack(second, 100);
+  assert.equal(incoming.impactAt, 1300);
+  incoming = advanceEnemy(parry(incoming, 1300), 1300);
+  assert.equal(incoming.impactAt, 1700);
+  incoming = advanceEnemy(parry(incoming, 1700), 1700);
+  assert.equal(incoming.impactAt, 2900);
+  assert.equal(advanceEnemy(incoming, 2800), incoming);
+  const result = advanceEnemy(parry(incoming, 2900), 2900);
+  assert.equal(result.playerHp, 36);
+  assert.equal(result.enemyHp, 20);
+  assert.equal(result.phase, 'player');
+  const third = nextFight({ ...second, phase: 'victory', enemyHp: 0 }, 'attack');
+  assert.equal(third.enemy, ENEMIES[0]);
 });
