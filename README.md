@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 10
+## Checkpoint 11
 
 One character, two alternating enemies, alternating turns, health, victory, restart, timed parries, and counters.
 Combat rules live in `combat.js`; `main.js` connects them to the screen.
@@ -48,5 +48,10 @@ After victory, choose +2 attack damage (keep current health) or +6 max health
 with a full heal. Each next opponent has 8 more health. Upgrades accumulate
 within the run. Restart run resets everything; refreshing also resets the run.
 `nextFight` carries player progression into a fresh combat state.
+
+Basic attacks earn 1 energy. Heavy Strike costs 3 energy and deals a fixed
+20 damage. Both actions end your turn; insufficient energy prevents the skill
+without changing state. Energy starts at 0 and resets between fights.
+Attack upgrades improve the basic attack; Heavy Strike stays at 20 damage.
 
 A final boss and saving progress are not implemented yet.

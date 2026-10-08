@@ -8,7 +8,7 @@
   </head>
   <body>
     <main>
-      <header><p class="eyebrow">COMBAT PROTOTYPE · CHECKPOINT 10</p><h1>exp34</h1><p id="fight-label">Fight 1</p></header>
+      <header><p class="eyebrow">COMBAT PROTOTYPE · CHECKPOINT 11</p><h1>exp34</h1><p id="fight-label">Fight 1</p></header>
       <section class="arena" aria-label="Combatants">
         <article><div class="figure player" aria-hidden="true">◇</div><h2>Expeditioner</h2><label for="player-health">Health <span id="player-hp"></span></label><meter id="player-health" min="0" max="40"></meter></article>
         <span class="versus" aria-hidden="true">VS</span>
@@ -21,7 +21,10 @@
           <p class="hint">Dodge in the blue or gold zone; parry only in gold. The strike lands at the right edge.</p>
           <div class="track" aria-hidden="true"><div id="dodge-window"></div><div id="parry-window"></div><div id="marker"></div></div>
         </div>
+        <p id="energy">Energy: 0</p>
         <button id="attack" type="button">Attack · 8 damage</button>
+        <button id="heavy" type="button" disabled>Heavy Strike · 20 damage · 3 energy</button>
+        <p class="hint">Basic attacks earn 1 energy. Heavy Strike costs 3. Energy resets each fight.</p>
         <button id="parry" type="button" disabled>Parry · Space</button>
         <button id="dodge" type="button" disabled>Dodge · Shift</button>
         <button id="restart" type="button">Restart run</button>

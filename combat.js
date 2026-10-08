@@ -10,10 +10,11 @@ export const ENEMIES = [
 ];
 export const PARRY_WINDOW_MS = 180;
 export const DODGE_WINDOW_MS = 360;
+export const HEAVY_STRIKE = { cost: 3, damage: 20 };
 
 export function newCombat() {
   return {
-    playerHp: 40, playerMaxHp: 40, attackDamage: 8,
+    playerHp: 40, playerMaxHp: 40, attackDamage: 8, energy: 0,
     enemy: ENEMIES[0], enemyTurns: 0, enemyHp: 48, enemyMaxHp: 48, fight: 1,
     phase: 'player', message: 'Your turn. Choose Attack.',
   };
@@ -37,13 +38,24 @@ export function nextFight(state, upgrade) {
 }
 
 export function attack(state, now = 0) {
+  return strike(state, now, false);
+}
+
+export function heavyStrike(state, now = 0) {
+  return strike(state, now, true);
+}
+
+function strike(state, now, heavy) {
   if (state.phase !== 'player') return state;
-  const enemyHp = Math.max(0, state.enemyHp - state.attackDamage);
+  if (heavy && state.energy < HEAVY_STRIKE.cost) return state;
+  const damage = heavy ? HEAVY_STRIKE.damage : state.attackDamage;
+  const enemyHp = Math.max(0, state.enemyHp - damage);
   const patternIndex = state.enemyTurns % state.enemy.patterns.length;
   const impactTimes = state.enemy.patterns[patternIndex];
   return {
     ...state,
     enemyHp,
+    energy: state.energy + (heavy ? -HEAVY_STRIKE.cost : 1),
     impactTimes,
     patternIndex,
     enemyTurns: state.enemyTurns + 1,
@@ -53,7 +65,7 @@ export function attack(state, now = 0) {
     allParried: true,
     defenseResult: null,
     phase: enemyHp === 0 ? 'victory' : 'enemy',
-    message: enemyHp === 0 ? `Victory! The ${state.enemy.name} falls.` : `You deal ${state.attackDamage} damage. The ${state.enemy.name} prepares to strike…`,
+    message: enemyHp === 0 ? `Victory! The ${state.enemy.name} falls.` : `You deal ${damage} damage. The ${state.enemy.name} prepares to strike…`,
   };
 }
 

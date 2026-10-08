@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newCombat, nextFight, attack, parry, dodge, retaliate, advanceEnemy, ENEMIES, PARRY_WINDOW_MS, DODGE_WINDOW_MS } from './combat.js';
+import { newCombat, nextFight, attack, heavyStrike, parry, dodge, retaliate, advanceEnemy, ENEMIES, PARRY_WINDOW_MS, DODGE_WINDOW_MS } from './combat.js';
 
 function perfectCombo(state) {
   for (const offset of state.impactTimes) {
@@ -209,4 +209,35 @@ test('one dodge among parries blocks damage but forfeits the combo counter', () 
     assert.equal(state.allParried, false);
     assert.equal(state.phase, 'player');
   }
+});
+
+test('basic attacks build energy and a heavy strike spends it and starts the enemy turn', () => {
+  let state = { ...newCombat(), enemyHp: 100, enemyMaxHp: 100 };
+  for (let turn = 0; turn < 3; turn++) {
+    state = perfectCombo(attack(state, turn * 10000));
+    assert.equal(state.energy, turn + 1);
+  }
+  const result = heavyStrike(state, 30000);
+  assert.equal(result.energy, 0);
+  assert.equal(result.enemyHp, state.enemyHp - 20);
+  assert.equal(result.phase, 'enemy');
+  assert.equal(result.impactAt, 31500);
+  assert.equal(result.enemyTurns, 4);
+});
+
+test('heavy strike rejects unaffordable and out-of-turn actions; lethal damage clamps', () => {
+  for (const energy of [0, 1, 2]) {
+    const state = { ...newCombat(), energy };
+    assert.equal(heavyStrike(state), state);
+  }
+  for (const phase of ['enemy', 'victory', 'defeat']) {
+    const state = { ...newCombat(), energy: 5, phase };
+    assert.equal(heavyStrike(state), state);
+  }
+  const result = heavyStrike({ ...newCombat(), energy: 4, enemyHp: 10 });
+  assert.equal(result.enemyHp, 0);
+  assert.equal(result.energy, 1);
+  assert.equal(result.phase, 'victory');
+  assert.equal(nextFight(result, 'attack').energy, 0);
+  assert.equal(newCombat().energy, 0);
 });

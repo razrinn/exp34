@@ -1,8 +1,9 @@
-import { newCombat, nextFight, attack, parry, dodge, advanceEnemy, PARRY_WINDOW_MS, DODGE_WINDOW_MS } from './combat.js';
+import { newCombat, nextFight, attack, heavyStrike, parry, dodge, advanceEnemy, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE } from './combat.js';
 
 let state = newCombat();
 let enemyFrame;
 const attackButton = document.querySelector('#attack');
+const heavyButton = document.querySelector('#heavy');
 const parryButton = document.querySelector('#parry');
 const dodgeButton = document.querySelector('#dodge');
 const timeline = document.querySelector('#timeline');
@@ -23,6 +24,9 @@ function render() {
   document.querySelector('#upgrades').hidden = state.phase !== 'victory';
   attackButton.textContent = `Attack · ${state.attackDamage} damage`;
   attackButton.disabled = state.phase !== 'player';
+  document.querySelector('#energy').textContent = `Energy: ${state.energy}`;
+  heavyButton.textContent = `Heavy Strike · ${HEAVY_STRIKE.damage} damage · ${HEAVY_STRIKE.cost} energy`;
+  heavyButton.disabled = state.phase !== 'player' || state.energy < HEAVY_STRIKE.cost;
   parryButton.disabled = state.phase !== 'enemy' || state.defenseResult !== null;
   dodgeButton.disabled = parryButton.disabled;
   timeline.hidden = state.phase !== 'enemy';
@@ -50,14 +54,19 @@ function updateEnemy(now) {
   enemyFrame = requestAnimationFrame(updateEnemy);
 }
 
-attackButton.addEventListener('click', () => {
-  state = attack(state, performance.now());
+function tryAttack(action) {
+  const next = action(state, performance.now());
+  if (next === state) return;
+  state = next;
   render();
   if (state.phase === 'enemy') {
     marker.style.left = '0%';
     enemyFrame = requestAnimationFrame(updateEnemy);
   }
-});
+}
+
+attackButton.addEventListener('click', () => tryAttack(attack));
+heavyButton.addEventListener('click', () => tryAttack(heavyStrike));
 
 function tryDefense(action) {
   state = action(state, performance.now());
