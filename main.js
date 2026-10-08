@@ -26,12 +26,12 @@ function render() {
   document.querySelector('#fight-label').textContent = `Fight ${state.fight} / ${RUN_LENGTH}${state.fight === RUN_LENGTH ? ' · FINAL BOSS' : ''}`;
   document.querySelector('#run-complete').hidden = state.phase !== 'complete';
   document.querySelector('#upgrades').hidden = state.phase !== 'victory';
-  attackButton.textContent = `Attack · ${state.attackDamage} damage`;
+  attackButton.textContent = `Q · Attack · ${state.attackDamage} damage`;
   attackButton.disabled = state.phase !== 'player';
   document.querySelector('#energy').textContent = `Energy: ${state.energy}`;
-  heavyButton.textContent = `Heavy Strike · ${HEAVY_STRIKE.damage} damage · ${HEAVY_STRIKE.cost} energy`;
+  heavyButton.textContent = `W · Heavy Strike · ${HEAVY_STRIKE.damage} damage · ${HEAVY_STRIKE.cost} energy`;
   heavyButton.disabled = state.phase !== 'player' || state.energy < HEAVY_STRIKE.cost;
-  healButton.textContent = `Heal · ${HEAL.amount} HP · ${HEAL.cost} energy`;
+  healButton.textContent = `E · Heal · ${HEAL.amount} HP · ${HEAL.cost} energy`;
   healButton.disabled = state.phase !== 'player' || state.energy < HEAL.cost || state.playerHp === state.playerMaxHp;
   parryButton.disabled = state.phase !== 'enemy' || state.defenseResult !== null;
   dodgeButton.disabled = parryButton.disabled;
@@ -88,6 +88,15 @@ function tryDefense(action) {
 parryButton.addEventListener('click', () => tryDefense(parry));
 dodgeButton.addEventListener('click', () => tryDefense(dodge));
 document.addEventListener('keydown', (event) => {
+  if (event.ctrlKey || event.altKey || event.metaKey) return;
+  if (event.target.matches('input, textarea, select, [contenteditable]')) return;
+  if (state.phase === 'player') {
+    const action = { KeyQ: attack, KeyW: heavyStrike, KeyE: heal }[event.code];
+    if (!action) return;
+    event.preventDefault();
+    if (!event.repeat) tryAction(action);
+    return;
+  }
   if (state.phase !== 'enemy') return;
   if (!['Space', 'ShiftLeft', 'ShiftRight'].includes(event.code)) return;
   event.preventDefault();

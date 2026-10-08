@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 21
+## Checkpoint 22
 
 One character, two regular enemies, a final boss, turns, health, restart, timed defenses, and counters.
 Runs have five fights: Sentinel → Duelist → Sentinel → Duelist → Warden.
@@ -78,3 +78,7 @@ and spends no energy. Recovery is capped at max health, including upgrades.
 `beginEnemyTurn` starts the same enemy timeline after attacks or healing.
 
 Sound cues and saving progress are not implemented yet.
+
+Keyboard controls: Q attacks, W uses Heavy Strike, E heals, Space parries,
+and Shift dodges. Holding a key does not repeat actions. Shortcuts respect
+turn and energy rules and ignore text/form controls and Ctrl/Alt/Meta chords.
