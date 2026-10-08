@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 22
+## Checkpoint 23
 
 One character, two regular enemies, a final boss, turns, health, restart, timed defenses, and counters.
 Runs have five fights: Sentinel → Duelist → Sentinel → Duelist → Warden.
@@ -62,15 +62,16 @@ Every two fights adds 1 damage to every hit. For the three-hit variant,
 fights 1–2 deal 3/3/5 and fights 3–4 deal 4/4/6. The boss's four-hit combos
 deal 6/6/6/10 after scaling. Timing windows stay constant.
 
-After victory, choose +2 attack damage (keep current health) or +6 max health
-with a full heal. Each next opponent has 12 more health. Upgrades accumulate
-within the run. Restart run resets everything; refreshing also resets the run.
-`nextFight` carries player progression into a fresh combat state.
+After each regular victory, choosing a reward restores up to 10 HP regardless
+of the choice. Choose +3 counter damage, +1 starting energy, or +6 Heavy Strike
+damage. Rewards stack within the run. Max health stays 40; recovery is capped.
+Each next opponent has 12 more health. Restart or refresh resets the run.
+`nextFight` carries the build into fresh combat state and resets energy to the
+build's starting energy; unused energy does not carry over.
 
-Basic attacks earn 1 energy. Heavy Strike costs 3 energy and deals a fixed
-20 damage. Both actions end your turn; insufficient energy prevents the skill
-without changing state. Energy starts at 0 and resets between fights.
-Attack upgrades improve the basic attack; Heavy Strike stays at 20 damage.
+Basic attacks deal 8 damage and earn 1 energy. Heavy Strike costs 3 energy,
+starts at 20 damage, and benefits from Heavy hitter rewards. Both end your turn.
+Counter damage starts at 4 and benefits from Stronger counters rewards.
 
 Heal costs 2 energy, restores up to 12 HP, and ends your turn. The enemy
 attacks afterward using its next pattern. Healing at full health is disabled

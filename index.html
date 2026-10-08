@@ -8,7 +8,7 @@
   </head>
   <body>
     <main>
-      <header><p class="eyebrow">COMBAT PROTOTYPE · CHECKPOINT 22</p><h1>exp34</h1><p id="fight-label">Fight 1 / 5</p></header>
+      <header><p class="eyebrow">COMBAT PROTOTYPE · CHECKPOINT 23</p><h1>exp34</h1><p id="fight-label">Fight 1 / 5</p></header>
       <section class="arena" aria-label="Combatants">
         <article><div class="figure player" aria-hidden="true">◇</div><h2>Expeditioner</h2><label for="player-health">Health <span id="player-hp"></span></label><meter id="player-health" min="0" max="40"></meter></article>
         <span class="versus" aria-hidden="true">VS</span>
@@ -23,6 +23,7 @@
           <p class="hint">Dodge in the blue or gold zone; parry only in gold. The strike lands at the right edge.</p>
           <div class="track" aria-hidden="true"><div id="dodge-window"></div><div id="parry-window"></div><div id="marker"></div></div>
         </div>
+        <p id="build" class="hint"></p>
         <p id="energy">Energy: 0</p>
         <button id="attack" type="button" aria-keyshortcuts="Q">Q · Attack · 8 damage</button>
         <button id="heavy" type="button" aria-keyshortcuts="W" disabled>W · Heavy Strike · 20 damage · 3 energy</button>
@@ -37,11 +38,12 @@
         </div>
         <div id="upgrades" hidden>
           <h2>Choose an upgrade</h2>
-          <p class="hint">Your next opponent has 12 more health. Attack upgrades carry your current health forward.</p>
-          <button type="button" data-upgrade="attack">+2 attack → next fight</button>
-          <button type="button" data-upgrade="health">+6 max health &amp; full heal → next fight</button>
+          <p class="hint">Recover up to 10 HP with any choice. Rewards stack for this run. Your next opponent has 12 more health.</p>
+          <button type="button" data-upgrade="counter">Stronger counters · +3 damage</button>
+          <button type="button" data-upgrade="energy">Prepared · +1 starting energy</button>
+          <button type="button" data-upgrade="heavy">Heavy hitter · +6 Heavy Strike damage</button>
         </div>
-        <p class="hint">Regular enemies have three variants: three hits, two hits, or one heavy strike. One defense attempt per hit. Dodge blocks damage; parry the whole combo to counter for 4 damage.</p>
+        <p class="hint">Regular enemies have three variants: three hits, two hits, or one heavy strike. One defense attempt per hit. Dodge blocks damage; parry the whole combo to counter.</p>
       </section>
     </main>
     <script type="module" src="main.js"></script>

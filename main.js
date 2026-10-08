@@ -28,8 +28,12 @@ function render() {
   document.querySelector('#upgrades').hidden = state.phase !== 'victory';
   attackButton.textContent = `Q · Attack · ${state.attackDamage} damage`;
   attackButton.disabled = state.phase !== 'player';
+  document.querySelector('#build').textContent = `Counter: ${state.counterDamage} damage · Starting energy: ${state.startingEnergy}`;
+  document.querySelector('[data-upgrade=counter]').textContent = `Stronger counters · ${state.counterDamage} → ${state.counterDamage + 3} damage`;
+  document.querySelector('[data-upgrade=energy]').textContent = `Prepared · ${state.startingEnergy} → ${state.startingEnergy + 1} starting energy`;
+  document.querySelector('[data-upgrade=heavy]').textContent = `Heavy hitter · ${state.heavyDamage} → ${state.heavyDamage + 6} damage`;
   document.querySelector('#energy').textContent = `Energy: ${state.energy}`;
-  heavyButton.textContent = `W · Heavy Strike · ${HEAVY_STRIKE.damage} damage · ${HEAVY_STRIKE.cost} energy`;
+  heavyButton.textContent = `W · Heavy Strike · ${state.heavyDamage} damage · ${HEAVY_STRIKE.cost} energy`;
   heavyButton.disabled = state.phase !== 'player' || state.energy < HEAVY_STRIKE.cost;
   healButton.textContent = `E · Heal · ${HEAL.amount} HP · ${HEAL.cost} energy`;
   healButton.disabled = state.phase !== 'player' || state.energy < HEAL.cost || state.playerHp === state.playerMaxHp;

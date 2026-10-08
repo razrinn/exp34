@@ -90,40 +90,43 @@ test('new turns reset combo history and new fights reset health', () => {
   assert.equal(newCombat().playerHp, 40);
 });
 
-test('attack upgrades persist, retain current health, and increase enemy health', () => {
-  const won = { ...newCombat(), playerHp: 12, enemyHp: 0, phase: 'victory' };
-  const next = nextFight(won, 'attack');
-  assert.equal(next.fight, 2);
-  assert.equal(next.playerHp, 12);
-  assert.equal(next.playerMaxHp, 40);
-  assert.equal(next.attackDamage, 10);
-  assert.equal(next.enemyHp, 60);
-  assert.equal(next.enemyMaxHp, 60);
-  assert.equal(next.phase, 'player');
-  assert.equal(attack(next).enemyHp, 50);
-  const third = nextFight({ ...next, phase: 'victory', enemyHp: 0 }, 'attack');
-  assert.equal(third.attackDamage, 12);
-  assert.equal(third.enemyMaxHp, 72);
+test('rewards stack, recover health equally, and reset energy to the build starting value', () => {
+  const won = { ...newCombat(), playerHp: 12, energy: 7, enemyHp: 0, phase: 'victory' };
+  for (const upgrade of ['counter', 'energy', 'heavy']) {
+    const next = nextFight(won, upgrade);
+    assert.equal(next.playerHp, 22);
+    assert.equal(next.playerMaxHp, 40);
+    assert.equal(next.fight, 2);
+    assert.equal(next.enemyHp, 60);
+    assert.equal(next.attackDamage, 8);
+    assert.equal(next.counterDamage, upgrade === 'counter' ? 7 : 4);
+    assert.equal(next.heavyDamage, upgrade === 'heavy' ? 26 : 20);
+    assert.equal(next.energy, upgrade === 'energy' ? 1 : 0);
+    const third = nextFight({ ...next, phase: 'victory', enemyHp: 0 }, upgrade);
+    assert.equal(third.playerHp, 32);
+    assert.equal(third.counterDamage, upgrade === 'counter' ? 10 : 4);
+    assert.equal(third.heavyDamage, upgrade === 'heavy' ? 32 : 20);
+    assert.equal(third.startingEnergy, upgrade === 'energy' ? 2 : 0);
+    assert.equal(third.enemyHp, 72);
+  }
 });
 
-test('health upgrades heal fully and cannot be purchased outside victory', () => {
-  const won = { ...newCombat(), playerHp: 6, enemyHp: 0, phase: 'victory' };
-  const next = nextFight(won, 'health');
-  assert.equal(next.playerHp, 46);
-  assert.equal(next.playerMaxHp, 46);
-  assert.equal(next.attackDamage, 8);
-  assert.equal(nextFight(next, 'health'), next);
+test('recovery caps at max health and rewards reject invalid phases or choices', () => {
+  const won = { ...newCombat(), playerHp: 38, enemyHp: 0, phase: 'victory' };
+  const next = nextFight(won, 'energy');
+  assert.equal(next.playerHp, 40);
+  assert.equal(nextFight(next, 'energy'), next);
   assert.equal(nextFight(won, 'unknown'), won);
+  assert.equal(nextFight(won, 'health'), won);
   const dead = { ...newCombat(), phase: 'defeat', playerHp: 0 };
-  assert.equal(nextFight(dead, 'health'), dead);
-  assert.equal(newCombat().fight, 1);
-  assert.equal(newCombat().attackDamage, 8);
+  assert.equal(nextFight(dead, 'counter'), dead);
+  assert.equal(newCombat().startingEnergy, 0);
 });
 
 test('enemies alternate and the Duelist uses its own rhythm', () => {
   const initial = newCombat();
   assert.equal(initial.enemy, ENEMIES[0]);
-  const second = nextFight({ ...initial, phase: 'victory', enemyHp: 0 }, 'health');
+  const second = nextFight({ ...initial, phase: 'victory', enemyHp: 0 }, 'energy');
   assert.equal(second.enemy, ENEMIES[1]);
   let incoming = attack(second, 100);
   assert.equal(incoming.impactAt, 1300);
@@ -133,10 +136,10 @@ test('enemies alternate and the Duelist uses its own rhythm', () => {
   assert.equal(incoming.impactAt, 2900);
   assert.equal(advanceEnemy(incoming, 2800), incoming);
   const result = advanceEnemy(parry(incoming, 2900), 2900);
-  assert.equal(result.playerHp, 46);
+  assert.equal(result.playerHp, 40);
   assert.equal(result.enemyHp, 48);
   assert.equal(result.phase, 'player');
-  const third = nextFight({ ...second, phase: 'victory', enemyHp: 0 }, 'attack');
+  const third = nextFight({ ...second, phase: 'victory', enemyHp: 0 }, 'heavy');
   assert.equal(third.enemy, ENEMIES[0]);
 });
 
@@ -158,7 +161,7 @@ test('each enemy cycles through three distinct patterns and all support perfect 
       assert.equal(state.enemyHp, 100 - (turn + 1) * 12);
       assert.equal(state.phase, 'player');
     }
-    const next = nextFight({ ...state, phase: 'victory', enemyHp: 0 }, 'health');
+    const next = nextFight({ ...state, phase: 'victory', enemyHp: 0 }, 'energy');
     assert.equal(next.enemyTurns, 0);
     assert.equal(attack(next).patternIndex, 0);
   }
@@ -240,7 +243,7 @@ test('heavy strike rejects unaffordable and out-of-turn actions; lethal damage c
   assert.equal(result.enemyHp, 0);
   assert.equal(result.energy, 1);
   assert.equal(result.phase, 'victory');
-  assert.equal(nextFight(result, 'attack').energy, 0);
+  assert.equal(nextFight(result, 'heavy').energy, 0);
   assert.equal(newCombat().energy, 0);
 });
 
@@ -264,7 +267,7 @@ test('damage increases every two fights while health rises every fight', () => {
     assert.deepEqual(incoming.hits.map(hit => hit.damage), expected[fight]);
     const afterHit = advanceEnemy(incoming, incoming.impactAt);
     assert.equal(afterHit.playerHp, state.playerHp - expected[fight][0]);
-    state = nextFight({ ...state, phase: 'victory', enemyHp: 0 }, 'health');
+    state = nextFight({ ...state, phase: 'victory', enemyHp: 0 }, 'energy');
   }
   assert.deepEqual(ENEMIES[0].patterns[0].map(hit => hit.damage), [3, 3, 5]);
 });
@@ -276,9 +279,9 @@ test('a full run reaches the final boss, completes, and cannot progress again', 
     assert.equal(state.enemy, fight === RUN_LENGTH ? BOSS : ENEMIES[(fight - 1) % 2]);
     while (state.phase === 'player') state = perfectCombo(attack(state));
     assert.equal(state.phase, fight === RUN_LENGTH ? 'complete' : 'victory');
-    if (fight < RUN_LENGTH) state = nextFight(state, 'health');
+    if (fight < RUN_LENGTH) state = nextFight(state, 'energy');
   }
-  assert.equal(nextFight(state, 'health'), state);
+  assert.equal(nextFight(state, 'energy'), state);
   assert.equal(attack(state), state);
   assert.equal(heavyStrike(state), state);
   assert.equal(parry(state, 99999), state);
@@ -292,7 +295,7 @@ test('all ways of landing the final blow complete the run', () => {
   assert.equal(heavyStrike(final).phase, 'complete');
   assert.equal(perfectCombo(attack({ ...final, enemyHp: 10 })).phase, 'complete');
   const forgedVictory = { ...final, enemyHp: 0, phase: 'victory' };
-  assert.equal(nextFight(forgedVictory, 'attack'), forgedVictory);
+  assert.equal(nextFight(forgedVictory, 'heavy'), forgedVictory);
 });
 
 test('all three boss patterns require four parries and deal stronger damage', () => {
@@ -378,4 +381,19 @@ test('healing caps at upgraded max health and rejects invalid actions without sp
     const state = { ...newCombat(), playerHp: 20, energy: 3, phase };
     assert.equal(heal(state), state);
   }
+});
+
+test('combat uses rewarded damage and Prepared unlocks earlier skills', () => {
+  const won = { ...newCombat(), enemyHp: 0, phase: 'victory' };
+  const counterBuild = nextFight(won, 'counter');
+  assert.equal(perfectCombo(attack(counterBuild)).enemyHp, 45);
+  const heavyBuild = nextFight(won, 'heavy');
+  assert.equal(heavyStrike({ ...heavyBuild, energy: 3 }).enemyHp, 34);
+  const prepared = nextFight(won, 'energy');
+  const afterAttack = perfectCombo(attack(prepared));
+  assert.equal(afterAttack.energy, 2);
+  assert.equal(heal({ ...afterAttack, playerHp: 20 }).playerHp, 32);
+  const afterSecond = perfectCombo(attack(afterAttack));
+  assert.equal(afterSecond.energy, 3);
+  assert.equal(heavyStrike(afterSecond).energy, 0);
 });

@@ -29,29 +29,36 @@ export const PARRY_WINDOW_MS = 180;
 export const DODGE_WINDOW_MS = 360;
 export const HEAVY_STRIKE = { cost: 3, damage: 20 };
 export const HEAL = { cost: 2, amount: 12 };
+export const RECOVERY_HP = 10;
 
 export function newCombat() {
   return {
-    playerHp: 40, playerMaxHp: 40, attackDamage: 8, energy: 0,
+    playerHp: 40, playerMaxHp: 40, attackDamage: 8, energy: 0, startingEnergy: 0,
+    counterDamage: 4, heavyDamage: HEAVY_STRIKE.damage,
     enemy: ENEMIES[0], enemyTurns: 0, enemyHp: 48, enemyMaxHp: 48, fight: 1,
     phase: 'player', message: 'Your turn. Choose Attack.',
   };
 }
 
 export function nextFight(state, upgrade) {
-  if (state.phase !== 'victory' || state.fight >= RUN_LENGTH || !['attack', 'health'].includes(upgrade)) return state;
-  const playerMaxHp = state.playerMaxHp + (upgrade === 'health' ? 6 : 0);
+  if (state.phase !== 'victory' || state.fight >= RUN_LENGTH || !['counter', 'energy', 'heavy'].includes(upgrade)) return state;
   const enemyMaxHp = state.enemyMaxHp + 12;
+  const startingEnergy = state.startingEnergy + (upgrade === 'energy' ? 1 : 0);
+  const playerHp = Math.min(state.playerMaxHp, state.playerHp + RECOVERY_HP);
   return {
     ...newCombat(),
-    playerMaxHp,
-    playerHp: upgrade === 'health' ? playerMaxHp : state.playerHp,
-    attackDamage: state.attackDamage + (upgrade === 'attack' ? 2 : 0),
+    playerMaxHp: state.playerMaxHp,
+    playerHp,
+    attackDamage: state.attackDamage,
+    counterDamage: state.counterDamage + (upgrade === 'counter' ? 3 : 0),
+    heavyDamage: state.heavyDamage + (upgrade === 'heavy' ? 6 : 0),
+    startingEnergy,
+    energy: startingEnergy,
     enemyMaxHp,
     enemyHp: enemyMaxHp,
     fight: state.fight + 1,
     enemy: state.fight + 1 === RUN_LENGTH ? BOSS : ENEMIES[state.fight % ENEMIES.length],
-    message: upgrade === 'health' ? 'Health upgraded and fully restored. Your turn.' : 'Attack upgraded. Your turn.',
+    message: `Upgrade applied. Recovered ${playerHp - state.playerHp} HP. Your turn.`,
   };
 }
 
@@ -66,7 +73,7 @@ export function heavyStrike(state, now = 0) {
 function strike(state, now, heavy) {
   if (state.phase !== 'player') return state;
   if (heavy && state.energy < HEAVY_STRIKE.cost) return state;
-  const damage = heavy ? HEAVY_STRIKE.damage : state.attackDamage;
+  const damage = heavy ? state.heavyDamage : state.attackDamage;
   const enemyHp = Math.max(0, state.enemyHp - damage);
   const next = {
     ...state,
@@ -139,7 +146,7 @@ export function retaliate(state) {
   const allParried = state.allParried && parried;
   const hitIndex = state.hitIndex + 1;
   const finished = hitIndex === state.hits.length;
-  const enemyHp = Math.max(0, state.enemyHp - (finished && allParried ? 4 : 0));
+  const enemyHp = Math.max(0, state.enemyHp - (finished && allParried ? state.counterDamage : 0));
   return {
     ...state,
     playerHp,
@@ -151,7 +158,7 @@ export function retaliate(state) {
     phase: playerHp === 0 ? 'defeat' : enemyHp === 0 ? state.fight === RUN_LENGTH ? 'complete' : 'victory' : finished ? 'player' : 'enemy',
     message: playerHp === 0 ? 'Defeat. Try again.'
       : enemyHp === 0 ? `Parried! Your counter finishes the ${state.enemy.name}. Victory!`
-      : finished && allParried ? 'Perfect combo! You counter for 4 damage. Your turn.'
+      : finished && allParried ? `Perfect combo! You counter for ${state.counterDamage} damage. Your turn.`
       : finished ? blocked ? 'Final hit avoided. No counter. Your turn.' : `Final hit deals ${damage} damage. No counter. Your turn.`
       : blocked ? `Hit ${hitIndex} ${parried ? 'parried' : 'dodged'}! Prepare for the next strike.`
       : `Hit ${hitIndex} deals ${damage} damage. Prepare for the next strike.`,
