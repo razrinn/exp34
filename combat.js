@@ -3,16 +3,16 @@ export const ENEMIES = [
     name: 'Sentinel', symbol: '♜',
     patterns: [
       [{ time: 1500, damage: 3 }, { time: 2200, damage: 3 }, { time: 3100, damage: 5 }],
-      [{ time: 1800, damage: 3 }, { time: 2300, damage: 3 }, { time: 2800, damage: 5 }],
-      [{ time: 1100, damage: 3 }, { time: 2100, damage: 3 }, { time: 3500, damage: 5 }],
+      [{ time: 1800, damage: 5 }, { time: 2800, damage: 6 }],
+      [{ time: 2400, damage: 9 }],
     ],
   },
   {
     name: 'Duelist', symbol: '⚔',
     patterns: [
       [{ time: 1200, damage: 3 }, { time: 1600, damage: 3 }, { time: 2800, damage: 5 }],
-      [{ time: 1600, damage: 3 }, { time: 2000, damage: 3 }, { time: 2400, damage: 5 }],
-      [{ time: 1000, damage: 3 }, { time: 2300, damage: 3 }, { time: 2700, damage: 5 }],
+      [{ time: 1600, damage: 5 }, { time: 2000, damage: 6 }],
+      [{ time: 1300, damage: 9 }],
     ],
   },
 ];

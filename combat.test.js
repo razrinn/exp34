@@ -142,6 +142,7 @@ test('enemies alternate and the Duelist uses its own rhythm', () => {
 test('each enemy cycles through three distinct patterns and all support perfect counters', () => {
   for (const enemy of ENEMIES) {
     assert.equal(enemy.patterns.length, 3);
+    assert.deepEqual(enemy.patterns.map(pattern => pattern.length), [3, 2, 1]);
     assert.equal(new Set(enemy.patterns.map(pattern => JSON.stringify(pattern))).size, 3);
     let state = { ...newCombat(), enemy, enemyHp: 100, enemyMaxHp: 100 };
     for (let turn = 0; turn < 4; turn++) {
@@ -326,4 +327,23 @@ test('ignoring defense loses the opening fight before basic attacks can win', ()
   assert.equal(state.phase, 'defeat');
   assert.equal(state.playerHp, 0);
   assert.equal(state.enemyHp, 16);
+});
+
+test('shorter variants resolve every hit and a dodge still forfeits the counter', () => {
+  for (const enemy of ENEMIES) {
+    for (let variant = 0; variant < 3; variant++) {
+      const incoming = attack({ ...newCombat(), enemy, enemyTurns: variant });
+      const missed = advanceEnemy(incoming, 99999);
+      assert.equal(missed.playerHp, variant === 2 ? 31 : 29);
+      assert.equal(missed.hitIndex, 3 - variant);
+      assert.equal(missed.phase, 'player');
+      let avoided = incoming;
+      while (avoided.phase === 'enemy') {
+        const action = avoided.hitIndex === 0 ? dodge : parry;
+        avoided = advanceEnemy(action(avoided, avoided.impactAt), avoided.impactAt);
+      }
+      assert.equal(avoided.playerHp, 40);
+      assert.equal(avoided.enemyHp, 40);
+    }
+  }
 });

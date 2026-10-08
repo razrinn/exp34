@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 18
+## Checkpoint 19
 
 One character, two regular enemies, a final boss, turns, health, restart, timed defenses, and counters.
 Runs have five fights: Sentinel → Duelist → Sentinel → Duelist → Warden.
@@ -20,6 +20,9 @@ or victory/defeat when health reaches zero.
 The sentinel strikes at 1500, 2200, and 3100 ms from the combo's start.
 The Duelist strikes at 1200, 1600, and 2800 ms: two quick hits and a delayed finisher.
 Each enemy has three rhythms, cycling in order on successive enemy turns.
+Regular variants have three hits (3/3/5), two hits (5/6), or one heavy hit (9).
+Those are opening-stage damages; the same stage scaling applies to every hit.
+The Sentinel's single strike has a long wind-up; the Duelist's lands sooner.
 Names, symbols, timing patterns, and per-hit damage live in `ENEMIES` in `combat.js`.
 `enemyTurns % patterns.length` selects the next pattern; a new fight resets the cycle.
 The run alternates Sentinel → Duelist → Sentinel, using the same combat rules.
@@ -50,8 +53,9 @@ adds a 4-damage counter: four perfect rounds win the first fight.
 You start with 40 health. Missing a whole combo costs 11 health in the opening fights, leaving 29.
 Each pattern pairs a hit time with its damage, e.g. `{ time: 3100, damage: 5 }`.
 
-Every two fights adds 1 damage to every hit: fights 1–2 deal 3/3/5,
-fights 3–4 deal 4/4/6. The boss's four-hit combos deal 6/6/6/10 after scaling. Timing windows stay constant.
+Every two fights adds 1 damage to every hit. For the three-hit variant,
+fights 1–2 deal 3/3/5 and fights 3–4 deal 4/4/6. The boss's four-hit combos
+deal 6/6/6/10 after scaling. Timing windows stay constant.
 
 After victory, choose +2 attack damage (keep current health) or +6 max health
 with a full heal. Each next opponent has 12 more health. Upgrades accumulate
