@@ -1,3 +1,5 @@
+import { actionPose } from './animation.js';
+
 // One shared cube mesh; the vertex shader places it in a fixed, angled camera.
 export function createScene(canvas) {
   const gl = canvas.getContext?.('webgl', { antialias: true });
@@ -69,7 +71,8 @@ export function createScene(canvas) {
   gl.enable(gl.DEPTH_TEST);
   let pose = { x: 0, y: 0, rotation: 0 };
   let enemy = 'Sentinel';
-  const flashes = { player: null, enemy: null };
+  const effects = { player: null, enemy: null };
+  let effectFrame;
   function box(offset, size, color, tilt = 0) {
     gl.uniform3fv(uniforms.offset, offset);
     gl.uniform3fv(uniforms.size, size);
@@ -77,18 +80,30 @@ export function createScene(canvas) {
     gl.uniform1f(uniforms.tilt, tilt);
     gl.drawArrays(gl.TRIANGLES, 0, 36);
   }
-  function fighter(x, color, scale, tilt = 0, lift = 0) {
-    const part = (y, size, z = 0, dx = 0) => box([x + dx, y * scale + lift, z], size.map(v => v * scale), color, tilt);
-    part(1.2, [.65,.85,.4]);
-    part(1.9, [.42,.42,.42]);
-    part(.4, [.22,.8,.28], 0, -.2 * scale);
-    part(.4, [.22,.8,.28], 0, .2 * scale);
-    part(1.1, [.18,.7,.22], 0, -.48 * scale);
-    part(1.1, [.18,.7,.22], 0, .48 * scale);
-    // A blade on the side facing the opponent.
-    box([x + (x < 0 ? .65 : -.65) * scale, 1.3 * scale + lift, .2], [.09,1.3 * scale,.12], [.75,.8,.84], tilt);
+  function fighter(x, color, scale, lean = 0, lift = 0, sword = 0, facing = 1) {
+    // Rotate all part positions around the feet, keeping the body connected.
+    const part = (px, py, size, tilt = 0, z = 0) => {
+      const c = Math.cos(lean), s = Math.sin(lean);
+      box([x + (px * c - py * s) * scale, (px * s + py * c) * scale + lift, z], size.map(v => v * scale), color, lean + tilt);
+    };
+    part(0, 1.15, [.55,.75,.38]);
+    part(0, 1.75, [.36,.36,.36]);
+    part(-.16, .4, [.2,.8,.26]);
+    part(.16, .4, [.2,.8,.26]);
+    part(-facing * .38, 1.1, [.17,.65,.22]);
+    const armX = facing * .38 + Math.sin(sword) * .3;
+    const armY = 1.4 - Math.cos(sword) * .3;
+    part(armX, armY, [.17,.6,.22], sword);
+    // Blade rotates around the weapon hand, rather than around its own center.
+    const angle = sword + facing * -.2;
+    const handX = facing * .38 + Math.sin(sword) * .6;
+    const handY = 1.4 - Math.cos(sword) * .6;
+    const bladeX = handX - Math.sin(angle) * .55;
+    const bladeY = handY + Math.cos(angle) * .55;
+    const c = Math.cos(lean), sn = Math.sin(lean);
+    box([x + (bladeX * c - bladeY * sn) * scale, (bladeX * sn + bladeY * c) * scale + lift, .22], [.08,1.1 * scale,.1], [.75,.8,.84], lean + angle);
   }
-  function draw() {
+  function draw(now = performance.now()) {
     const ratio = Math.min(globalThis.devicePixelRatio || 1, 2);
     const width = Math.max(1, Math.round(canvas.clientWidth * ratio));
     const height = Math.max(1, Math.round(canvas.clientHeight * ratio));
@@ -99,14 +114,27 @@ export function createScene(canvas) {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     const aspect = canvas.width / canvas.height;
     gl.uniform1f(uniforms.aspect, aspect);
-    gl.uniform1f(uniforms.viewHeight, Math.max(2.5, 3 / aspect));
+    gl.uniform1f(uniforms.viewHeight, Math.max(1.9, 2.8 / aspect));
     box([0,-.1,0], [20,.2,14], [.16,.2,.22]);
     for (const x of [-1.5,1.5]) box([x,.015,0], [1.4,.025,1.1], [.23,.28,.29]);
-    fighter(-1.5, flashes.player || [.43,.72,.78], 1);
+    const playerEffect = effects.player;
+    const enemyEffect = effects.enemy;
+    const playerPose = actionPose(playerEffect?.kind, now - (playerEffect?.started || 0));
+    const reaction = actionPose(enemyEffect?.kind, now - (enemyEffect?.started || 0));
+    fighter(-1.5 + playerPose.x, playerPose.active && playerEffect ? playerEffect.color : [.43,.72,.78], 1, playerPose.lean, playerPose.lift, playerPose.sword);
     const color = enemy === 'Duelist' ? [.78,.47,.38] : [.82,.65,.4];
-    fighter(1.5 + pose.x / 100, flashes.enemy || color, enemy === 'Warden' ? 1.2 : 1, -pose.rotation * Math.PI / 180, -pose.y / 100);
+    const swing = pose.rotation * Math.PI / 180;
+    fighter(1.5 + pose.x / 120 - reaction.x, reaction.active && enemyEffect ? enemyEffect.color : color, enemy === 'Warden' ? 1.15 : 1, -swing * .15 - reaction.lean, -pose.y / 150, -swing * 2, -1);
   }
-  new ResizeObserver(draw).observe(canvas);
+  function animateEffects(now) {
+    effectFrame = undefined;
+    draw(now);
+    if (Object.values(effects).some(effect => effect && actionPose(effect.kind, now - effect.started).active)) {
+      effectFrame = requestAnimationFrame(animateEffects);
+    }
+  }
+
+  new ResizeObserver(() => draw()).observe(canvas);
   canvas.addEventListener('webglcontextlost', event => {
     event.preventDefault();
     canvas.closest('.arena').classList.remove('has-webgl');
@@ -114,11 +142,19 @@ export function createScene(canvas) {
   canvas.addEventListener('webglcontextrestored', () => location.reload());
   return {
     render(name, nextPose = { x: 0, y: 0, rotation: 0 }) { enemy = name; pose = nextPose; draw(); },
-    flash(target, hex) {
+    feedback(kind, target, hex) {
       const color = hex.match(/\w\w/g).map(v => parseInt(v, 16) / 255);
-      flashes[target] = color;
-      draw();
-      setTimeout(() => { if (flashes[target] === color) { flashes[target] = null; draw(); } }, 250);
+      const started = performance.now();
+      effects[target] = { kind: target === 'enemy' ? 'hit' : kind, color, started };
+      if (['attack', 'heavy', 'counter'].includes(kind)) effects.player = { kind, color: [.43,.72,.78], started };
+      draw(started);
+      if (effectFrame === undefined) effectFrame = requestAnimationFrame(animateEffects);
+    },
+    reset() {
+      cancelAnimationFrame(effectFrame);
+      effectFrame = undefined;
+      effects.player = effects.enemy = null;
+      pose = { x: 0, y: 0, rotation: 0 };
     },
   };
 }

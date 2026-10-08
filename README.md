@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 30
+## Checkpoint 31
 
 `scene.js` draws a WebGL battlefield and two block fighters with one shared cube mesh.
 A vertex shader scales and positions each cube, then projects it through a fixed
@@ -12,7 +12,11 @@ orthographic camera; a fragment shader shades faces using their normals.
 Existing enemy timing drives the 3D wind-up and swing. Combat feedback flashes the
 fighters. The browser runs WebGL locally; the VPS only serves the files. No WASM or
 rendering dependency is needed. Unsupported WebGL falls back to the symbol scene.
-Detailed movement and models are later checkpoints.
+Player attacks and counters lunge and swing; dodges step back, parries raise the
+blade, hits recoil, and heals lift the character. `actionPose` in `animation.js`
+returns each motion to rest. Parts rotate together around the feet, with a separate
+weapon pivot. The canvas reserves space for HP cards and combat messages.
+Detailed models remain a later checkpoint.
 
 
 One character, two regular enemies, a final boss, turns, health, restart, timed defenses, and counters.

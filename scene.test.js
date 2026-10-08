@@ -21,8 +21,8 @@ test('scene falls back without WebGL and draws the shared mesh for both fighters
     const initial = calls.filter(([name, uniform]) => name === 'uniform3fv' && uniform === 'size').at(-1)[2][1];
     scene.render('Warden', { x: -50, y: 0, rotation: -45 });
     const boss = calls.filter(([name, uniform]) => name === 'uniform3fv' && uniform === 'size').at(-1)[2][1];
-    assert.equal(boss, initial * 1.2);
-    assert.ok(calls.some(([name, uniform, value]) => name === 'uniform1f' && uniform === 'tilt' && value === Math.PI / 4));
+    assert.equal(boss, initial * 1.15);
+    assert.ok(calls.some(([name, uniform, value]) => name === 'uniform1f' && uniform === 'tilt' && Math.abs(value) > .5));
   } finally {
     globalThis.ResizeObserver = previous;
   }

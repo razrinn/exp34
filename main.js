@@ -38,7 +38,7 @@ function saveIfEnded() {
 
 function feedback(kind, target) {
   const colors = { attack: '#d1aa72', heavy: '#ffa75b', hit: '#ef6868', parry: '#91e8ff', dodge: '#94a2be', counter: '#fff0a0', heal: '#8ae4a0' };
-  scene?.flash(target === playerFigure ? 'player' : 'enemy', colors[kind]);
+  scene?.feedback(kind, target === playerFigure ? 'player' : 'enemy', colors[kind]);
   target.animate([
     { filter: `brightness(1.8) drop-shadow(0 0 22px ${colors[kind]})`, opacity: kind === 'dodge' ? 0.3 : 1 },
     { filter: 'brightness(1)', opacity: 1 },
@@ -166,6 +166,7 @@ document.addEventListener('keydown', (event) => {
 
 function restartRun() {
   cancelAnimationFrame(enemyFrame);
+  scene?.reset();
   state = newCombat();
   document.querySelector('#save-status').textContent = clearRun()
     ? 'New run. Save cleared.' : 'Could not clear the saved run. Browser storage is unavailable.';
@@ -189,6 +190,7 @@ document.querySelector('#fullscreen').addEventListener('click', async () => {
 for (const button of document.querySelectorAll('[data-upgrade]')) {
   button.addEventListener('click', () => {
     cancelAnimationFrame(enemyFrame);
+    scene?.reset();
     state = nextFight(state, button.dataset.upgrade);
     saveCheckpoint();
     render();

@@ -82,7 +82,7 @@ dialog p { color: var(--muted); font-size: 14px; line-height: 1.6; }
 }
 
 #battle-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: none; pointer-events: none; }
-.has-webgl #battle-canvas { display: block; }
+.has-webgl #battle-canvas { display: block; top: 105px; bottom: 100px; height: calc(100% - 205px); }
 .has-webgl::before { display: none; }
 .has-webgl .figure { visibility: hidden; }
 .has-webgl .health-card { background: #111519cc; padding: 12px; border-radius: 8px; }
