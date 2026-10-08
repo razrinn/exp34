@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 24
+## Checkpoint 25
 
 One character, two regular enemies, a final boss, turns, health, restart, timed defenses, and counters.
 Runs have five fights: Sentinel → Duelist → Sentinel → Duelist → Warden.
@@ -78,7 +78,11 @@ attacks afterward using its next pattern. Healing at full health is disabled
 and spends no energy. Recovery is capped at max health, including upgrades.
 `beginEnemyTurn` starts the same enemy timeline after attacks or healing.
 
-Sound cues and saving progress are not implemented yet.
+Damage flashes red; parries blue; counters gold; heals green. Dodges briefly
+fade the player. Attacks and Heavy Strike also flash the enemy.
+Short synthesized tones distinguish each event. Sound starts on your first
+action and can be disabled in Help & settings. No audio files or dependencies.
+Saving progress is not implemented yet.
 
 Keyboard controls: Q attacks, W uses Heavy Strike, E heals, Space parries,
 and Shift dodges. Holding a key does not repeat actions. Shortcuts respect

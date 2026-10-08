@@ -11,6 +11,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
         style: {}, checked: false, listeners: {}, open: false,
         showModal() { this.open = true; },
         close() { this.open = false; },
+        animate() {},
         addEventListener(type, handler) { this.listeners[type] = handler; },
       });
       return elements.get(selector);

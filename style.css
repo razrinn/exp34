@@ -19,6 +19,7 @@ nav { display: flex; align-items: center; gap: 16px; }
 .help-panel { position: absolute; top: 36px; right: 0; width: min(340px, 88vw); padding: 24px; z-index: 5; background: #1b2229; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 60px #0008; font-size: 13px; line-height: 1.7; }
 .help-panel h2 { font-size: 18px; margin-top: 0; }
 .help-panel p { color: var(--muted); }
+.help-panel label { display: block; margin: 8px 0; }
 .arena { position: relative; min-height: 380px; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 10vw; padding: 36px 12vw 120px; background: radial-gradient(ellipse at 50% 90%, #35434666, transparent 65%), linear-gradient(180deg, #111519, #182027); overflow: hidden; }
 .arena::before { content: ''; position: absolute; left: 8%; right: 8%; bottom: 100px; height: 1px; background: linear-gradient(90deg, transparent, #ffffff25, transparent); }
 .combatant { text-align: center; position: relative; }

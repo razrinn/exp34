@@ -1,5 +1,6 @@
 import { newCombat, nextFight, attack, heavyStrike, heal, parry, dodge, advanceEnemy, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE, HEAL, RUN_LENGTH } from './combat.js';
 import { enemyPose } from './animation.js';
+import { playCue } from './sound.js';
 
 let state = newCombat();
 let enemyFrame;
@@ -14,6 +15,17 @@ const enemyFigure = document.querySelector('#enemy-symbol');
 const practice = document.querySelector('#practice');
 const rewards = document.querySelector('#upgrades');
 const result = document.querySelector('#run-complete');
+const playerFigure = document.querySelector('#player-symbol');
+const sound = document.querySelector('#sound');
+
+function feedback(kind, target) {
+  const colors = { attack: '#d1aa72', heavy: '#ffa75b', hit: '#ef6868', parry: '#91e8ff', dodge: '#94a2be', counter: '#fff0a0', heal: '#8ae4a0' };
+  target.animate([
+    { filter: `brightness(1.8) drop-shadow(0 0 22px ${colors[kind]})`, opacity: kind === 'dodge' ? 0.3 : 1 },
+    { filter: 'brightness(1)', opacity: 1 },
+  ], { duration: 250 });
+  if (sound.checked) playCue(kind);
+}
 
 function render() {
   document.querySelector('#player-hp').textContent = `${state.playerHp} / ${state.playerMaxHp}`;
@@ -65,7 +77,8 @@ function hitDuration() {
 function updateEnemy(now) {
   const next = advanceEnemy(state, now);
   if (next !== state) {
-    enemyFigure.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 160 });
+    feedback(state.defenseResult === 'parry' ? 'parry' : state.defenseResult === 'dodge' ? 'dodge' : 'hit', playerFigure);
+    if (next.enemyHp < state.enemyHp) feedback('counter', enemyFigure);
     state = next;
     render();
   }
@@ -80,6 +93,7 @@ function updateEnemy(now) {
 function tryAction(action) {
   const next = action(state, performance.now());
   if (next === state) return;
+  feedback(action === heal ? 'heal' : action === heavyStrike ? 'heavy' : 'attack', action === heal ? playerFigure : enemyFigure);
   state = next;
   render();
   if (state.phase === 'enemy') {
