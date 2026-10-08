@@ -6,7 +6,7 @@ import { loadRun, saveRun, clearRun } from './save.js';
 
 let scene;
 try {
-  scene = createScene(document.querySelector('#battle-canvas'));
+  scene = await createScene(document.querySelector('#battle-canvas'));
   if (scene) document.querySelector('.arena').classList.add('has-webgl');
 } catch (error) {
   console.warn('WebGL unavailable; using symbol scene.', error);
@@ -116,7 +116,7 @@ function updateEnemy(now) {
   if (state.phase !== 'enemy') return;
   const progress = 1 - (state.impactAt - now) / hitDuration();
   const pose = enemyPose(state.impactAt - now, hitDuration());
-  scene?.render(state.enemy.name, pose);
+  scene?.render(state.enemy.name, pose, { remaining: state.impactAt - now, duration: hitDuration() });
   enemyFigure.style.transform = `translate(${pose.x}px, ${pose.y}px) rotate(${pose.rotation}deg)`;
   marker.style.left = `${Math.max(0, progress) * 100}%`;
   enemyFrame = requestAnimationFrame(updateEnemy);

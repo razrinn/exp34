@@ -1,29 +1,27 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync, existsSync } from 'node:fs';
 import { createScene } from './scene.js';
 
-test('scene falls back without WebGL and draws the shared mesh for both fighters', () => {
-  assert.equal(createScene({ getContext: () => null }), null);
-  const previous = globalThis.ResizeObserver;
-  const calls = [];
-  const gl = new Proxy({
-    getShaderParameter: () => true,
-    getProgramParameter: () => true,
-    getUniformLocation: (_, name) => name,
-    getAttribLocation: () => 0,
-  }, { get(target, key) { return target[key] || ((...args) => calls.push([key, ...args])); } });
-  globalThis.ResizeObserver = class { observe() {} };
-  try {
-    const scene = createScene({ getContext: () => gl, clientWidth: 800, clientHeight: 400, addEventListener() {} });
-    scene.render('Sentinel');
-    assert.equal(calls.find(([name]) => name === 'bufferData')[2].length, 36 * 6);
-    assert.equal(calls.filter(([name]) => name === 'drawArrays').length, 17);
-    const initial = calls.filter(([name, uniform]) => name === 'uniform3fv' && uniform === 'size').at(-1)[2][1];
-    scene.render('Warden', { x: -50, y: 0, rotation: -45 });
-    const boss = calls.filter(([name, uniform]) => name === 'uniform3fv' && uniform === 'size').at(-1)[2][1];
-    assert.equal(boss, initial * 1.15);
-    assert.ok(calls.some(([name, uniform, value]) => name === 'uniform1f' && uniform === 'tilt' && Math.abs(value) > .5));
-  } finally {
-    globalThis.ResizeObserver = previous;
+test('unsupported WebGL returns the playable symbol fallback', async () => {
+  assert.equal(await createScene({ getContext: () => null }), null);
+});
+
+test('shipped characters contain combat clips, skinning, textures, and weapon slots', () => {
+  const required = ['Idle', '1H_Melee_Attack_Chop', '1H_Melee_Attack_Slice_Horizontal', '1H_Melee_Attack_Stab', 'Dodge_Backward', 'Block', 'Hit_A', 'Use_Item'];
+  for (const name of ['Knight', 'Skeleton_Warrior', 'Skeleton_Rogue', 'Skeleton_Mage']) {
+    const data = readFileSync(new URL(`./assets/characters/${name}.glb`, import.meta.url));
+    assert.equal(data.toString('ascii', 0, 4), 'glTF');
+    assert.equal(data.readUInt32LE(8), data.length);
+    const model = JSON.parse(data.toString('utf8', 20, 20 + data.readUInt32LE(12)));
+    for (const clip of required) assert.ok(model.animations.some(a => a.name === clip), `${name}: missing ${clip}`);
+    assert.ok(model.skins.length > 0);
+    assert.ok(model.images.length > 0);
+    assert.ok(model.nodes.some(n => n.name === 'handslot.r'));
+  }
+  for (const name of ['Skeleton_Blade', 'Skeleton_Staff']) {
+    const url = new URL(`./assets/equipment/${name}.gltf`, import.meta.url);
+    const model = JSON.parse(readFileSync(url));
+    for (const resource of [...model.buffers, ...model.images]) assert.ok(existsSync(new URL(resource.uri, url)));
   }
 });

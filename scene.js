@@ -1,160 +1,194 @@
+import * as THREE from 'three';
+import { GLTFLoader } from './node_modules/three/examples/jsm/loaders/GLTFLoader.js';
 import { actionPose } from './animation.js';
 
-// One shared cube mesh; the vertex shader places it in a fixed, angled camera.
-export function createScene(canvas) {
-  const gl = canvas.getContext?.('webgl', { antialias: true });
-  if (!gl) return null;
-  function shader(type, source) {
-    const value = gl.createShader(type);
-    gl.shaderSource(value, source);
-    gl.compileShader(value);
-    if (!gl.getShaderParameter(value, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(value));
-    return value;
-  }
-  const program = gl.createProgram();
-  const vertex = shader(gl.VERTEX_SHADER, `
-    attribute vec3 position;
-    attribute vec3 normal;
-    uniform vec3 offset;
-    uniform vec3 size;
-    uniform float tilt;
-    uniform float aspect;
-    uniform float viewHeight;
-    varying float light;
-    void main() {
-      float c = cos(tilt), s = sin(tilt);
-      vec3 p = position * size;
-      p.xy = mat2(c, s, -s, c) * p.xy;
-      p += offset;
-      // Orthographic projection: camera looks down toward the floor.
-      float y = (p.y - 1.0) * 0.92 - p.z * 0.39;
-      float depth = (p.y - 1.0) * 0.39 + p.z * 0.92;
-      gl_Position = vec4(p.x / (viewHeight * aspect), y / viewHeight, -depth / 20.0, 1.0);
-      vec3 n = normal;
-      n.xy = mat2(c, s, -s, c) * n.xy;
-      light = 0.4 + 0.6 * max(0.0, dot(n, normalize(vec3(-0.4, 1.0, 0.7))));
-    }
-  `);
-  const fragment = shader(gl.FRAGMENT_SHADER, `
-    precision mediump float;
-    uniform vec3 color;
-    varying float light;
-    void main() { gl_FragColor = vec4(color * light, 1.0); }
-  `);
-  gl.attachShader(program, vertex);
-  gl.attachShader(program, fragment);
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
-  gl.deleteShader(vertex);
-  gl.deleteShader(fragment);
-  gl.useProgram(program);
-  const vertices = [];
-  const faces = [
-    [[1,0,0], [[1,-1,-1],[1,1,-1],[1,1,1],[1,-1,1]]],
-    [[-1,0,0], [[-1,-1,1],[-1,1,1],[-1,1,-1],[-1,-1,-1]]],
-    [[0,1,0], [[-1,1,-1],[-1,1,1],[1,1,1],[1,1,-1]]],
-    [[0,-1,0], [[-1,-1,1],[-1,-1,-1],[1,-1,-1],[1,-1,1]]],
-    [[0,0,1], [[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]]],
-    [[0,0,-1], [[1,-1,-1],[-1,-1,-1],[-1,1,-1],[1,1,-1]]],
-  ];
-  for (const [normal, corners] of faces) {
-    for (const i of [0,1,2,0,2,3]) vertices.push(...corners[i].map(v => v / 2), ...normal);
-  }
-  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-  for (const [name, offset] of [['position', 0], ['normal', 12]]) {
-    const location = gl.getAttribLocation(program, name);
-    gl.enableVertexAttribArray(location);
-    gl.vertexAttribPointer(location, 3, gl.FLOAT, false, 24, offset);
-  }
-  const uniforms = Object.fromEntries(['offset','size','tilt','aspect','viewHeight','color'].map(name => [name, gl.getUniformLocation(program, name)]));
-  gl.enable(gl.DEPTH_TEST);
-  let pose = { x: 0, y: 0, rotation: 0 };
-  let enemy = 'Sentinel';
-  const effects = { player: null, enemy: null };
-  let effectFrame;
-  function box(offset, size, color, tilt = 0) {
-    gl.uniform3fv(uniforms.offset, offset);
-    gl.uniform3fv(uniforms.size, size);
-    gl.uniform3fv(uniforms.color, color);
-    gl.uniform1f(uniforms.tilt, tilt);
-    gl.drawArrays(gl.TRIANGLES, 0, 36);
-  }
-  function fighter(x, color, scale, lean = 0, lift = 0, sword = 0, facing = 1) {
-    // Rotate all part positions around the feet, keeping the body connected.
-    const part = (px, py, size, tilt = 0, z = 0) => {
-      const c = Math.cos(lean), s = Math.sin(lean);
-      box([x + (px * c - py * s) * scale, (px * s + py * c) * scale + lift, z], size.map(v => v * scale), color, lean + tilt);
-    };
-    part(0, 1.15, [.55,.75,.38]);
-    part(0, 1.75, [.36,.36,.36]);
-    part(-.16, .4, [.2,.8,.26]);
-    part(.16, .4, [.2,.8,.26]);
-    part(-facing * .38, 1.1, [.17,.65,.22]);
-    const armX = facing * .38 + Math.sin(sword) * .3;
-    const armY = 1.4 - Math.cos(sword) * .3;
-    part(armX, armY, [.17,.6,.22], sword);
-    // Blade rotates around the weapon hand, rather than around its own center.
-    const angle = sword + facing * -.2;
-    const handX = facing * .38 + Math.sin(sword) * .6;
-    const handY = 1.4 - Math.cos(sword) * .6;
-    const bladeX = handX - Math.sin(angle) * .55;
-    const bladeY = handY + Math.cos(angle) * .55;
-    const c = Math.cos(lean), sn = Math.sin(lean);
-    box([x + (bladeX * c - bladeY * sn) * scale, (bladeX * sn + bladeY * c) * scale + lift, .22], [.08,1.1 * scale,.1], [.75,.8,.84], lean + angle);
-  }
-  function draw(now = performance.now()) {
-    const ratio = Math.min(globalThis.devicePixelRatio || 1, 2);
-    const width = Math.max(1, Math.round(canvas.clientWidth * ratio));
-    const height = Math.max(1, Math.round(canvas.clientHeight * ratio));
-    if (canvas.width !== width) canvas.width = width;
-    if (canvas.height !== height) canvas.height = height;
-    gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clearColor(.065,.083,.1,1);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    const aspect = canvas.width / canvas.height;
-    gl.uniform1f(uniforms.aspect, aspect);
-    gl.uniform1f(uniforms.viewHeight, Math.max(1.9, 2.8 / aspect));
-    box([0,-.1,0], [20,.2,14], [.16,.2,.22]);
-    for (const x of [-1.5,1.5]) box([x,.015,0], [1.4,.025,1.1], [.23,.28,.29]);
-    const playerEffect = effects.player;
-    const enemyEffect = effects.enemy;
-    const playerPose = actionPose(playerEffect?.kind, now - (playerEffect?.started || 0));
-    const reaction = actionPose(enemyEffect?.kind, now - (enemyEffect?.started || 0));
-    fighter(-1.5 + playerPose.x, playerPose.active && playerEffect ? playerEffect.color : [.43,.72,.78], 1, playerPose.lean, playerPose.lift, playerPose.sword);
-    const color = enemy === 'Duelist' ? [.78,.47,.38] : [.82,.65,.4];
-    const swing = pose.rotation * Math.PI / 180;
-    fighter(1.5 + pose.x / 120 - reaction.x, reaction.active && enemyEffect ? enemyEffect.color : color, enemy === 'Warden' ? 1.15 : 1, -swing * .15 - reaction.lean, -pose.y / 150, -swing * 2, -1);
-  }
-  function animateEffects(now) {
-    effectFrame = undefined;
-    draw(now);
-    if (Object.values(effects).some(effect => effect && actionPose(effect.kind, now - effect.started).active)) {
-      effectFrame = requestAnimationFrame(animateEffects);
-    }
-  }
+const CLIPS = {
+  attack: '1H_Melee_Attack_Slice_Horizontal', heavy: '1H_Melee_Attack_Chop',
+  counter: '1H_Melee_Attack_Stab', dodge: 'Dodge_Backward', parry: 'Block',
+  hit: 'Hit_A', heal: 'Use_Item',
+};
 
-  new ResizeObserver(() => draw()).observe(canvas);
+export async function createScene(canvas) {
+  const context = canvas.getContext?.('webgl2', { antialias: true });
+  if (!context) return null;
+  const renderer = new THREE.WebGLRenderer({ canvas, context, antialias: true });
+  renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color('#11191f');
+  scene.fog = new THREE.Fog('#11191f', 12, 26);
+  const camera = new THREE.PerspectiveCamera(35, 1, .1, 40);
+  scene.add(new THREE.HemisphereLight('#ddefff', '#343039', 2.2));
+  const light = new THREE.DirectionalLight('#ffe1b6', 3);
+  light.position.set(-3, 7, 5);
+  light.castShadow = true;
+  light.shadow.mapSize.set(1024, 1024);
+  light.shadow.normalBias = .04;
+  light.shadow.bias = -.0002;
+  light.shadow.camera.left = light.shadow.camera.bottom = -6;
+  light.shadow.camera.right = light.shadow.camera.top = 6;
+  scene.add(light);
+  const rim = new THREE.DirectionalLight('#73c6ff', 2);
+  rim.position.set(4, 3, -4);
+  scene.add(rim);
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(12, 64), new THREE.MeshStandardMaterial({ color: '#263238', roughness: 1 }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+  for (const x of [-1.5, 1.5]) {
+    const ring = new THREE.Mesh(new THREE.RingGeometry(.85, .88, 48), new THREE.MeshBasicMaterial({ color: x < 0 ? '#588d97' : '#9c7850', side: THREE.DoubleSide }));
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(x, .01, 0);
+    scene.add(ring);
+  }
+  const loader = new GLTFLoader();
+  const files = ['Knight', 'Skeleton_Warrior', 'Skeleton_Rogue', 'Skeleton_Mage'];
+  let loaded;
+  try {
+    loaded = await Promise.all(files.map(name => loader.loadAsync(`assets/characters/${name}.glb`)));
+  } catch (error) {
+    renderer.dispose();
+    throw error;
+  }
+  const models = loaded.map((gltf, index) => {
+    const model = gltf.scene;
+    // The knight ships with several alternative weapons/shields enabled.
+    model.traverse(node => {
+      if (['1H_Sword_Offhand', '2H_Sword', 'Rectangle_Shield', 'Round_Shield', 'Spike_Shield'].includes(node.name)) node.visible = false;
+      if (node.isMesh) {
+        node.castShadow = true;
+        node.receiveShadow = true;
+        node.material = node.material.clone();
+      }
+    });
+    const bounds = new THREE.Box3().setFromObject(model);
+    const scale = (index === 3 ? 2.65 : 2.2) / bounds.getSize(new THREE.Vector3()).y;
+    model.scale.setScalar(scale);
+    const group = new THREE.Group();
+    group.add(model);
+    group.position.x = index === 0 ? -1.5 : 1.5;
+    group.rotation.y = index === 0 ? 1.15 : -1.15;
+    scene.add(group);
+    group.visible = index < 2;
+    const mixer = new THREE.AnimationMixer(model);
+    const actions = Object.fromEntries(gltf.animations.map(clip => [clip.name, mixer.clipAction(clip)]));
+    actions.Idle.play();
+    return { group, model, mixer, actions, effect: null, attacking: false };
+  });
+  // Skeleton models use the same hand attachment slots as the knight.
+  let weapons;
+  try {
+    weapons = await Promise.all(['Skeleton_Blade', 'Skeleton_Staff'].map(name => loader.loadAsync(`assets/equipment/${name}.gltf`)));
+  } catch (error) {
+    renderer.dispose();
+    throw error;
+  }
+  for (let i = 1; i < models.length; i++) {
+    const weapon = weapons[i === 3 ? 1 : 0].scene.clone(true);
+    weapon.traverse(node => { if (node.isMesh) node.castShadow = true; });
+    models[i].model.getObjectByName(THREE.PropertyBinding.sanitizeNodeName('handslot.r')).add(weapon);
+  }
+  let enemy = models[1];
+  let timing = null;
+  let pose = { x: 0, y: 0, rotation: 0 };
+  let previous = performance.now();
+  const black = new THREE.Color(0);
+  function idle(character) {
+    character.mixer.stopAllAction();
+    character.actions.Idle.reset().play();
+    character.attacking = false;
+  }
+  function play(character, kind, hex) {
+    character.mixer.stopAllAction();
+    const action = character.actions[CLIPS[kind]];
+    action.reset().setLoop(THREE.LoopOnce, 1).play();
+    action.clampWhenFinished = true;
+    const duration = ['attack', 'heavy', 'counter'].includes(kind) ? 500 : 300;
+    action.setEffectiveTimeScale(action.getClip().duration / (duration / 1000));
+    character.effect = { kind, started: performance.now(), color: new THREE.Color(hex) };
+  }
+  function draw(now) {
+    const delta = Math.min(.1, Math.max(0, (now - previous) / 1000));
+    previous = now;
+    for (const character of [models[0], enemy]) {
+      const effect = character.effect;
+      const motion = actionPose(effect?.kind, now - (effect?.started || 0));
+      if (effect && !motion.active) {
+        character.effect = null;
+        idle(character);
+      }
+      if (character === enemy && timing && !character.effect) {
+        const action = character.actions['1H_Melee_Attack_Chop'];
+        if (!character.attacking) {
+          character.mixer.stopAllAction();
+          action.reset().play();
+          action.paused = true;
+          character.attacking = true;
+        }
+        // Stretch the wind-up; the final swing always occupies the last 240 ms.
+        const windup = Math.max(1, timing.duration - Math.min(240, timing.duration));
+        const swing = Math.min(240, timing.duration);
+        const progress = timing.remaining > swing
+          ? .35 * Math.max(0, (timing.duration - timing.remaining) / windup)
+          : .35 + .4 * Math.max(0, 1 - timing.remaining / swing);
+        action.time = action.getClip().duration * Math.min(.75, progress);
+        character.mixer.update(0);
+      } else {
+        if (character.attacking) idle(character);
+        character.mixer.update(delta);
+      }
+      const direction = character === models[0] ? 1 : -1;
+      character.group.position.x = direction * (-1.5 + motion.x);
+      character.group.position.y = motion.lift;
+      character.group.rotation.z = motion.lean * direction;
+      if (character === enemy && timing) character.group.position.x += pose.x / 100;
+      character.model.traverse(node => {
+        if (node.isMesh && node.material.emissive) {
+          node.material.emissive.copy(character.effect?.color || black);
+          node.material.emissiveIntensity = character.effect ? .3 : 0;
+        }
+      });
+    }
+    renderer.render(scene, camera);
+    requestAnimationFrame(draw);
+  }
+  function resize() {
+    const width = Math.max(1, canvas.clientWidth);
+    const height = Math.max(1, canvas.clientHeight);
+    renderer.setSize(width, height, false);
+    camera.aspect = width / height;
+    const distance = Math.max(7.5, 8.8 / camera.aspect);
+    camera.position.set(0, 1.1 + distance * .24, distance);
+    camera.lookAt(0, 1.1, 0);
+    camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(canvas);
+  resize();
+  requestAnimationFrame(draw);
   canvas.addEventListener('webglcontextlost', event => {
     event.preventDefault();
     canvas.closest('.arena').classList.remove('has-webgl');
   });
   canvas.addEventListener('webglcontextrestored', () => location.reload());
   return {
-    render(name, nextPose = { x: 0, y: 0, rotation: 0 }) { enemy = name; pose = nextPose; draw(); },
+    render(name, nextPose = { x: 0, y: 0, rotation: 0 }, nextTiming = null) {
+      const nextEnemy = models[{ Sentinel: 1, Duelist: 2, Warden: 3 }[name]];
+      if (enemy !== nextEnemy) {
+        enemy.group.visible = false;
+        enemy = nextEnemy;
+        enemy.group.visible = true;
+      }
+      timing = nextTiming;
+      pose = nextPose;
+    },
     feedback(kind, target, hex) {
-      const color = hex.match(/\w\w/g).map(v => parseInt(v, 16) / 255);
-      const started = performance.now();
-      effects[target] = { kind: target === 'enemy' ? 'hit' : kind, color, started };
-      if (['attack', 'heavy', 'counter'].includes(kind)) effects.player = { kind, color: [.43,.72,.78], started };
-      draw(started);
-      if (effectFrame === undefined) effectFrame = requestAnimationFrame(animateEffects);
+      play(target === 'player' ? models[0] : enemy, target === 'enemy' ? 'hit' : kind, hex);
+      if (['attack', 'heavy', 'counter'].includes(kind)) play(models[0], kind, '#91c4ce');
     },
     reset() {
-      cancelAnimationFrame(effectFrame);
-      effectFrame = undefined;
-      effects.player = effects.enemy = null;
-      pose = { x: 0, y: 0, rotation: 0 };
+      timing = null;
+      for (const character of models) { character.effect = null; idle(character); }
     },
   };
 }

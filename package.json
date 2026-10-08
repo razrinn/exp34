@@ -6,5 +6,8 @@
     "test": "node --test",
     "balance": "node scripts/balance.mjs",
     "start": "python3 -m http.server 8034 --bind 127.0.0.1"
+  },
+  "dependencies": {
+    "three": "0.186.1"
   }
 }

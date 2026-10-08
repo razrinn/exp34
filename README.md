@@ -4,20 +4,18 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 31
+## Checkpoint 32
 
-`scene.js` draws a WebGL battlefield and two block fighters with one shared cube mesh.
-A vertex shader scales and positions each cube, then projects it through a fixed
-orthographic camera; a fragment shader shades faces using their normals.
-Existing enemy timing drives the 3D wind-up and swing. Combat feedback flashes the
-fighters. The browser runs WebGL locally; the VPS only serves the files. No WASM or
-rendering dependency is needed. Unsupported WebGL falls back to the symbol scene.
-Player attacks and counters lunge and swing; dodges step back, parries raise the
-blade, hits recoil, and heals lift the character. `actionPose` in `animation.js`
-returns each motion to rest. Parts rotate together around the feet, with a separate
-weapon pivot. The canvas reserves space for HP cards and combat messages.
-Detailed models remain a later checkpoint.
-
+The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
+warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
+Three.js loads their glTF files and plays skeletal idle, attack, block, dodge, hit,
+and heal animations. Enemy attack clips are sampled from the existing impact clock,
+so longer wind-ups do not change the parry/dodge windows. Player movement still
+comes from `actionPose` in `animation.js`. All files are served locally; WebGL2 runs
+in your browser. Unsupported WebGL2 or failed asset loads use the symbol fallback.
+Character files were reduced from about 17 MB to 2.6 MB by keeping only the combat
+clips and pruning unused animation data. See [CREDITS.md](CREDITS.md) for sources.
+Run `npm ci` before `npm start` on a fresh checkout. There is no bundler or WASM.
 
 One character, two regular enemies, a final boss, turns, health, restart, timed defenses, and counters.
 Runs have five fights: Sentinel → Duelist → Sentinel → Duelist → Warden.
