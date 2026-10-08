@@ -1,11 +1,19 @@
 export const ENEMIES = [
   {
-    name: 'Sentinel', symbol: '♜', damage: 7,
-    patterns: [[1500, 2200, 3100], [1800, 2300, 2800], [1100, 2100, 3500]],
+    name: 'Sentinel', symbol: '♜',
+    patterns: [
+      [{ time: 1500, damage: 5 }, { time: 2200, damage: 5 }, { time: 3100, damage: 8 }],
+      [{ time: 1800, damage: 5 }, { time: 2300, damage: 5 }, { time: 2800, damage: 8 }],
+      [{ time: 1100, damage: 5 }, { time: 2100, damage: 5 }, { time: 3500, damage: 8 }],
+    ],
   },
   {
-    name: 'Duelist', symbol: '⚔', damage: 7,
-    patterns: [[1200, 1600, 2800], [1600, 2000, 2400], [1000, 2300, 2700]],
+    name: 'Duelist', symbol: '⚔',
+    patterns: [
+      [{ time: 1200, damage: 5 }, { time: 1600, damage: 5 }, { time: 2800, damage: 8 }],
+      [{ time: 1600, damage: 5 }, { time: 2000, damage: 5 }, { time: 2400, damage: 8 }],
+      [{ time: 1000, damage: 5 }, { time: 2300, damage: 5 }, { time: 2700, damage: 8 }],
+    ],
   },
 ];
 export const PARRY_WINDOW_MS = 180;
@@ -51,17 +59,17 @@ function strike(state, now, heavy) {
   const damage = heavy ? HEAVY_STRIKE.damage : state.attackDamage;
   const enemyHp = Math.max(0, state.enemyHp - damage);
   const patternIndex = state.enemyTurns % state.enemy.patterns.length;
-  const impactTimes = state.enemy.patterns[patternIndex];
+  const hits = state.enemy.patterns[patternIndex];
   return {
     ...state,
     enemyHp,
     energy: state.energy + (heavy ? -HEAVY_STRIKE.cost : 1),
-    impactTimes,
+    hits,
     patternIndex,
     enemyTurns: state.enemyTurns + 1,
     comboStartedAt: now,
     hitIndex: 0,
-    impactAt: now + impactTimes[0],
+    impactAt: now + hits[0].time,
     allParried: true,
     defenseResult: null,
     phase: enemyHp === 0 ? 'victory' : 'enemy',
@@ -95,10 +103,11 @@ export function retaliate(state) {
   if (state.phase !== 'enemy') return state;
   const parried = state.defenseResult === 'parry';
   const blocked = parried || state.defenseResult === 'dodge';
-  const playerHp = Math.max(0, state.playerHp - (blocked ? 0 : state.enemy.damage));
+  const damage = state.hits[state.hitIndex].damage;
+  const playerHp = Math.max(0, state.playerHp - (blocked ? 0 : damage));
   const allParried = state.allParried && parried;
   const hitIndex = state.hitIndex + 1;
-  const finished = hitIndex === state.impactTimes.length;
+  const finished = hitIndex === state.hits.length;
   const enemyHp = Math.max(0, state.enemyHp - (finished && allParried ? 4 : 0));
   return {
     ...state,
@@ -107,14 +116,14 @@ export function retaliate(state) {
     allParried,
     hitIndex,
     defenseResult: null,
-    impactAt: finished ? null : state.comboStartedAt + state.impactTimes[hitIndex],
+    impactAt: finished ? null : state.comboStartedAt + state.hits[hitIndex].time,
     phase: playerHp === 0 ? 'defeat' : enemyHp === 0 ? 'victory' : finished ? 'player' : 'enemy',
     message: playerHp === 0 ? 'Defeat. Try again.'
       : enemyHp === 0 ? `Parried! Your counter finishes the ${state.enemy.name}. Victory!`
       : finished && allParried ? 'Perfect combo! You counter for 4 damage. Your turn.'
-      : finished ? 'Combo over. No counter. Your turn.'
+      : finished ? blocked ? 'Final hit avoided. No counter. Your turn.' : `Final hit deals ${damage} damage. No counter. Your turn.`
       : blocked ? `Hit ${hitIndex} ${parried ? 'parried' : 'dodged'}! Prepare for the next strike.`
-      : `Hit ${hitIndex} deals ${state.enemy.damage} damage. Prepare for the next strike.`,
+      : `Hit ${hitIndex} deals ${damage} damage. Prepare for the next strike.`,
   };
 }
 

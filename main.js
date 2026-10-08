@@ -33,13 +33,13 @@ function render() {
   if (state.phase === 'enemy') {
     document.querySelector('#dodge-window').style.width = `${DODGE_WINDOW_MS / hitDuration() * 100}%`;
     document.querySelector('#parry-window').style.width = `${PARRY_WINDOW_MS / hitDuration() * 100}%`;
-    document.querySelector('#hit-label').textContent = `Combo ${state.patternIndex + 1} · Strike ${state.hitIndex + 1} / ${state.impactTimes.length}`;
+    document.querySelector('#hit-label').textContent = `Combo ${state.patternIndex + 1} · Strike ${state.hitIndex + 1} / ${state.hits.length} · ${state.hits[state.hitIndex].damage} damage`;
   }
 }
 
 function hitDuration() {
-  const previous = state.hitIndex === 0 ? 0 : state.impactTimes[state.hitIndex - 1];
-  return state.impactTimes[state.hitIndex] - previous;
+  const previous = state.hitIndex === 0 ? 0 : state.hits[state.hitIndex - 1].time;
+  return state.hits[state.hitIndex].time - previous;
 }
 
 function updateEnemy(now) {
