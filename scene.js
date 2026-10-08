@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './node_modules/three/examples/jsm/loaders/GLTFLoader.js';
-import { actionPose } from './animation.js';
+import { actionPose, playerClipProgress, enemyAttackPose, PLAYER_IMPACT_MS } from './animation.js';
 
 const CLIPS = {
   attack: '1H_Melee_Attack_Slice_Horizontal', heavy: '1H_Melee_Attack_Chop',
@@ -91,7 +91,8 @@ export async function createScene(canvas) {
   }
   let enemy = models[1];
   let timing = null;
-  let pose = { x: 0, y: 0, rotation: 0 };
+  let recovery = null;
+  let counterReaction = null;
   let previous = performance.now();
   const black = new THREE.Color(0);
   function idle(character) {
@@ -100,25 +101,33 @@ export async function createScene(canvas) {
     character.attacking = false;
   }
   function play(character, kind, hex) {
+    character.attacking = false;
     character.mixer.stopAllAction();
     const action = character.actions[CLIPS[kind]];
     action.reset().setLoop(THREE.LoopOnce, 1).play();
     action.clampWhenFinished = true;
-    const duration = ['attack', 'heavy', 'counter'].includes(kind) ? 500 : 300;
-    action.setEffectiveTimeScale(action.getClip().duration / (duration / 1000));
+    action.paused = true;
     character.effect = { kind, started: performance.now(), color: new THREE.Color(hex) };
   }
   function draw(now) {
+    if (counterReaction && now >= counterReaction.at) {
+      play(enemy, 'hit', counterReaction.hex);
+      counterReaction = null;
+    }
     const delta = Math.min(.1, Math.max(0, (now - previous) / 1000));
     previous = now;
     for (const character of [models[0], enemy]) {
       const effect = character.effect;
-      const motion = actionPose(effect?.kind, now - (effect?.started || 0));
+      const elapsed = now - (effect?.started || 0);
+      const motion = actionPose(effect?.kind, elapsed);
       if (effect && !motion.active) {
         character.effect = null;
         idle(character);
       }
-      if (character === enemy && timing && !character.effect) {
+      const direction = character === models[0] ? 1 : -1;
+      let approach = 0;
+      if (character === enemy && recovery && now < recovery.at + recovery.duration) {
+        const t = Math.max(0, Math.min(1, (now - recovery.at) / recovery.duration));
         const action = character.actions['1H_Melee_Attack_Chop'];
         if (!character.attacking) {
           character.mixer.stopAllAction();
@@ -126,26 +135,35 @@ export async function createScene(canvas) {
           action.paused = true;
           character.attacking = true;
         }
-        // Stretch the wind-up; the final swing always occupies the last 240 ms.
-        const windup = Math.max(1, timing.duration - Math.min(240, timing.duration));
-        const swing = Math.min(240, timing.duration);
-        const progress = timing.remaining > swing
-          ? .35 * Math.max(0, (timing.duration - timing.remaining) / windup)
-          : .35 + .4 * Math.max(0, 1 - timing.remaining / swing);
-        action.time = action.getClip().duration * Math.min(.75, progress);
+        action.time = action.getClip().duration * (.65 + .35 * t);
+        character.mixer.update(0);
+        approach = recovery.finished ? 1.4 * (1 - t * t * (3 - 2 * t)) : 1.4;
+      } else if (character === enemy && timing && !character.effect) {
+        const strike = enemyAttackPose(timing.impactAt - now, timing.duration, timing.hitIndex);
+        const action = character.actions['1H_Melee_Attack_Chop'];
+        if (!character.attacking) {
+          character.mixer.stopAllAction();
+          action.reset().play();
+          action.paused = true;
+          character.attacking = true;
+        }
+        action.time = action.getClip().duration * strike.clip;
+        character.mixer.update(0);
+        approach = strike.x;
+      } else if (character.effect) {
+        const action = character.actions[CLIPS[character.effect.kind]];
+        action.time = action.getClip().duration * playerClipProgress(character.effect.kind, now - character.effect.started);
         character.mixer.update(0);
       } else {
         if (character.attacking) idle(character);
         character.mixer.update(delta);
       }
-      const direction = character === models[0] ? 1 : -1;
-      character.group.position.x = direction * (-1.5 + motion.x);
+      character.group.position.x = direction * (-1.5 + motion.x + approach);
       character.group.position.y = motion.lift;
       character.group.rotation.z = motion.lean * direction;
-      if (character === enemy && timing) character.group.position.x += pose.x / 100;
       character.model.traverse(node => {
         if (node.isMesh && node.material.emissive) {
-          node.material.emissive.copy(character.effect?.color || black);
+          node.material.emissive.copy(character.effect ? character.effect.color : black);
           node.material.emissiveIntensity = character.effect ? .3 : 0;
         }
       });
@@ -172,7 +190,7 @@ export async function createScene(canvas) {
   });
   canvas.addEventListener('webglcontextrestored', () => location.reload());
   return {
-    render(name, nextPose = { x: 0, y: 0, rotation: 0 }, nextTiming = null) {
+    render(name, nextTiming = null) {
       const nextEnemy = models[{ Sentinel: 1, Duelist: 2, Warden: 3 }[name]];
       if (enemy !== nextEnemy) {
         enemy.group.visible = false;
@@ -180,14 +198,19 @@ export async function createScene(canvas) {
         enemy.group.visible = true;
       }
       timing = nextTiming;
-      pose = nextPose;
     },
     feedback(kind, target, hex) {
-      play(target === 'player' ? models[0] : enemy, target === 'enemy' ? 'hit' : kind, hex);
-      if (['attack', 'heavy', 'counter'].includes(kind)) play(models[0], kind, '#91c4ce');
+      if (kind === 'counter') {
+        play(models[0], kind, '#91c4ce');
+        counterReaction = { at: performance.now() + PLAYER_IMPACT_MS, hex };
+      } else play(target === 'player' ? models[0] : enemy, target === 'enemy' ? 'hit' : kind, hex);
     },
+    startAction(kind) { play(models[0], kind, '#91c4ce'); },
+    enemyImpact(at, finished) { recovery = { at, finished, duration: finished ? 300 : 160 }; },
     reset() {
       timing = null;
+      recovery = null;
+      counterReaction = null;
       for (const character of models) { character.effect = null; idle(character); }
     },
   };

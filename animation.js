@@ -8,13 +8,18 @@ export function enemyPose(remaining, duration) {
   return { x: 12 - 62 * swing, y: -10 + 10 * swing, rotation: 25 - 70 * swing };
 }
 
+export const PLAYER_IMPACT_MS = 320;
+export const PLAYER_ACTION_MS = 720;
+const smooth = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+
 export function actionPose(kind, elapsed) {
-  const duration = ['attack', 'heavy', 'counter'].includes(kind) ? 500 : 300;
+  const duration = ['attack', 'heavy', 'counter'].includes(kind) ? PLAYER_ACTION_MS : 300;
   const t = Math.max(0, Math.min(1, elapsed / duration));
   const pulse = Math.sin(Math.PI * t);
   const pose = { x: 0, lift: 0, lean: 0, sword: 0, active: elapsed < duration };
   if (['attack', 'heavy', 'counter'].includes(kind)) {
-    pose.x = pulse * (kind === 'heavy' ? 1.2 : .9);
+    pose.x = 1.4 * (elapsed <= PLAYER_IMPACT_MS
+      ? smooth(elapsed / 180) : 1 - smooth((elapsed - PLAYER_IMPACT_MS) / (PLAYER_ACTION_MS - PLAYER_IMPACT_MS)));
     pose.lean = -pulse * .12;
     pose.sword = -pulse * (kind === 'heavy' ? 2.2 : 1.7);
   } else if (kind === 'dodge') {
@@ -29,4 +34,24 @@ export function actionPose(kind, elapsed) {
     pose.lift = pulse * .12;
   }
   return pose;
+}
+
+// These contact fractions were sampled from the shipped KayKit clips.
+export function playerClipProgress(kind, elapsed) {
+  const contact = { attack: .2, heavy: .65, counter: .35 }[kind];
+  if (contact === undefined) return Math.max(0, Math.min(1, elapsed / 300));
+  return elapsed <= PLAYER_IMPACT_MS
+    ? contact * Math.max(0, elapsed / PLAYER_IMPACT_MS)
+    : contact + (1 - contact) * Math.min(1, (elapsed - PLAYER_IMPACT_MS) / (PLAYER_ACTION_MS - PLAYER_IMPACT_MS));
+}
+
+export function enemyAttackPose(remaining, duration, hitIndex) {
+  const swing = Math.min(240, duration);
+  const progress = remaining > swing
+    ? .4 * smooth((duration - remaining) / Math.max(1, duration - swing))
+    : .4 + .25 * smooth(1 - remaining / swing);
+  return {
+    x: hitIndex > 0 ? 1.4 : 1.4 * smooth(1 - remaining / Math.min(400, duration)),
+    clip: Math.max(0, Math.min(.65, progress)),
+  };
 }

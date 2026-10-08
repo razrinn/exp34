@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 32
+## Checkpoint 33
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -16,6 +16,16 @@ in your browser. Unsupported WebGL2 or failed asset loads use the symbol fallbac
 Character files were reduced from about 17 MB to 2.6 MB by keeping only the combat
 clips and pruning unused animation data. See [CREDITS.md](CREDITS.md) for sources.
 Run `npm ci` before `npm start` on a fresh checkout. There is no bundler or WASM.
+
+Basic and heavy strikes now approach, connect at 320 ms, then return home by 720 ms.
+Damage, energy, sound, and enemy hit reactions resolve at contact, and the enemy
+combo clock starts then. Repeated inputs during the approach are ignored; restart
+cancels pending damage. Counter damage is awarded by the final parry; its visual follow-through finishes
+before another attack is allowed. Enemy motion and clip time use `impactAt - performance.now()`: the enemy
+arrives at the contact pose at zero, holds range across the combo, and retreats after
+the last hit. All defense windows, damage values, and rhythm patterns are unchanged.
+The normalized clip progress and smooth approach/retreat curves live in `animation.js`.
+
 
 One character, two regular enemies, a final boss, turns, health, restart, timed defenses, and counters.
 Runs have five fights: Sentinel → Duelist → Sentinel → Duelist → Warden.

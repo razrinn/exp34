@@ -4,7 +4,9 @@ import assert from 'node:assert/strict';
 test('keyboard actions respect turns, costs, held keys, and browser controls', async () => {
   const elements = new Map();
   const listeners = {};
-  const previous = { document: globalThis.document, requestAnimationFrame: globalThis.requestAnimationFrame, cancelAnimationFrame: globalThis.cancelAnimationFrame };
+  const timers = new Map();
+  let timerId = 0;
+  const previous = { setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout, document: globalThis.document, requestAnimationFrame: globalThis.requestAnimationFrame, cancelAnimationFrame: globalThis.cancelAnimationFrame };
   globalThis.document = {
     body: { classList: { remove() {} } },
     querySelector(selector) {
@@ -21,6 +23,9 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     querySelectorAll: () => [],
     addEventListener(type, handler) { listeners[type] = handler; },
   };
+  globalThis.setTimeout = fn => { timers.set(++timerId, fn); return timerId; };
+  globalThis.clearTimeout = id => timers.delete(id);
+  const impact = () => { const [id, fn] = timers.entries().next().value; timers.delete(id); fn(); };
   globalThis.requestAnimationFrame = () => 1;
   globalThis.cancelAnimationFrame = () => {};
   const press = (code, overrides = {}) => listeners.keydown({
@@ -33,6 +38,11 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     press('KeyE');
     assert.equal(elements.get('#enemy-hp').textContent, '48 / 48');
     press('KeyQ');
+    assert.equal(elements.get('#enemy-hp').textContent, '48 / 48');
+    assert.equal(elements.get('#attack').disabled, true);
+    press('KeyQ');
+    assert.equal(timers.size, 1);
+    impact();
     assert.equal(elements.get('#enemy-hp').textContent, '40 / 48');
     assert.equal(elements.get('#energy').textContent, 'Energy: 1');
     press('KeyQ');
@@ -44,6 +54,11 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     assert.equal(elements.get('#parry').disabled, true);
     elements.get('#restart').listeners.click();
     press('KeyQ');
+    elements.get('#restart').listeners.click();
+    assert.equal(timers.size, 0);
+    assert.equal(elements.get('#enemy-hp').textContent, '48 / 48');
+    press('KeyQ');
+    impact();
     press('Space');
     assert.equal(elements.get('#parry').disabled, true);
   } finally {
