@@ -2,17 +2,17 @@ export const ENEMIES = [
   {
     name: 'Sentinel', symbol: '♜',
     patterns: [
-      [{ time: 1500, damage: 2 }, { time: 2200, damage: 2 }, { time: 3100, damage: 3 }],
-      [{ time: 1800, damage: 2 }, { time: 2300, damage: 2 }, { time: 2800, damage: 3 }],
-      [{ time: 1100, damage: 2 }, { time: 2100, damage: 2 }, { time: 3500, damage: 3 }],
+      [{ time: 1500, damage: 3 }, { time: 2200, damage: 3 }, { time: 3100, damage: 5 }],
+      [{ time: 1800, damage: 3 }, { time: 2300, damage: 3 }, { time: 2800, damage: 5 }],
+      [{ time: 1100, damage: 3 }, { time: 2100, damage: 3 }, { time: 3500, damage: 5 }],
     ],
   },
   {
     name: 'Duelist', symbol: '⚔',
     patterns: [
-      [{ time: 1200, damage: 2 }, { time: 1600, damage: 2 }, { time: 2800, damage: 3 }],
-      [{ time: 1600, damage: 2 }, { time: 2000, damage: 2 }, { time: 2400, damage: 3 }],
-      [{ time: 1000, damage: 2 }, { time: 2300, damage: 2 }, { time: 2700, damage: 3 }],
+      [{ time: 1200, damage: 3 }, { time: 1600, damage: 3 }, { time: 2800, damage: 5 }],
+      [{ time: 1600, damage: 3 }, { time: 2000, damage: 3 }, { time: 2400, damage: 5 }],
+      [{ time: 1000, damage: 3 }, { time: 2300, damage: 3 }, { time: 2700, damage: 5 }],
     ],
   },
 ];
@@ -20,9 +20,9 @@ export const RUN_LENGTH = 5;
 export const BOSS = {
   name: 'Warden', symbol: '♛',
   patterns: [
-    [{ time: 1400, damage: 2 }, { time: 2100, damage: 2 }, { time: 2800, damage: 2 }, { time: 3600, damage: 5 }],
-    [{ time: 1200, damage: 2 }, { time: 1600, damage: 2 }, { time: 2700, damage: 2 }, { time: 3800, damage: 5 }],
-    [{ time: 1900, damage: 2 }, { time: 2300, damage: 2 }, { time: 2700, damage: 2 }, { time: 3400, damage: 5 }],
+    [{ time: 1400, damage: 4 }, { time: 2100, damage: 4 }, { time: 2800, damage: 4 }, { time: 3600, damage: 8 }],
+    [{ time: 1200, damage: 4 }, { time: 1600, damage: 4 }, { time: 2700, damage: 4 }, { time: 3800, damage: 8 }],
+    [{ time: 1900, damage: 4 }, { time: 2300, damage: 4 }, { time: 2700, damage: 4 }, { time: 3400, damage: 8 }],
   ],
 };
 export const PARRY_WINDOW_MS = 180;
@@ -32,7 +32,7 @@ export const HEAVY_STRIKE = { cost: 3, damage: 20 };
 export function newCombat() {
   return {
     playerHp: 40, playerMaxHp: 40, attackDamage: 8, energy: 0,
-    enemy: ENEMIES[0], enemyTurns: 0, enemyHp: 36, enemyMaxHp: 36, fight: 1,
+    enemy: ENEMIES[0], enemyTurns: 0, enemyHp: 48, enemyMaxHp: 48, fight: 1,
     phase: 'player', message: 'Your turn. Choose Attack.',
   };
 }
@@ -40,7 +40,7 @@ export function newCombat() {
 export function nextFight(state, upgrade) {
   if (state.phase !== 'victory' || state.fight >= RUN_LENGTH || !['attack', 'health'].includes(upgrade)) return state;
   const playerMaxHp = state.playerMaxHp + (upgrade === 'health' ? 6 : 0);
-  const enemyMaxHp = state.enemyMaxHp + 8;
+  const enemyMaxHp = state.enemyMaxHp + 12;
   return {
     ...newCombat(),
     playerMaxHp,
