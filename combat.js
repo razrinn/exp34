@@ -1,6 +1,6 @@
 export const ENEMIES = [
   {
-    name: 'Sentinel', symbol: '♜',
+    name: 'Sentinel', symbol: '♜', attackStyles: ['slash', 'chop', 'thrust'],
     patterns: [
       [{ time: 1500, damage: 3 }, { time: 2200, damage: 3 }, { time: 3100, damage: 5 }],
       [{ time: 1800, damage: 5 }, { time: 2800, damage: 6 }],
@@ -8,7 +8,7 @@ export const ENEMIES = [
     ],
   },
   {
-    name: 'Duelist', symbol: '⚔',
+    name: 'Duelist', symbol: '⚔', attackStyles: ['slash', 'chop', 'thrust'],
     patterns: [
       [{ time: 1200, damage: 3 }, { time: 1600, damage: 3 }, { time: 2800, damage: 5 }],
       [{ time: 1600, damage: 5 }, { time: 2000, damage: 6 }],
@@ -18,7 +18,7 @@ export const ENEMIES = [
 ];
 export const RUN_LENGTH = 5;
 export const BOSS = {
-  name: 'Warden', symbol: '♛',
+  name: 'Warden', symbol: '♛', attackStyles: ['chop', 'slash', 'thrust'],
   patterns: [
     [{ time: 1400, damage: 4 }, { time: 2100, damage: 4 }, { time: 2800, damage: 4 }, { time: 3600, damage: 8 }],
     [{ time: 1200, damage: 4 }, { time: 1600, damage: 4 }, { time: 2700, damage: 4 }, { time: 3800, damage: 8 }],

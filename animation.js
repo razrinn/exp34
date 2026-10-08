@@ -45,13 +45,23 @@ export function playerClipProgress(kind, elapsed) {
     : contact + (1 - contact) * Math.min(1, (elapsed - PLAYER_IMPACT_MS) / (PLAYER_ACTION_MS - PLAYER_IMPACT_MS));
 }
 
-export function enemyAttackPose(remaining, duration, hitIndex) {
-  const swing = Math.min(240, duration);
+export const ENEMY_ATTACKS = {
+  slash: { clip: '1H_Melee_Attack_Slice_Horizontal', windup: .08, contact: .2, swingMs: 140 },
+  chop: { clip: '1H_Melee_Attack_Chop', windup: .4, contact: .65, swingMs: 240 },
+  thrust: { clip: '1H_Melee_Attack_Stab', windup: .2, contact: .35, swingMs: 180 },
+};
+
+export function enemyAttackPose(remaining, duration, hitIndex, style = 'chop') {
+  const attack = ENEMY_ATTACKS[style];
+  const swing = Math.min(attack.swingMs, duration);
+  const windupDuration = Math.max(1, duration - swing);
+  // The thrust pulls back early and holds, instead of creeping toward impact.
+  const prepare = style === 'thrust' ? Math.min(450, windupDuration) : windupDuration;
   const progress = remaining > swing
-    ? .4 * smooth((duration - remaining) / Math.max(1, duration - swing))
-    : .4 + .25 * smooth(1 - remaining / swing);
+    ? attack.windup * smooth((duration - remaining) / prepare)
+    : attack.windup + (attack.contact - attack.windup) * smooth(1 - remaining / swing);
   return {
     x: hitIndex > 0 ? 1.4 : 1.4 * smooth(1 - remaining / Math.min(400, duration)),
-    clip: Math.max(0, Math.min(.65, progress)),
+    clip: Math.max(0, Math.min(attack.contact, progress)),
   };
 }

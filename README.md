@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 34
+## Checkpoint 35
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -33,6 +33,15 @@ resolve overdue hits without spending an early attempt on the following strike.
 Input and animation frames share the same hit-resolution feedback, including when
 several hits are overdue. The camera looks diagonally over the hero's shoulder;
 regular enemies are 3.0 units tall and the boss is 3.6, against the hero's 2.2.
+
+Each regular enemy now cycles through sideways slash, overhead chop, and delayed
+thrust animations with its three existing patterns. The boss cycles chop, slash,
+and thrust. `attackStyles` on each enemy selects the clip; `ENEMY_ATTACKS` in
+`animation.js` defines wind-up, contact pose, and release speed. Thrusts pull back
+early and hold before releasing. Recovery continues the same clip that struck,
+so a slash does not snap into a chop after impact. Hit times, damage, defense
+windows, and combo lengths are unchanged; existing saves remain compatible.
+
 
 
 

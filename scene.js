@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './node_modules/three/examples/jsm/loaders/GLTFLoader.js';
-import { actionPose, playerClipProgress, enemyAttackPose, PLAYER_IMPACT_MS } from './animation.js';
+import { actionPose, playerClipProgress, enemyAttackPose, ENEMY_ATTACKS, PLAYER_IMPACT_MS } from './animation.js';
 
 const CLIPS = {
   attack: '1H_Melee_Attack_Slice_Horizontal', heavy: '1H_Melee_Attack_Chop',
@@ -109,6 +109,18 @@ export async function createScene(canvas) {
     action.paused = true;
     character.effect = { kind, started: performance.now(), color: new THREE.Color(hex) };
   }
+  function sampleStrike(character, style, progress) {
+    const clip = ENEMY_ATTACKS[style].clip;
+    const action = character.actions[clip];
+    if (character.attacking !== clip) {
+      character.mixer.stopAllAction();
+      action.reset().play();
+      action.paused = true;
+      character.attacking = clip;
+    }
+    action.time = action.getClip().duration * progress;
+    character.mixer.update(0);
+  }
   function draw(now) {
     if (counterReaction && now >= counterReaction.at) {
       play(enemy, 'hit', counterReaction.hex);
@@ -128,27 +140,12 @@ export async function createScene(canvas) {
       let approach = 0;
       if (character === enemy && recovery && now < recovery.at + recovery.duration) {
         const t = Math.max(0, Math.min(1, (now - recovery.at) / recovery.duration));
-        const action = character.actions['1H_Melee_Attack_Chop'];
-        if (!character.attacking) {
-          character.mixer.stopAllAction();
-          action.reset().play();
-          action.paused = true;
-          character.attacking = true;
-        }
-        action.time = action.getClip().duration * (.65 + .35 * t);
-        character.mixer.update(0);
+        const contact = ENEMY_ATTACKS[recovery.style].contact;
+        sampleStrike(character, recovery.style, contact + (1 - contact) * t);
         approach = recovery.finished ? 1.4 * (1 - t * t * (3 - 2 * t)) : 1.4;
       } else if (character === enemy && timing && !character.effect) {
-        const strike = enemyAttackPose(timing.impactAt - now, timing.duration, timing.hitIndex);
-        const action = character.actions['1H_Melee_Attack_Chop'];
-        if (!character.attacking) {
-          character.mixer.stopAllAction();
-          action.reset().play();
-          action.paused = true;
-          character.attacking = true;
-        }
-        action.time = action.getClip().duration * strike.clip;
-        character.mixer.update(0);
+        const strike = enemyAttackPose(timing.impactAt - now, timing.duration, timing.hitIndex, timing.style);
+        sampleStrike(character, timing.style, strike.clip);
         approach = strike.x;
       } else if (character.effect) {
         const action = character.actions[CLIPS[character.effect.kind]];
@@ -206,7 +203,7 @@ export async function createScene(canvas) {
       } else play(target === 'player' ? models[0] : enemy, target === 'enemy' ? 'hit' : kind, hex);
     },
     startAction(kind) { play(models[0], kind, '#91c4ce'); },
-    enemyImpact(at, finished) { recovery = { at, finished, duration: finished ? 300 : 160 }; },
+    enemyImpact(at, finished, style) { recovery = { at, finished, style, duration: finished ? 300 : 160 }; },
     reset() {
       timing = null;
       recovery = null;

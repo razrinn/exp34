@@ -44,3 +44,33 @@ test('enemy arrives at the same contact pose for slow and fast strikes', () => {
     assert.equal(enemyAttackPose(duration, duration, 1).x, 1.4);
   }
 });
+
+import { ENEMY_ATTACKS } from './animation.js';
+import { ENEMIES, BOSS } from './combat.js';
+test('every enemy selects three distinct clips and reaches its contact pose at each hit', () => {
+  for (const enemy of [...ENEMIES, BOSS]) {
+    assert.equal(new Set(enemy.attackStyles.map(style => ENEMY_ATTACKS[style].clip)).size, 3);
+    for (const [patternIndex, hits] of enemy.patterns.entries()) {
+      const style = enemy.attackStyles[patternIndex];
+      const attack = ENEMY_ATTACKS[style];
+      for (const [hitIndex, hit] of hits.entries()) {
+        const duration = hit.time - (hits[hitIndex - 1]?.time || 0);
+        const start = enemyAttackPose(duration, duration, hitIndex, style);
+        const contact = enemyAttackPose(0, duration, hitIndex, style);
+        assert.equal(start.clip, 0);
+        assert.equal(contact.clip, attack.contact);
+        assert.equal(contact.x, 1.4);
+        assert.deepEqual(enemyAttackPose(-20, duration, hitIndex, style), contact);
+      }
+    }
+  }
+});
+
+test('delayed thrust holds its drawn-back pose until the final swing', () => {
+  const early = enemyAttackPose(1800, 2400, 0, 'thrust');
+  const held = enemyAttackPose(400, 2400, 0, 'thrust');
+  assert.equal(early.clip, .2);
+  assert.equal(held.clip, early.clip);
+  assert.equal(enemyAttackPose(180, 2400, 0, 'thrust').clip, .2);
+  assert.ok(enemyAttackPose(90, 2400, 0, 'thrust').clip > held.clip);
+});

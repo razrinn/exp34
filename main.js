@@ -96,7 +96,7 @@ function render() {
     scene?.render(state.enemy.name);
   }
   if (state.phase === 'enemy') {
-    scene?.render(state.enemy.name, { impactAt: state.impactAt, duration: hitDuration(), hitIndex: state.hitIndex });
+    scene?.render(state.enemy.name, { impactAt: state.impactAt, duration: hitDuration(), hitIndex: state.hitIndex, style: state.enemy.attackStyles[state.patternIndex] });
     document.querySelector('#dodge-window').style.width = `${DODGE_WINDOW_MS / hitDuration() * 100}%`;
     document.querySelector('#parry-window').style.width = `${PARRY_WINDOW_MS / hitDuration() * 100}%`;
     document.querySelector('#hit-label').textContent = `Combo ${state.patternIndex + 1} · Strike ${state.hitIndex + 1} / ${state.hits.length} · ${state.hits[state.hitIndex].damage} damage`;
@@ -112,7 +112,7 @@ function resolveEnemy(now, beforeInput = false) {
   let changed = false;
   while (state.phase === 'enemy' && (beforeInput ? now > state.impactAt : now >= state.impactAt)) {
     const next = retaliate(state);
-    scene?.enemyImpact(state.impactAt, next.phase !== 'enemy');
+    scene?.enemyImpact(state.impactAt, next.phase !== 'enemy', state.enemy.attackStyles[state.patternIndex]);
     feedback(state.defenseResult === 'parry' ? 'parry' : state.defenseResult === 'dodge' ? 'dodge' : 'hit', playerFigure);
     const countered = next.enemyHp < state.enemyHp;
     if (countered) feedback('counter', enemyFigure);
