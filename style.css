@@ -23,3 +23,5 @@ button:focus-visible { outline: 3px solid #91c4ce; outline-offset: 4px; }
 .track { position: relative; height: 22px; margin: 16px 0 24px; background: #292b32; }
 #parry-window { position: absolute; right: 0; height: 100%; background: #9c7938; }
 #marker { position: absolute; top: -4px; width: 4px; height: 30px; background: #fff; transform: translateX(-50%); }
+
+#dodge-window { position: absolute; right: 0; height: 100%; background: #396e87; }

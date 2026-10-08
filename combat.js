@@ -9,6 +9,7 @@ export const ENEMIES = [
   },
 ];
 export const PARRY_WINDOW_MS = 180;
+export const DODGE_WINDOW_MS = 360;
 
 export function newCombat() {
   return {
@@ -50,29 +51,40 @@ export function attack(state, now = 0) {
     hitIndex: 0,
     impactAt: now + impactTimes[0],
     allParried: true,
-    parryResult: null,
+    defenseResult: null,
     phase: enemyHp === 0 ? 'victory' : 'enemy',
     message: enemyHp === 0 ? `Victory! The ${state.enemy.name} falls.` : `You deal ${state.attackDamage} damage. The ${state.enemy.name} prepares to strike…`,
   };
 }
 
 export function parry(state, now) {
+  return defend(state, now, 'parry');
+}
+
+export function dodge(state, now) {
+  return defend(state, now, 'dodge');
+}
+
+function defend(state, now, action) {
   if (state.phase === 'enemy' && now > state.impactAt) state = advanceEnemy(state, now);
-  if (state.phase !== 'enemy' || state.parryResult !== null) return state;
+  if (state.phase !== 'enemy' || state.defenseResult !== null) return state;
   const remaining = state.impactAt - now;
-  const success = remaining >= 0 && remaining <= PARRY_WINDOW_MS;
+  const window = action === 'parry' ? PARRY_WINDOW_MS : DODGE_WINDOW_MS;
+  const success = remaining >= 0 && remaining <= window;
   return {
     ...state,
-    parryResult: success ? 'success' : 'miss',
-    message: success ? 'Parry ready!' : remaining > 0 ? 'Too early! Brace for impact.' : 'Too late!',
+    defenseResult: success ? action : 'miss',
+    message: success ? action === 'parry' ? 'Parry ready!' : 'Dodge ready!'
+      : remaining > 0 ? 'Too early! Brace for impact.' : 'Too late!',
   };
 }
 
 export function retaliate(state) {
   if (state.phase !== 'enemy') return state;
-  const blocked = state.parryResult === 'success';
+  const parried = state.defenseResult === 'parry';
+  const blocked = parried || state.defenseResult === 'dodge';
   const playerHp = Math.max(0, state.playerHp - (blocked ? 0 : state.enemy.damage));
-  const allParried = state.allParried && blocked;
+  const allParried = state.allParried && parried;
   const hitIndex = state.hitIndex + 1;
   const finished = hitIndex === state.impactTimes.length;
   const enemyHp = Math.max(0, state.enemyHp - (finished && allParried ? 4 : 0));
@@ -82,14 +94,14 @@ export function retaliate(state) {
     enemyHp,
     allParried,
     hitIndex,
-    parryResult: null,
+    defenseResult: null,
     impactAt: finished ? null : state.comboStartedAt + state.impactTimes[hitIndex],
     phase: playerHp === 0 ? 'defeat' : enemyHp === 0 ? 'victory' : finished ? 'player' : 'enemy',
     message: playerHp === 0 ? 'Defeat. Try again.'
       : enemyHp === 0 ? `Parried! Your counter finishes the ${state.enemy.name}. Victory!`
       : finished && allParried ? 'Perfect combo! You counter for 4 damage. Your turn.'
       : finished ? 'Combo over. No counter. Your turn.'
-      : blocked ? `Hit ${hitIndex} parried! Prepare for the next strike.`
+      : blocked ? `Hit ${hitIndex} ${parried ? 'parried' : 'dodged'}! Prepare for the next strike.`
       : `Hit ${hitIndex} deals ${state.enemy.damage} damage. Prepare for the next strike.`,
   };
 }

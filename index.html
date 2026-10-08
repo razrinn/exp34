@@ -8,7 +8,7 @@
   </head>
   <body>
     <main>
-      <header><p class="eyebrow">COMBAT PROTOTYPE · CHECKPOINT 08</p><h1>exp34</h1><p id="fight-label">Fight 1</p></header>
+      <header><p class="eyebrow">COMBAT PROTOTYPE · CHECKPOINT 09</p><h1>exp34</h1><p id="fight-label">Fight 1</p></header>
       <section class="arena" aria-label="Combatants">
         <article><div class="figure player" aria-hidden="true">◇</div><h2>Expeditioner</h2><label for="player-health">Health <span id="player-hp"></span></label><meter id="player-health" min="0" max="30"></meter></article>
         <span class="versus" aria-hidden="true">VS</span>
@@ -18,11 +18,12 @@
         <p id="message" role="status"></p>
         <div id="timeline" hidden>
           <p id="hit-label"></p>
-          <p class="hint">Parry when the marker enters the gold zone. The strike lands at the right edge.</p>
-          <div class="track" aria-hidden="true"><div id="parry-window"></div><div id="marker"></div></div>
+          <p class="hint">Dodge in the blue or gold zone; parry only in gold. The strike lands at the right edge.</p>
+          <div class="track" aria-hidden="true"><div id="dodge-window"></div><div id="parry-window"></div><div id="marker"></div></div>
         </div>
         <button id="attack" type="button">Attack · 8 damage</button>
         <button id="parry" type="button" disabled>Parry · Space</button>
+        <button id="dodge" type="button" disabled>Dodge · Shift</button>
         <button id="restart" type="button">Restart run</button>
         <div id="upgrades" hidden>
           <h2>Choose an upgrade</h2>
@@ -30,7 +31,7 @@
           <button type="button" data-upgrade="attack">+2 attack → next fight</button>
           <button type="button" data-upgrade="health">+6 max health &amp; full heal → next fight</button>
         </div>
-        <p class="hint">One attempt per strike. Parry every hit to counter for 4 damage at the end. Each missed hit deals 10 damage.</p>
+        <p class="hint">One defense attempt per strike. Dodging blocks damage but forfeits the combo counter. Parry every hit to counter for 4 damage at the end. Each missed hit deals 10 damage.</p>
       </section>
     </main>
     <script type="module" src="main.js"></script>

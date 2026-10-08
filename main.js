@@ -1,9 +1,10 @@
-import { newCombat, nextFight, attack, parry, advanceEnemy, PARRY_WINDOW_MS } from './combat.js';
+import { newCombat, nextFight, attack, parry, dodge, advanceEnemy, PARRY_WINDOW_MS, DODGE_WINDOW_MS } from './combat.js';
 
 let state = newCombat();
 let enemyFrame;
 const attackButton = document.querySelector('#attack');
 const parryButton = document.querySelector('#parry');
+const dodgeButton = document.querySelector('#dodge');
 const timeline = document.querySelector('#timeline');
 const marker = document.querySelector('#marker');
 
@@ -22,9 +23,11 @@ function render() {
   document.querySelector('#upgrades').hidden = state.phase !== 'victory';
   attackButton.textContent = `Attack · ${state.attackDamage} damage`;
   attackButton.disabled = state.phase !== 'player';
-  parryButton.disabled = state.phase !== 'enemy' || state.parryResult !== null;
+  parryButton.disabled = state.phase !== 'enemy' || state.defenseResult !== null;
+  dodgeButton.disabled = parryButton.disabled;
   timeline.hidden = state.phase !== 'enemy';
   if (state.phase === 'enemy') {
+    document.querySelector('#dodge-window').style.width = `${DODGE_WINDOW_MS / hitDuration() * 100}%`;
     document.querySelector('#parry-window').style.width = `${PARRY_WINDOW_MS / hitDuration() * 100}%`;
     document.querySelector('#hit-label').textContent = `Combo ${state.patternIndex + 1} · Strike ${state.hitIndex + 1} / ${state.impactTimes.length}`;
   }
@@ -56,16 +59,18 @@ attackButton.addEventListener('click', () => {
   }
 });
 
-function tryParry() {
-  state = parry(state, performance.now());
+function tryDefense(action) {
+  state = action(state, performance.now());
   render();
 }
 
-parryButton.addEventListener('click', tryParry);
+parryButton.addEventListener('click', () => tryDefense(parry));
+dodgeButton.addEventListener('click', () => tryDefense(dodge));
 document.addEventListener('keydown', (event) => {
-  if (event.code !== 'Space' || state.phase !== 'enemy') return;
+  if (state.phase !== 'enemy') return;
+  if (!['Space', 'ShiftLeft', 'ShiftRight'].includes(event.code)) return;
   event.preventDefault();
-  if (!event.repeat) tryParry();
+  if (!event.repeat) tryDefense(event.code === 'Space' ? parry : dodge);
 });
 
 document.querySelector('#restart').addEventListener('click', () => {

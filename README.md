@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 8
+## Checkpoint 9
 
 One character, two alternating enemies, alternating turns, health, victory, restart, timed parries, and counters.
 Combat rules live in `combat.js`; `main.js` connects them to the screen.
@@ -19,7 +19,9 @@ Names, symbols, timing patterns, and per-hit damage live in `ENEMIES` in `combat
 The run alternates Sentinel → Duelist → Sentinel, using the same combat rules.
 Press Space or click Parry in the final 180 ms (the gold zone) before each hit.
 Each parry blocks that hit; each miss deals 10 damage. Parry the whole combo
-for one automatic 4-damage counter at the end. You get one attempt per hit.
+for one automatic 4-damage counter at the end. Press Shift or click Dodge in the final 360 ms (blue or gold) to avoid a hit.
+Dodging any hit forfeits the counter for that combo, even if every other hit
+is parried. You get one defense attempt per hit, shared by dodge and parry.
 `hitIndex` tracks the strike; `allParried` remembers whether the combo is perfect.
 Late frames resolve all overdue hits in order.
 `performance.now()` measures elapsed time locally in the browser;

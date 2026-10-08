@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newCombat, nextFight, attack, parry, retaliate, advanceEnemy, ENEMIES, PARRY_WINDOW_MS } from './combat.js';
+import { newCombat, nextFight, attack, parry, dodge, retaliate, advanceEnemy, ENEMIES, PARRY_WINDOW_MS, DODGE_WINDOW_MS } from './combat.js';
 
 function perfectCombo(state) {
   for (const offset of state.impactTimes) {
@@ -30,7 +30,7 @@ test('parries block individual hits; only a perfect combo counters', () => {
   const first = advanceEnemy(parry(incoming, incoming.impactAt), incoming.impactAt);
   assert.equal(first.playerHp, 30);
   assert.equal(first.enemyHp, 40);
-  assert.equal(first.parryResult, null);
+  assert.equal(first.defenseResult, null);
   const result = perfectCombo(incoming);
   assert.equal(result.playerHp, 30);
   assert.equal(result.enemyHp, 36);
@@ -51,15 +51,15 @@ test('missing a middle hit prevents a counter even with a final parry', () => {
 test('timing boundaries work; early attempts cannot be retried on the same hit', () => {
   const incoming = attack(newCombat(), 100);
   for (const now of [incoming.impactAt - PARRY_WINDOW_MS, incoming.impactAt]) {
-    assert.equal(parry(incoming, now).parryResult, 'success');
+    assert.equal(parry(incoming, now).defenseResult, 'parry');
   }
   const early = parry(incoming, incoming.impactAt - PARRY_WINDOW_MS - 1);
-  assert.equal(early.parryResult, 'miss');
+  assert.equal(early.defenseResult, 'miss');
   assert.equal(parry(early, incoming.impactAt), early);
   const late = parry(incoming, incoming.impactAt + 1);
   assert.equal(late.playerHp, 20);
   assert.equal(late.hitIndex, 1);
-  assert.equal(late.parryResult, 'miss');
+  assert.equal(late.defenseResult, 'miss');
 });
 
 test('lethal hits stop the combo; lethal counters stop combat', () => {
@@ -84,7 +84,7 @@ test('new turns reset combo history and new fights reset health', () => {
   const next = attack(missed, 10000);
   assert.equal(next.allParried, true);
   assert.equal(next.hitIndex, 0);
-  assert.equal(next.parryResult, null);
+  assert.equal(next.defenseResult, null);
   assert.equal(next.impactAt, 11800);
   assert.equal(newCombat().playerHp, 30);
 });
@@ -172,5 +172,41 @@ test('starting balance requires four perfect rounds and exposes all three patter
     assert.equal(state.playerHp, 30);
     assert.equal(state.enemyHp, 48 - (turn + 1) * 12);
     assert.equal(state.phase, turn === 3 ? 'victory' : 'player');
+  }
+});
+
+test('dodge has a wider inclusive window and shares the one-attempt limit', () => {
+  const state = attack(newCombat());
+  for (const now of [state.impactAt - DODGE_WINDOW_MS, state.impactAt]) {
+    const dodged = dodge(state, now);
+    assert.equal(dodged.defenseResult, 'dodge');
+    assert.equal(parry(dodged, state.impactAt), dodged);
+    assert.equal(advanceEnemy(dodged, state.impactAt).playerHp, 30);
+  }
+  assert.equal(parry(state, state.impactAt - DODGE_WINDOW_MS).defenseResult, 'miss');
+  const early = dodge(state, state.impactAt - DODGE_WINDOW_MS - 1);
+  assert.equal(early.defenseResult, 'miss');
+  assert.equal(parry(early, state.impactAt), early);
+  assert.equal(dodge(early, state.impactAt), early);
+  assert.equal(advanceEnemy(early, state.impactAt).playerHp, 20);
+  const late = dodge(state, state.impactAt + 1);
+  assert.equal(late.playerHp, 20);
+  assert.equal(late.defenseResult, 'miss');
+  const idle = newCombat();
+  assert.equal(dodge(idle, 0), idle);
+});
+
+test('one dodge among parries blocks damage but forfeits the combo counter', () => {
+  for (let dodgeIndex = 0; dodgeIndex < 3; dodgeIndex++) {
+    let state = attack(newCombat());
+    for (let hit = 0; hit < 3; hit++) {
+      const impact = state.impactAt;
+      state = (hit === dodgeIndex ? dodge : parry)(state, impact);
+      state = advanceEnemy(state, impact);
+    }
+    assert.equal(state.playerHp, 30);
+    assert.equal(state.enemyHp, 40);
+    assert.equal(state.allParried, false);
+    assert.equal(state.phase, 'player');
   }
 });
