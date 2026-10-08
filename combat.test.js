@@ -15,12 +15,12 @@ test('misses resolve individually and the turn ends after the final hit', () => 
   assert.equal(attack(state), state);
   assert.equal(advanceEnemy(state, 1599), state);
   state = advanceEnemy(state, 1600);
-  assert.equal(state.playerHp, 35);
+  assert.equal(state.playerHp, 37);
   assert.equal(state.hitIndex, 1);
   assert.equal(state.impactAt, 2300);
   assert.equal(state.phase, 'enemy');
   state = advanceEnemy(state, 3200);
-  assert.equal(state.playerHp, 22);
+  assert.equal(state.playerHp, 29);
   assert.equal(state.enemyHp, 40);
   assert.equal(state.phase, 'player');
 });
@@ -42,7 +42,7 @@ test('missing a middle hit prevents a counter even with a final parry', () => {
   state = advanceEnemy(parry(state, 1500), 1500);
   state = advanceEnemy(state, 2200);
   state = advanceEnemy(parry(state, 3100), 3100);
-  assert.equal(state.playerHp, 35);
+  assert.equal(state.playerHp, 37);
   assert.equal(state.enemyHp, 40);
   assert.equal(state.allParried, false);
   assert.equal(state.phase, 'player');
@@ -57,13 +57,13 @@ test('timing boundaries work; early attempts cannot be retried on the same hit',
   assert.equal(early.defenseResult, 'miss');
   assert.equal(parry(early, incoming.impactAt), early);
   const late = parry(incoming, incoming.impactAt + 1);
-  assert.equal(late.playerHp, 35);
+  assert.equal(late.playerHp, 37);
   assert.equal(late.hitIndex, 1);
   assert.equal(late.defenseResult, 'miss');
 });
 
 test('lethal hits stop the combo; lethal counters stop combat', () => {
-  const dead = advanceEnemy(attack({ ...newCombat(), playerHp: 3 }), 9999);
+  const dead = advanceEnemy(attack({ ...newCombat(), playerHp: 2 }), 9999);
   assert.equal(dead.playerHp, 0);
   assert.equal(dead.hitIndex, 1);
   assert.equal(dead.phase, 'defeat');
@@ -188,9 +188,9 @@ test('dodge has a wider inclusive window and shares the one-attempt limit', () =
   assert.equal(early.defenseResult, 'miss');
   assert.equal(parry(early, state.impactAt), early);
   assert.equal(dodge(early, state.impactAt), early);
-  assert.equal(advanceEnemy(early, state.impactAt).playerHp, 35);
+  assert.equal(advanceEnemy(early, state.impactAt).playerHp, 37);
   const late = dodge(state, state.impactAt + 1);
-  assert.equal(late.playerHp, 35);
+  assert.equal(late.playerHp, 37);
   assert.equal(late.defenseResult, 'miss');
   const idle = newCombat();
   assert.equal(dodge(idle, 0), idle);
@@ -245,7 +245,7 @@ test('heavy strike rejects unaffordable and out-of-turn actions; lethal damage c
 test('each hit applies its own damage, including the stronger finisher', () => {
   for (const enemy of ENEMIES) {
     let state = attack({ ...newCombat(), enemy });
-    for (const expectedHp of [35, 30, 22]) {
+    for (const expectedHp of [37, 34, 29]) {
       state = advanceEnemy(state, state.impactAt);
       assert.equal(state.playerHp, expectedHp);
     }
