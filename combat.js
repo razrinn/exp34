@@ -2,17 +2,17 @@ export const ENEMIES = [
   {
     name: 'Sentinel', symbol: '♜',
     patterns: [
-      [{ time: 1500, damage: 3 }, { time: 2200, damage: 3 }, { time: 3100, damage: 5 }],
-      [{ time: 1800, damage: 3 }, { time: 2300, damage: 3 }, { time: 2800, damage: 5 }],
-      [{ time: 1100, damage: 3 }, { time: 2100, damage: 3 }, { time: 3500, damage: 5 }],
+      [{ time: 1500, damage: 2 }, { time: 2200, damage: 2 }, { time: 3100, damage: 3 }],
+      [{ time: 1800, damage: 2 }, { time: 2300, damage: 2 }, { time: 2800, damage: 3 }],
+      [{ time: 1100, damage: 2 }, { time: 2100, damage: 2 }, { time: 3500, damage: 3 }],
     ],
   },
   {
     name: 'Duelist', symbol: '⚔',
     patterns: [
-      [{ time: 1200, damage: 3 }, { time: 1600, damage: 3 }, { time: 2800, damage: 5 }],
-      [{ time: 1600, damage: 3 }, { time: 2000, damage: 3 }, { time: 2400, damage: 5 }],
-      [{ time: 1000, damage: 3 }, { time: 2300, damage: 3 }, { time: 2700, damage: 5 }],
+      [{ time: 1200, damage: 2 }, { time: 1600, damage: 2 }, { time: 2800, damage: 3 }],
+      [{ time: 1600, damage: 2 }, { time: 2000, damage: 2 }, { time: 2400, damage: 3 }],
+      [{ time: 1000, damage: 2 }, { time: 2300, damage: 2 }, { time: 2700, damage: 3 }],
     ],
   },
 ];
@@ -23,7 +23,7 @@ export const HEAVY_STRIKE = { cost: 3, damage: 20 };
 export function newCombat() {
   return {
     playerHp: 40, playerMaxHp: 40, attackDamage: 8, energy: 0,
-    enemy: ENEMIES[0], enemyTurns: 0, enemyHp: 48, enemyMaxHp: 48, fight: 1,
+    enemy: ENEMIES[0], enemyTurns: 0, enemyHp: 36, enemyMaxHp: 36, fight: 1,
     phase: 'player', message: 'Your turn. Choose Attack.',
   };
 }
@@ -59,7 +59,9 @@ function strike(state, now, heavy) {
   const damage = heavy ? HEAVY_STRIKE.damage : state.attackDamage;
   const enemyHp = Math.max(0, state.enemyHp - damage);
   const patternIndex = state.enemyTurns % state.enemy.patterns.length;
-  const hits = state.enemy.patterns[patternIndex];
+  const hits = state.enemy.patterns[patternIndex].map(hit => ({
+    ...hit, damage: hit.damage + Math.floor((state.fight - 1) / 2),
+  }));
   return {
     ...state,
     enemyHp,

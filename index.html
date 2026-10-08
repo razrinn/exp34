@@ -8,11 +8,11 @@
   </head>
   <body>
     <main>
-      <header><p class="eyebrow">COMBAT PROTOTYPE · CHECKPOINT 13</p><h1>exp34</h1><p id="fight-label">Fight 1</p></header>
+      <header><p class="eyebrow">COMBAT PROTOTYPE · CHECKPOINT 14</p><h1>exp34</h1><p id="fight-label">Fight 1</p></header>
       <section class="arena" aria-label="Combatants">
         <article><div class="figure player" aria-hidden="true">◇</div><h2>Expeditioner</h2><label for="player-health">Health <span id="player-hp"></span></label><meter id="player-health" min="0" max="40"></meter></article>
         <span class="versus" aria-hidden="true">VS</span>
-        <article><div id="enemy-symbol" class="figure enemy" aria-hidden="true">♜</div><h2 id="enemy-name">Sentinel</h2><label for="enemy-health">Health <span id="enemy-hp"></span></label><meter id="enemy-health" min="0" max="48"></meter></article>
+        <article><div id="enemy-symbol" class="figure enemy" aria-hidden="true">♜</div><h2 id="enemy-name">Sentinel</h2><label for="enemy-health">Health <span id="enemy-hp"></span></label><meter id="enemy-health" min="0" max="36"></meter></article>
       </section>
       <section class="controls" aria-label="Combat controls">
         <p id="message" role="status"></p>
@@ -34,7 +34,7 @@
           <button type="button" data-upgrade="attack">+2 attack → next fight</button>
           <button type="button" data-upgrade="health">+6 max health &amp; full heal → next fight</button>
         </div>
-        <p class="hint">One defense attempt per strike. Dodging blocks damage but forfeits the combo counter. Parry every hit to counter for 4 damage at the end. Missed hits deal 3, 3, then 5 damage on the finisher.</p>
+        <p class="hint">One defense attempt per strike. Dodging blocks damage but forfeits the combo counter. Parry every hit to counter for 4 damage at the end. Opening fights deal 2, 2, then 3 damage. Every two fights adds 1 damage to each hit.</p>
       </section>
     </main>
     <script type="module" src="main.js"></script>
