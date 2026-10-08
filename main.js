@@ -1,8 +1,9 @@
 import { newCombat, nextFight, attack, heavyStrike, heal, parry, dodge, advanceEnemy, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE, HEAL, RUN_LENGTH } from './combat.js';
 import { enemyPose } from './animation.js';
 import { playCue } from './sound.js';
+import { loadRun, saveRun, clearRun } from './save.js';
 
-let state = newCombat();
+let state = loadRun();
 let enemyFrame;
 const attackButton = document.querySelector('#attack');
 const heavyButton = document.querySelector('#heavy');
@@ -17,6 +18,15 @@ const rewards = document.querySelector('#upgrades');
 const result = document.querySelector('#run-complete');
 const playerFigure = document.querySelector('#player-symbol');
 const sound = document.querySelector('#sound');
+
+function saveCheckpoint() {
+  document.querySelector('#save-status').textContent = saveRun(state)
+    ? 'Run saved on this browser.' : 'Saving unavailable. Refreshing may reset your run.';
+}
+
+function saveIfEnded() {
+  if (['victory', 'defeat', 'complete'].includes(state.phase)) saveCheckpoint();
+}
 
 function feedback(kind, target) {
   const colors = { attack: '#d1aa72', heavy: '#ffa75b', hit: '#ef6868', parry: '#91e8ff', dodge: '#94a2be', counter: '#fff0a0', heal: '#8ae4a0' };
@@ -88,6 +98,7 @@ function updateEnemy(now) {
     feedback(state.defenseResult === 'parry' ? 'parry' : state.defenseResult === 'dodge' ? 'dodge' : 'hit', playerFigure);
     if (next.enemyHp < state.enemyHp) feedback('counter', enemyFigure);
     state = next;
+    saveIfEnded();
     render();
   }
   if (state.phase !== 'enemy') return;
@@ -103,6 +114,7 @@ function tryAction(action) {
   if (next === state) return;
   feedback(action === heal ? 'heal' : action === heavyStrike ? 'heavy' : 'attack', action === heal ? playerFigure : enemyFigure);
   state = next;
+  saveIfEnded();
   render();
   if (state.phase === 'enemy') {
     marker.style.left = '0%';
@@ -117,6 +129,7 @@ practice.addEventListener('change', render);
 
 function tryDefense(action) {
   state = action(state, performance.now());
+  saveIfEnded();
   render();
 }
 
@@ -141,6 +154,8 @@ document.addEventListener('keydown', (event) => {
 function restartRun() {
   cancelAnimationFrame(enemyFrame);
   state = newCombat();
+  document.querySelector('#save-status').textContent = clearRun()
+    ? 'New run. Save cleared.' : 'Could not clear the saved run. Browser storage is unavailable.';
   render();
 }
 
@@ -162,6 +177,7 @@ for (const button of document.querySelectorAll('[data-upgrade]')) {
   button.addEventListener('click', () => {
     cancelAnimationFrame(enemyFrame);
     state = nextFight(state, button.dataset.upgrade);
+    saveCheckpoint();
     render();
   });
 }

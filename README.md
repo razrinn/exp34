@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 26
+## Checkpoint 27
 
 One character, two regular enemies, a final boss, turns, health, restart, timed defenses, and counters.
 Runs have five fights: Sentinel → Duelist → Sentinel → Duelist → Warden.
@@ -65,7 +65,7 @@ deal 6/6/6/10 after scaling. Timing windows stay constant.
 After each regular victory, choosing a reward restores up to 10 HP regardless
 of the choice. Choose +3 counter damage, +1 starting energy, or +6 Heavy Strike
 damage. Rewards stack within the run. Max health stays 40; recovery is capped.
-Each next opponent has 12 more health. Restart or refresh resets the run.
+Each next opponent has 12 more health. Restart clears the saved run.
 `nextFight` carries the build into fresh combat state and resets energy to the
 build's starting energy; unused energy does not carry over.
 
@@ -84,7 +84,13 @@ Short synthesized tones distinguish each event. Sound starts on your first
 action and can be disabled in Help & settings. Test sound plays a clear parry
 cue without starting a fight. Playback waits for browser audio to resume;
 blocked audio is reported in settings. No audio files or dependencies.
-Saving progress is not implemented yet.
+Progress saves in this browser after encounter results and reward choices.
+Refreshing mid-combat restarts that encounter from its saved starting health,
+build, and energy. Refreshing at a reward screen preserves the pending choice;
+defeat and completion also persist. Restart run clears the save.
+Only progression fields are stored; enemy definitions and timing are rebuilt
+from current game data. Invalid or incompatible saves start a fresh run.
+If browser storage blocks writes, Help & settings reports that saving is unavailable.
 
 Keyboard controls: Q attacks, W uses Heavy Strike, E heals, Space parries,
 and Shift dodges. Holding a key does not repeat actions. Shortcuts respect
