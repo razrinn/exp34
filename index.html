@@ -1,51 +1,72 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>exp34</title>
-    <link rel="stylesheet" href="style.css">
-  </head>
-  <body>
-    <main>
-      <header><p class="eyebrow">COMBAT PROTOTYPE · CHECKPOINT 23</p><h1>exp34</h1><p id="fight-label">Fight 1 / 5</p></header>
-      <section class="arena" aria-label="Combatants">
-        <article><div class="figure player" aria-hidden="true">◇</div><h2>Expeditioner</h2><label for="player-health">Health <span id="player-hp"></span></label><meter id="player-health" min="0" max="40"></meter></article>
-        <span class="versus" aria-hidden="true">VS</span>
-        <article><div id="enemy-symbol" class="figure enemy" aria-hidden="true">♜</div><h2 id="enemy-name">Sentinel</h2><label for="enemy-health">Health <span id="enemy-hp"></span></label><meter id="enemy-health" min="0" max="48"></meter></article>
-      </section>
-      <section class="controls" aria-label="Combat controls">
-        <p id="message" role="status"></p>
-        <p class="hint">Watch the enemy pull back, then swing toward you. Parry just before impact, or dodge a little earlier.</p>
-        <label class="practice"><input id="practice" type="checkbox"> Practice mode — show timing bar</label>
-        <div id="timeline" hidden>
-          <p id="hit-label"></p>
-          <p class="hint">Dodge in the blue or gold zone; parry only in gold. The strike lands at the right edge.</p>
-          <div class="track" aria-hidden="true"><div id="dodge-window"></div><div id="parry-window"></div><div id="marker"></div></div>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>exp34</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <header class="topbar">
+      <h1>exp<span>34</span></h1>
+      <p id="fight-label">Fight 1 / 5</p>
+      <nav aria-label="Game options">
+        <button id="fullscreen" class="quiet" type="button">Fullscreen</button>
+        <details class="help">
+          <summary>Help &amp; settings</summary>
+          <div class="help-panel">
+            <h2>Read the rhythm</h2>
+            <p>Watch the enemy pull back and swing. Parry just before impact; dodge a little earlier.</p>
+            <p><kbd>Q</kbd> Attack · <kbd>W</kbd> Heavy · <kbd>E</kbd> Heal<br><kbd>Space</kbd> Parry · <kbd>Shift</kbd> Dodge</p>
+            <p>One defense attempt per hit. Parry the entire combo to counter. A dodge blocks damage but forfeits the counter.</p>
+            <p>Attacks earn energy. Heavy Strike and Heal spend it and use your turn.</p>
+            <label><input id="practice" type="checkbox"> Practice timing bar</label>
+            <p id="build"></p>
+            <button id="restart" class="quiet" type="button">Restart run</button>
+          </div>
+        </details>
+      </nav>
+    </header>
+    <section class="arena" aria-label="Battle scene">
+      <article class="combatant player-side">
+        <div class="health-card"><h2>Expeditioner</h2><label for="player-health">HP <span id="player-hp">40 / 40</span></label><meter id="player-health" min="0" max="40" value="40"></meter></div>
+        <div class="figure player" aria-hidden="true">◇</div>
+      </article>
+      <article class="combatant enemy-side">
+        <div class="health-card"><h2 id="enemy-name">Sentinel</h2><label for="enemy-health">HP <span id="enemy-hp">48 / 48</span></label><meter id="enemy-health" min="0" max="48" value="48"></meter></div>
+        <div id="enemy-symbol" class="figure enemy" aria-hidden="true">♜</div>
+      </article>
+      <div class="battle-status"><p id="message" role="status"></p><div id="timeline" hidden><p id="hit-label"></p><div class="track" aria-hidden="true"><div id="dodge-window"></div><div id="parry-window"></div><div id="marker"></div></div></div></div>
+    </section>
+    <footer class="controls" aria-label="Combat controls">
+      <div class="turn-info"><p id="turn-label">Your turn</p><p id="energy">Energy: 0</p></div>
+      <div class="action-row">
+        <div class="actions" aria-label="Your turn actions">
+          <button id="attack" type="button" aria-keyshortcuts="Q"><kbd>Q</kbd><span>Attack<small id="attack-detail">8 damage · +1 energy</small></span></button>
+          <button id="heavy" type="button" aria-keyshortcuts="W" disabled><kbd>W</kbd><span>Heavy Strike<small id="heavy-detail">20 damage · 3 energy</small></span></button>
+          <button id="heal" type="button" aria-keyshortcuts="E" disabled><kbd>E</kbd><span>Heal<small id="heal-detail">12 HP · 2 energy</small></span></button>
         </div>
-        <p id="build" class="hint"></p>
-        <p id="energy">Energy: 0</p>
-        <button id="attack" type="button" aria-keyshortcuts="Q">Q · Attack · 8 damage</button>
-        <button id="heavy" type="button" aria-keyshortcuts="W" disabled>W · Heavy Strike · 20 damage · 3 energy</button>
-        <button id="heal" type="button" aria-keyshortcuts="E" disabled>E · Heal · 12 HP · 2 energy</button>
-        <p class="hint">Healing uses your turn. Basic attacks earn 1 energy. Heavy Strike costs 3. Energy resets each fight.</p>
-        <button id="parry" type="button" aria-keyshortcuts="Space" disabled>Parry · Space</button>
-        <button id="dodge" type="button" aria-keyshortcuts="Shift" disabled>Dodge · Shift</button>
-        <button id="restart" type="button">Restart run</button>
-        <div id="run-complete" hidden>
-          <h2>Expedition complete</h2>
-          <p>You defeated the Warden and cleared all five fights. Restart to take another run.</p>
+        <div class="defenses" aria-label="Enemy turn defenses">
+          <button id="parry" type="button" aria-keyshortcuts="Space" disabled><kbd>Space</kbd><span>Parry<small>Risk → counter</small></span></button>
+          <button id="dodge" type="button" aria-keyshortcuts="Shift" disabled><kbd>Shift</kbd><span>Dodge<small>Safer timing</small></span></button>
         </div>
-        <div id="upgrades" hidden>
-          <h2>Choose an upgrade</h2>
-          <p class="hint">Recover up to 10 HP with any choice. Rewards stack for this run. Your next opponent has 12 more health.</p>
-          <button type="button" data-upgrade="counter">Stronger counters · +3 damage</button>
-          <button type="button" data-upgrade="energy">Prepared · +1 starting energy</button>
-          <button type="button" data-upgrade="heavy">Heavy hitter · +6 Heavy Strike damage</button>
-        </div>
-        <p class="hint">Regular enemies have three variants: three hits, two hits, or one heavy strike. One defense attempt per hit. Dodge blocks damage; parry the whole combo to counter.</p>
-      </section>
-    </main>
-    <script type="module" src="main.js"></script>
-  </body>
+      </div>
+    </footer>
+    <dialog id="upgrades" aria-labelledby="reward-title">
+      <p class="eyebrow">ENCOUNTER CLEARED</p><h2 id="reward-title">Choose your edge.</h2>
+      <p>Recover up to 10 HP with any reward. Your build carries into the next fight.</p>
+      <div class="reward-options">
+        <button type="button" data-upgrade="counter">Stronger counters</button>
+        <button type="button" data-upgrade="energy">Prepared</button>
+        <button type="button" data-upgrade="heavy">Heavy hitter</button>
+      </div>
+    </dialog>
+    <dialog id="run-complete" aria-labelledby="result-title">
+      <p class="eyebrow">EXPEDITION 34</p><h2 id="result-title">Expedition complete.</h2>
+      <p id="result-text"></p><button id="result-restart" type="button">Begin a new run</button>
+    </dialog>
+  </main>
+  <script type="module" src="main.js"></script>
+</body>
 </html>

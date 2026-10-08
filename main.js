@@ -12,6 +12,8 @@ const timeline = document.querySelector('#timeline');
 const marker = document.querySelector('#marker');
 const enemyFigure = document.querySelector('#enemy-symbol');
 const practice = document.querySelector('#practice');
+const rewards = document.querySelector('#upgrades');
+const result = document.querySelector('#run-complete');
 
 function render() {
   document.querySelector('#player-hp').textContent = `${state.playerHp} / ${state.playerMaxHp}`;
@@ -24,18 +26,25 @@ function render() {
   document.querySelector('#enemy-health').value = state.enemyHp;
   document.querySelector('#message').textContent = state.message;
   document.querySelector('#fight-label').textContent = `Fight ${state.fight} / ${RUN_LENGTH}${state.fight === RUN_LENGTH ? ' · FINAL BOSS' : ''}`;
-  document.querySelector('#run-complete').hidden = state.phase !== 'complete';
-  document.querySelector('#upgrades').hidden = state.phase !== 'victory';
-  attackButton.textContent = `Q · Attack · ${state.attackDamage} damage`;
+  if (state.phase === 'victory') {
+    if (!rewards.open) rewards.showModal();
+  } else if (rewards.open) rewards.close();
+  if (state.phase === 'complete' || state.phase === 'defeat') {
+    document.querySelector('#result-title').textContent = state.phase === 'complete' ? 'Expedition complete.' : 'Expedition fallen.';
+    document.querySelector('#result-text').textContent = state.phase === 'complete' ? 'The Warden is defeated. All five encounters cleared.' : `Your expedition ended at fight ${state.fight}. Learn the rhythm and try again.`;
+    if (!result.open) result.showModal();
+  } else if (result.open) result.close();
+  document.querySelector('#turn-label').textContent = state.phase === 'player' ? 'YOUR TURN' : state.phase === 'enemy' ? 'DEFEND' : 'ENCOUNTER ENDED';
+  document.querySelector('#attack-detail').textContent = `${state.attackDamage} damage · +1 energy`;
   attackButton.disabled = state.phase !== 'player';
   document.querySelector('#build').textContent = `Counter: ${state.counterDamage} damage · Starting energy: ${state.startingEnergy}`;
   document.querySelector('[data-upgrade=counter]').textContent = `Stronger counters · ${state.counterDamage} → ${state.counterDamage + 3} damage`;
   document.querySelector('[data-upgrade=energy]').textContent = `Prepared · ${state.startingEnergy} → ${state.startingEnergy + 1} starting energy`;
   document.querySelector('[data-upgrade=heavy]').textContent = `Heavy hitter · ${state.heavyDamage} → ${state.heavyDamage + 6} damage`;
   document.querySelector('#energy').textContent = `Energy: ${state.energy}`;
-  heavyButton.textContent = `W · Heavy Strike · ${state.heavyDamage} damage · ${HEAVY_STRIKE.cost} energy`;
+  document.querySelector('#heavy-detail').textContent = `${state.heavyDamage} damage · ${HEAVY_STRIKE.cost} energy`;
   heavyButton.disabled = state.phase !== 'player' || state.energy < HEAVY_STRIKE.cost;
-  healButton.textContent = `E · Heal · ${HEAL.amount} HP · ${HEAL.cost} energy`;
+  document.querySelector('#heal-detail').textContent = `${HEAL.amount} HP · ${HEAL.cost} energy`;
   healButton.disabled = state.phase !== 'player' || state.energy < HEAL.cost || state.playerHp === state.playerMaxHp;
   parryButton.disabled = state.phase !== 'enemy' || state.defenseResult !== null;
   dodgeButton.disabled = parryButton.disabled;
@@ -107,10 +116,24 @@ document.addEventListener('keydown', (event) => {
   if (!event.repeat) tryDefense(event.code === 'Space' ? parry : dodge);
 });
 
-document.querySelector('#restart').addEventListener('click', () => {
+function restartRun() {
   cancelAnimationFrame(enemyFrame);
   state = newCombat();
   render();
+}
+
+document.querySelector('#restart').addEventListener('click', restartRun);
+document.querySelector('#result-restart').addEventListener('click', restartRun);
+for (const dialog of [rewards, result]) dialog.addEventListener('cancel', event => event.preventDefault());
+
+document.querySelector('#fullscreen').hidden = !document.documentElement?.requestFullscreen;
+document.querySelector('#fullscreen').addEventListener('click', async () => {
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else await document.documentElement.requestFullscreen();
+  } catch {
+    document.querySelector('#message').textContent = 'Fullscreen is unavailable in this browser.';
+  }
 });
 
 for (const button of document.querySelectorAll('[data-upgrade]')) {

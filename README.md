@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 23
+## Checkpoint 24
 
 One character, two regular enemies, a final boss, turns, health, restart, timed defenses, and counters.
 Runs have five fights: Sentinel → Duelist → Sentinel → Duelist → Warden.
@@ -83,3 +83,8 @@ Sound cues and saving progress are not implemented yet.
 Keyboard controls: Q attacks, W uses Heavy Strike, E heals, Space parries,
 and Shift dodges. Holding a key does not repeat actions. Shortcuts respect
 turn and energy rules and ignore text/form controls and Ctrl/Alt/Meta chords.
+
+The battle fills the browser viewport; Fullscreen hides browser chrome where supported.
+Combat controls sit along the bottom. Help & settings holds instructions, build stats,
+and the practice toggle. Native modal dialogs separate rewards and run results
+from combat, keep keyboard focus inside, and prevent premature dismissal.
