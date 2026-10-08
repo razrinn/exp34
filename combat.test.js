@@ -255,7 +255,7 @@ test('each hit applies its own damage, including the stronger finisher', () => {
 
 test('damage increases every two fights while health rises every fight', () => {
   let state = newCombat();
-  const expected = [[2, 2, 3], [2, 2, 3], [3, 3, 4], [3, 3, 4], [3, 3, 3, 5]];
+  const expected = [[2, 2, 3], [2, 2, 3], [3, 3, 4], [3, 3, 4], [4, 4, 4, 7]];
   for (let fight = 0; fight < expected.length; fight++) {
     assert.equal(state.enemyMaxHp, 36 + fight * 8);
     const incoming = attack(state);
@@ -293,13 +293,13 @@ test('all ways of landing the final blow complete the run', () => {
   assert.equal(nextFight(forgedVictory, 'attack'), forgedVictory);
 });
 
-test('all three boss patterns require four parries and have modest total damage', () => {
+test('all three boss patterns require four parries and deal stronger damage', () => {
   assert.equal(BOSS.patterns.length, 3);
   assert.equal(new Set(BOSS.patterns.map(pattern => JSON.stringify(pattern))).size, 3);
   for (let patternIndex = 0; patternIndex < 3; patternIndex++) {
     const incoming = attack({ ...newCombat(), enemy: BOSS, fight: RUN_LENGTH, enemyTurns: patternIndex });
     assert.equal(incoming.hits.length, 4);
-    assert.deepEqual(incoming.hits.map(hit => hit.damage), [3, 3, 3, 5]);
+    assert.deepEqual(incoming.hits.map(hit => hit.damage), [4, 4, 4, 7]);
     let state = incoming;
     for (let hit = 0; hit < 4; hit++) {
       state = advanceEnemy(parry(state, state.impactAt), state.impactAt);
@@ -307,7 +307,7 @@ test('all three boss patterns require four parries and have modest total damage'
       assert.equal(state.phase, hit < 3 ? 'enemy' : 'player');
       assert.equal(state.playerHp, 40);
     }
-    assert.equal(advanceEnemy(incoming, 99999).playerHp, 26);
+    assert.equal(advanceEnemy(incoming, 99999).playerHp, 21);
     let dodged = incoming;
     for (let hit = 0; hit < 4; hit++) {
       dodged = advanceEnemy((hit === 3 ? dodge : parry)(dodged, dodged.impactAt), dodged.impactAt);

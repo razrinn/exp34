@@ -20,9 +20,9 @@ export const RUN_LENGTH = 5;
 export const BOSS = {
   name: 'Warden', symbol: '♛',
   patterns: [
-    [{ time: 1400, damage: 1 }, { time: 2100, damage: 1 }, { time: 2800, damage: 1 }, { time: 3600, damage: 3 }],
-    [{ time: 1200, damage: 1 }, { time: 1600, damage: 1 }, { time: 2700, damage: 1 }, { time: 3800, damage: 3 }],
-    [{ time: 1900, damage: 1 }, { time: 2300, damage: 1 }, { time: 2700, damage: 1 }, { time: 3400, damage: 3 }],
+    [{ time: 1400, damage: 2 }, { time: 2100, damage: 2 }, { time: 2800, damage: 2 }, { time: 3600, damage: 5 }],
+    [{ time: 1200, damage: 2 }, { time: 1600, damage: 2 }, { time: 2700, damage: 2 }, { time: 3800, damage: 5 }],
+    [{ time: 1900, damage: 2 }, { time: 2300, damage: 2 }, { time: 2700, damage: 2 }, { time: 3400, damage: 5 }],
   ],
 };
 export const PARRY_WINDOW_MS = 180;
