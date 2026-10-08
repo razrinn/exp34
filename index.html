@@ -8,7 +8,7 @@
   </head>
   <body>
     <main>
-      <header><p class="eyebrow">COMBAT PROTOTYPE · CHECKPOINT 04</p><h1>exp34</h1></header>
+      <header><p class="eyebrow">COMBAT PROTOTYPE · CHECKPOINT 05</p><h1>exp34</h1><p id="fight-label">Fight 1</p></header>
       <section class="arena" aria-label="Combatants">
         <article><div class="figure player" aria-hidden="true">◇</div><h2>Expeditioner</h2><label for="player-health">Health <span id="player-hp"></span></label><meter id="player-health" min="0" max="30"></meter></article>
         <span class="versus" aria-hidden="true">VS</span>
@@ -23,7 +23,13 @@
         </div>
         <button id="attack" type="button">Attack · 8 damage</button>
         <button id="parry" type="button" disabled>Parry · Space</button>
-        <button id="restart" type="button">Restart</button>
+        <button id="restart" type="button">Restart run</button>
+        <div id="upgrades" hidden>
+          <h2>Choose an upgrade</h2>
+          <p class="hint">Your next opponent has 8 more health. Attack upgrades carry your current health forward.</p>
+          <button type="button" data-upgrade="attack">+2 attack → next fight</button>
+          <button type="button" data-upgrade="health">+6 max health &amp; full heal → next fight</button>
+        </div>
         <p class="hint">One attempt per strike. Parry every hit to counter for 4 damage at the end. Each missed hit deals 6 damage.</p>
       </section>
     </main>

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newCombat, attack, parry, retaliate, advanceEnemy, ENEMY_ATTACK, PARRY_WINDOW_MS } from './combat.js';
+import { newCombat, nextFight, attack, parry, retaliate, advanceEnemy, ENEMY_ATTACK, PARRY_WINDOW_MS } from './combat.js';
 
 function perfectCombo(state) {
   for (const offset of ENEMY_ATTACK.impactTimes) {
@@ -87,4 +87,34 @@ test('new turns reset combo history and new fights reset health', () => {
   assert.equal(next.parryResult, null);
   assert.equal(next.impactAt, 11500);
   assert.equal(newCombat().playerHp, 30);
+});
+
+test('attack upgrades persist, retain current health, and increase enemy health', () => {
+  const won = { ...newCombat(), playerHp: 12, enemyHp: 0, phase: 'victory' };
+  const next = nextFight(won, 'attack');
+  assert.equal(next.fight, 2);
+  assert.equal(next.playerHp, 12);
+  assert.equal(next.playerMaxHp, 30);
+  assert.equal(next.attackDamage, 10);
+  assert.equal(next.enemyHp, 32);
+  assert.equal(next.enemyMaxHp, 32);
+  assert.equal(next.phase, 'player');
+  assert.equal(attack(next).enemyHp, 22);
+  const third = nextFight({ ...next, phase: 'victory', enemyHp: 0 }, 'attack');
+  assert.equal(third.attackDamage, 12);
+  assert.equal(third.enemyMaxHp, 40);
+});
+
+test('health upgrades heal fully and cannot be purchased outside victory', () => {
+  const won = { ...newCombat(), playerHp: 6, enemyHp: 0, phase: 'victory' };
+  const next = nextFight(won, 'health');
+  assert.equal(next.playerHp, 36);
+  assert.equal(next.playerMaxHp, 36);
+  assert.equal(next.attackDamage, 8);
+  assert.equal(nextFight(next, 'health'), next);
+  assert.equal(nextFight(won, 'unknown'), won);
+  const dead = { ...newCombat(), phase: 'defeat', playerHp: 0 };
+  assert.equal(nextFight(dead, 'health'), dead);
+  assert.equal(newCombat().fight, 1);
+  assert.equal(newCombat().attackDamage, 8);
 });

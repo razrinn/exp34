@@ -1,4 +1,4 @@
-import { newCombat, attack, parry, advanceEnemy, ENEMY_ATTACK, PARRY_WINDOW_MS } from './combat.js';
+import { newCombat, nextFight, attack, parry, advanceEnemy, ENEMY_ATTACK, PARRY_WINDOW_MS } from './combat.js';
 
 let state = newCombat();
 let enemyFrame;
@@ -9,11 +9,16 @@ const marker = document.querySelector('#marker');
 
 
 function render() {
-  document.querySelector('#player-hp').textContent = `${state.playerHp} / 30`;
-  document.querySelector('#enemy-hp').textContent = `${state.enemyHp} / 24`;
+  document.querySelector('#player-hp').textContent = `${state.playerHp} / ${state.playerMaxHp}`;
+  document.querySelector('#enemy-hp').textContent = `${state.enemyHp} / ${state.enemyMaxHp}`;
+  document.querySelector('#player-health').max = state.playerMaxHp;
+  document.querySelector('#enemy-health').max = state.enemyMaxHp;
   document.querySelector('#player-health').value = state.playerHp;
   document.querySelector('#enemy-health').value = state.enemyHp;
   document.querySelector('#message').textContent = state.message;
+  document.querySelector('#fight-label').textContent = `Fight ${state.fight}`;
+  document.querySelector('#upgrades').hidden = state.phase !== 'victory';
+  attackButton.textContent = `Attack · ${state.attackDamage} damage`;
   attackButton.disabled = state.phase !== 'player';
   parryButton.disabled = state.phase !== 'enemy' || state.parryResult !== null;
   timeline.hidden = state.phase !== 'enemy';
@@ -66,5 +71,13 @@ document.querySelector('#restart').addEventListener('click', () => {
   state = newCombat();
   render();
 });
+
+for (const button of document.querySelectorAll('[data-upgrade]')) {
+  button.addEventListener('click', () => {
+    cancelAnimationFrame(enemyFrame);
+    state = nextFight(state, button.dataset.upgrade);
+    render();
+  });
+}
 
 render();

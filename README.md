@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 4
+## Checkpoint 5
 
 One character, one enemy, alternating turns, health, victory, restart, timed parries, and counters.
 Combat rules live in `combat.js`; `main.js` connects them to the screen.
@@ -33,4 +33,9 @@ Use your usual SSH hostname or alias in place of `YOUR_SSH_HOST`.
 
 Run `npm test` to check the combat rules.
 
-Progression and different enemy rhythms are not implemented yet.
+After victory, choose +2 attack damage (keep current health) or +6 max health
+with a full heal. Each next sentinel has 8 more health. Upgrades accumulate
+within the run. Restart run resets everything; refreshing also resets the run.
+`nextFight` carries player progression into a fresh combat state.
+
+Different enemy rhythms, a final boss, and saving progress are not implemented yet.

@@ -2,12 +2,32 @@ export const ENEMY_ATTACK = { impactTimes: [1500, 2200, 3100], damage: 6 };
 export const PARRY_WINDOW_MS = 180;
 
 export function newCombat() {
-  return { playerHp: 30, enemyHp: 24, phase: 'player', message: 'Your turn. Choose Attack.' };
+  return {
+    playerHp: 30, playerMaxHp: 30, attackDamage: 8,
+    enemyHp: 24, enemyMaxHp: 24, fight: 1,
+    phase: 'player', message: 'Your turn. Choose Attack.',
+  };
+}
+
+export function nextFight(state, upgrade) {
+  if (state.phase !== 'victory' || !['attack', 'health'].includes(upgrade)) return state;
+  const playerMaxHp = state.playerMaxHp + (upgrade === 'health' ? 6 : 0);
+  const enemyMaxHp = state.enemyMaxHp + 8;
+  return {
+    ...newCombat(),
+    playerMaxHp,
+    playerHp: upgrade === 'health' ? playerMaxHp : state.playerHp,
+    attackDamage: state.attackDamage + (upgrade === 'attack' ? 2 : 0),
+    enemyMaxHp,
+    enemyHp: enemyMaxHp,
+    fight: state.fight + 1,
+    message: upgrade === 'health' ? 'Health upgraded and fully restored. Your turn.' : 'Attack upgraded. Your turn.',
+  };
 }
 
 export function attack(state, now = 0) {
   if (state.phase !== 'player') return state;
-  const enemyHp = Math.max(0, state.enemyHp - 8);
+  const enemyHp = Math.max(0, state.enemyHp - state.attackDamage);
   return {
     ...state,
     enemyHp,
@@ -17,7 +37,7 @@ export function attack(state, now = 0) {
     allParried: true,
     parryResult: null,
     phase: enemyHp === 0 ? 'victory' : 'enemy',
-    message: enemyHp === 0 ? 'Victory! The sentinel falls.' : 'You deal 8 damage. The sentinel prepares to strike…',
+    message: enemyHp === 0 ? 'Victory! The sentinel falls.' : `You deal ${state.attackDamage} damage. The sentinel prepares to strike…`,
   };
 }
 
