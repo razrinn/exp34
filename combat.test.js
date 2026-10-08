@@ -223,7 +223,7 @@ test('basic attacks build energy and a heavy strike spends it and starts the ene
     assert.equal(state.energy, turn + 1);
   }
   const result = heavyStrike(state, 30000);
-  assert.equal(result.energy, 0);
+  assert.equal(result.energy, 1);
   assert.equal(result.enemyHp, state.enemyHp - 20);
   assert.equal(result.phase, 'enemy');
   assert.equal(result.impactAt, 31500);
@@ -231,7 +231,7 @@ test('basic attacks build energy and a heavy strike spends it and starts the ene
 });
 
 test('heavy strike rejects unaffordable and out-of-turn actions; lethal damage clamps', () => {
-  for (const energy of [0, 1, 2]) {
+  for (const energy of [0, 1]) {
     const state = { ...newCombat(), energy };
     assert.equal(heavyStrike(state), state);
   }
@@ -241,10 +241,14 @@ test('heavy strike rejects unaffordable and out-of-turn actions; lethal damage c
   }
   const result = heavyStrike({ ...newCombat(), energy: 4, enemyHp: 10 });
   assert.equal(result.enemyHp, 0);
-  assert.equal(result.energy, 1);
+  assert.equal(result.energy, 2);
   assert.equal(result.phase, 'victory');
   assert.equal(nextFight(result, 'heavy').energy, 0);
   assert.equal(newCombat().energy, 0);
+  const affordable = heavyStrike({ ...newCombat(), energy: 2 });
+  assert.equal(affordable.energy, 0);
+  assert.equal(affordable.enemyHp, 28);
+  assert.equal(affordable.phase, 'enemy');
 });
 
 test('each hit applies its own damage, including the stronger finisher', () => {
@@ -395,5 +399,5 @@ test('combat uses rewarded damage and Prepared unlocks earlier skills', () => {
   assert.equal(heal({ ...afterAttack, playerHp: 20 }).playerHp, 32);
   const afterSecond = perfectCombo(attack(afterAttack));
   assert.equal(afterSecond.energy, 3);
-  assert.equal(heavyStrike(afterSecond).energy, 0);
+  assert.equal(heavyStrike(afterSecond).energy, 1);
 });

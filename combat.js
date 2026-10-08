@@ -27,7 +27,7 @@ export const BOSS = {
 };
 export const PARRY_WINDOW_MS = 180;
 export const DODGE_WINDOW_MS = 360;
-export const HEAVY_STRIKE = { cost: 3, damage: 20 };
+export const HEAVY_STRIKE = { cost: 2, damage: 20 };
 export const HEAL = { cost: 2, amount: 12 };
 export const RECOVERY_HP = 10;
 

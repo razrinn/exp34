@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 28
+## Checkpoint 29
 
 One character, two regular enemies, a final boss, turns, health, restart, timed defenses, and counters.
 Runs have five fights: Sentinel → Duelist → Sentinel → Duelist → Warden.
@@ -54,7 +54,7 @@ Use your usual SSH hostname or alias in place of `YOUR_SSH_HOST`.
 Run `npm test` to check the combat rules.
 
 Enemies start with 48 health against your 8-damage attack. A perfect combo
-adds a 4-damage counter: four perfect rounds win the first fight.
+adds a 4-damage counter: four perfect rounds using only basic attacks win the first fight.
 You start with 40 health. Missing a whole combo costs 11 health in the opening fights, leaving 29.
 Each pattern pairs a hit time with its damage, e.g. `{ time: 3100, damage: 5 }`.
 
@@ -69,7 +69,7 @@ Each next opponent has 12 more health. Restart clears the saved run.
 `nextFight` carries the build into fresh combat state and resets energy to the
 build's starting energy; unused energy does not carry over.
 
-Basic attacks deal 8 damage and earn 1 energy. Heavy Strike costs 3 energy,
+Basic attacks deal 8 damage and earn 1 energy. Heavy Strike costs 2 energy,
 starts at 20 damage, and benefits from Heavy hitter rewards. Both end your turn.
 Counter damage starts at 4 and benefits from Stronger counters rewards.
 
@@ -102,3 +102,10 @@ The battle fills the browser viewport; Fullscreen hides browser chrome where sup
 Combat controls sit along the bottom. Help & settings holds instructions, build stats,
 and the practice toggle. Native modal dialogs separate rewards and run results
 from combat, keep keyboard focus inside, and prevent premature dismissal.
+
+Run `npm run balance` for a deterministic full-run benchmark (500 runs per
+scenario/build). Success rates are assumed inputs, not measured player data.
+The policy prioritizes lethal blows, healing when at least 12 HP is missing,
+then affordable Heavy Strikes. Perfect defense clears every build; ignoring
+defense loses. Heavy Strike costs 2 energy to make offense compete with healing
+and shorten dodge-focused fights. See `BALANCE.md` for the comparison.
