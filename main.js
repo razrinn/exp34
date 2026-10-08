@@ -26,13 +26,13 @@ function render() {
   timeline.hidden = state.phase !== 'enemy';
   if (state.phase === 'enemy') {
     document.querySelector('#parry-window').style.width = `${PARRY_WINDOW_MS / hitDuration() * 100}%`;
-    document.querySelector('#hit-label').textContent = `Strike ${state.hitIndex + 1} / ${state.enemy.impactTimes.length}`;
+    document.querySelector('#hit-label').textContent = `Combo ${state.patternIndex + 1} · Strike ${state.hitIndex + 1} / ${state.impactTimes.length}`;
   }
 }
 
 function hitDuration() {
-  const previous = state.hitIndex === 0 ? 0 : state.enemy.impactTimes[state.hitIndex - 1];
-  return state.enemy.impactTimes[state.hitIndex] - previous;
+  const previous = state.hitIndex === 0 ? 0 : state.impactTimes[state.hitIndex - 1];
+  return state.impactTimes[state.hitIndex] - previous;
 }
 
 function updateEnemy(now) {

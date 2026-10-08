@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 6
+## Checkpoint 7
 
 One character, two alternating enemies, alternating turns, health, victory, restart, timed parries, and counters.
 Combat rules live in `combat.js`; `main.js` connects them to the screen.
@@ -13,7 +13,9 @@ or victory/defeat when health reaches zero.
 
 The sentinel strikes at 1500, 2200, and 3100 ms from the combo's start.
 The Duelist strikes at 1200, 1600, and 2800 ms: two quick hits and a delayed finisher.
-Names, symbols, timings, and per-hit damage live in `ENEMIES` in `combat.js`.
+Each enemy has three rhythms, cycling in order on successive enemy turns.
+Names, symbols, timing patterns, and per-hit damage live in `ENEMIES` in `combat.js`.
+`enemyTurns % patterns.length` selects the next pattern; a new fight resets the cycle.
 The run alternates Sentinel → Duelist → Sentinel, using the same combat rules.
 Press Space or click Parry in the final 180 ms (the gold zone) before each hit.
 Each parry blocks that hit; each miss deals 6 damage. Parry the whole combo

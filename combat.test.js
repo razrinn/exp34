@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { newCombat, nextFight, attack, parry, retaliate, advanceEnemy, ENEMIES, PARRY_WINDOW_MS } from './combat.js';
 
 function perfectCombo(state) {
-  for (const offset of state.enemy.impactTimes) {
+  for (const offset of state.impactTimes) {
     const impact = state.comboStartedAt + offset;
     state = advanceEnemy(parry(state, impact), impact);
   }
@@ -85,7 +85,7 @@ test('new turns reset combo history and new fights reset health', () => {
   assert.equal(next.allParried, true);
   assert.equal(next.hitIndex, 0);
   assert.equal(next.parryResult, null);
-  assert.equal(next.impactAt, 11500);
+  assert.equal(next.impactAt, 11800);
   assert.equal(newCombat().playerHp, 30);
 });
 
@@ -137,4 +137,27 @@ test('enemies alternate and the Duelist uses its own rhythm', () => {
   assert.equal(result.phase, 'player');
   const third = nextFight({ ...second, phase: 'victory', enemyHp: 0 }, 'attack');
   assert.equal(third.enemy, ENEMIES[0]);
+});
+
+test('each enemy cycles through three distinct patterns and all support perfect counters', () => {
+  for (const enemy of ENEMIES) {
+    assert.equal(enemy.patterns.length, 3);
+    assert.equal(new Set(enemy.patterns.map(pattern => pattern.join(','))).size, 3);
+    let state = { ...newCombat(), enemy, enemyHp: 100, enemyMaxHp: 100 };
+    for (let turn = 0; turn < 4; turn++) {
+      state = attack(state, turn * 10000);
+      assert.equal(state.patternIndex, turn % 3);
+      assert.equal(state.impactTimes, enemy.patterns[turn % 3]);
+      assert.equal(state.impactAt, turn * 10000 + state.impactTimes[0]);
+      for (const impact of state.impactTimes) {
+        state = advanceEnemy(parry(state, state.comboStartedAt + impact), state.comboStartedAt + impact);
+      }
+      assert.equal(state.playerHp, 30);
+      assert.equal(state.enemyHp, 100 - (turn + 1) * 12);
+      assert.equal(state.phase, 'player');
+    }
+    const next = nextFight({ ...state, phase: 'victory', enemyHp: 0 }, 'health');
+    assert.equal(next.enemyTurns, 0);
+    assert.equal(attack(next).patternIndex, 0);
+  }
 });

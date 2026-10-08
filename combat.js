@@ -1,13 +1,19 @@
 export const ENEMIES = [
-  { name: 'Sentinel', symbol: '♜', impactTimes: [1500, 2200, 3100], damage: 6 },
-  { name: 'Duelist', symbol: '⚔', impactTimes: [1200, 1600, 2800], damage: 6 },
+  {
+    name: 'Sentinel', symbol: '♜', damage: 6,
+    patterns: [[1500, 2200, 3100], [1800, 2300, 2800], [1100, 2100, 3500]],
+  },
+  {
+    name: 'Duelist', symbol: '⚔', damage: 6,
+    patterns: [[1200, 1600, 2800], [1600, 2000, 2400], [1000, 2300, 2700]],
+  },
 ];
 export const PARRY_WINDOW_MS = 180;
 
 export function newCombat() {
   return {
     playerHp: 30, playerMaxHp: 30, attackDamage: 8,
-    enemy: ENEMIES[0], enemyHp: 24, enemyMaxHp: 24, fight: 1,
+    enemy: ENEMIES[0], enemyTurns: 0, enemyHp: 24, enemyMaxHp: 24, fight: 1,
     phase: 'player', message: 'Your turn. Choose Attack.',
   };
 }
@@ -32,12 +38,17 @@ export function nextFight(state, upgrade) {
 export function attack(state, now = 0) {
   if (state.phase !== 'player') return state;
   const enemyHp = Math.max(0, state.enemyHp - state.attackDamage);
+  const patternIndex = state.enemyTurns % state.enemy.patterns.length;
+  const impactTimes = state.enemy.patterns[patternIndex];
   return {
     ...state,
     enemyHp,
+    impactTimes,
+    patternIndex,
+    enemyTurns: state.enemyTurns + 1,
     comboStartedAt: now,
     hitIndex: 0,
-    impactAt: now + state.enemy.impactTimes[0],
+    impactAt: now + impactTimes[0],
     allParried: true,
     parryResult: null,
     phase: enemyHp === 0 ? 'victory' : 'enemy',
@@ -63,7 +74,7 @@ export function retaliate(state) {
   const playerHp = Math.max(0, state.playerHp - (blocked ? 0 : state.enemy.damage));
   const allParried = state.allParried && blocked;
   const hitIndex = state.hitIndex + 1;
-  const finished = hitIndex === state.enemy.impactTimes.length;
+  const finished = hitIndex === state.impactTimes.length;
   const enemyHp = Math.max(0, state.enemyHp - (finished && allParried ? 4 : 0));
   return {
     ...state,
@@ -72,7 +83,7 @@ export function retaliate(state) {
     allParried,
     hitIndex,
     parryResult: null,
-    impactAt: finished ? null : state.comboStartedAt + state.enemy.impactTimes[hitIndex],
+    impactAt: finished ? null : state.comboStartedAt + state.impactTimes[hitIndex],
     phase: playerHp === 0 ? 'defeat' : enemyHp === 0 ? 'victory' : finished ? 'player' : 'enemy',
     message: playerHp === 0 ? 'Defeat. Try again.'
       : enemyHp === 0 ? `Parried! Your counter finishes the ${state.enemy.name}. Victory!`
