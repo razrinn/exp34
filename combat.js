@@ -17,7 +17,14 @@ export const ENEMIES = [
   },
 ];
 export const RUN_LENGTH = 5;
-export const BOSS = { ...ENEMIES[0], name: 'Warden', symbol: '♛' };
+export const BOSS = {
+  name: 'Warden', symbol: '♛',
+  patterns: [
+    [{ time: 1400, damage: 1 }, { time: 2100, damage: 1 }, { time: 2800, damage: 1 }, { time: 3600, damage: 3 }],
+    [{ time: 1200, damage: 1 }, { time: 1600, damage: 1 }, { time: 2700, damage: 1 }, { time: 3800, damage: 3 }],
+    [{ time: 1900, damage: 1 }, { time: 2300, damage: 1 }, { time: 2700, damage: 1 }, { time: 3400, damage: 3 }],
+  ],
+};
 export const PARRY_WINDOW_MS = 180;
 export const DODGE_WINDOW_MS = 360;
 export const HEAVY_STRIKE = { cost: 3, damage: 20 };
