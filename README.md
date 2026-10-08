@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 20
+## Checkpoint 21
 
 One character, two regular enemies, a final boss, turns, health, restart, timed defenses, and counters.
 Runs have five fights: Sentinel → Duelist → Sentinel → Duelist → Warden.
@@ -72,4 +72,9 @@ Basic attacks earn 1 energy. Heavy Strike costs 3 energy and deals a fixed
 without changing state. Energy starts at 0 and resets between fights.
 Attack upgrades improve the basic attack; Heavy Strike stays at 20 damage.
 
-Healing skills, sound cues, and saving progress are not implemented yet.
+Heal costs 2 energy, restores up to 12 HP, and ends your turn. The enemy
+attacks afterward using its next pattern. Healing at full health is disabled
+and spends no energy. Recovery is capped at max health, including upgrades.
+`beginEnemyTurn` starts the same enemy timeline after attacks or healing.
+
+Sound cues and saving progress are not implemented yet.

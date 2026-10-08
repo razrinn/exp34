@@ -28,6 +28,7 @@ export const BOSS = {
 export const PARRY_WINDOW_MS = 180;
 export const DODGE_WINDOW_MS = 360;
 export const HEAVY_STRIKE = { cost: 3, damage: 20 };
+export const HEAL = { cost: 2, amount: 12 };
 
 export function newCombat() {
   return {
@@ -67,14 +68,35 @@ function strike(state, now, heavy) {
   if (heavy && state.energy < HEAVY_STRIKE.cost) return state;
   const damage = heavy ? HEAVY_STRIKE.damage : state.attackDamage;
   const enemyHp = Math.max(0, state.enemyHp - damage);
+  const next = {
+    ...state,
+    enemyHp,
+    energy: state.energy + (heavy ? -HEAVY_STRIKE.cost : 1),
+    phase: enemyHp === 0 ? state.fight === RUN_LENGTH ? 'complete' : 'victory' : 'enemy',
+    message: enemyHp === 0 ? `Victory! The ${state.enemy.name} falls.` : `You deal ${damage} damage. The ${state.enemy.name} prepares to strike…`,
+  };
+  return enemyHp === 0 ? next : beginEnemyTurn(next, now);
+}
+
+export function heal(state, now = 0) {
+  if (state.phase !== 'player' || state.energy < HEAL.cost || state.playerHp === state.playerMaxHp) return state;
+  const playerHp = Math.min(state.playerMaxHp, state.playerHp + HEAL.amount);
+  return beginEnemyTurn({
+    ...state,
+    playerHp,
+    energy: state.energy - HEAL.cost,
+    message: `You recover ${playerHp - state.playerHp} HP. The ${state.enemy.name} prepares to strike…`,
+  }, now);
+}
+
+function beginEnemyTurn(state, now) {
   const patternIndex = state.enemyTurns % state.enemy.patterns.length;
   const hits = state.enemy.patterns[patternIndex].map(hit => ({
     ...hit, damage: hit.damage + Math.floor((state.fight - 1) / 2),
   }));
   return {
     ...state,
-    enemyHp,
-    energy: state.energy + (heavy ? -HEAVY_STRIKE.cost : 1),
+    phase: 'enemy',
     hits,
     patternIndex,
     enemyTurns: state.enemyTurns + 1,
@@ -83,8 +105,6 @@ function strike(state, now, heavy) {
     impactAt: now + hits[0].time,
     allParried: true,
     defenseResult: null,
-    phase: enemyHp === 0 ? state.fight === RUN_LENGTH ? 'complete' : 'victory' : 'enemy',
-    message: enemyHp === 0 ? `Victory! The ${state.enemy.name} falls.` : `You deal ${damage} damage. The ${state.enemy.name} prepares to strike…`,
   };
 }
 

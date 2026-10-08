@@ -1,10 +1,11 @@
-import { newCombat, nextFight, attack, heavyStrike, parry, dodge, advanceEnemy, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE, RUN_LENGTH } from './combat.js';
+import { newCombat, nextFight, attack, heavyStrike, heal, parry, dodge, advanceEnemy, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE, HEAL, RUN_LENGTH } from './combat.js';
 import { enemyPose } from './animation.js';
 
 let state = newCombat();
 let enemyFrame;
 const attackButton = document.querySelector('#attack');
 const heavyButton = document.querySelector('#heavy');
+const healButton = document.querySelector('#heal');
 const parryButton = document.querySelector('#parry');
 const dodgeButton = document.querySelector('#dodge');
 const timeline = document.querySelector('#timeline');
@@ -30,6 +31,8 @@ function render() {
   document.querySelector('#energy').textContent = `Energy: ${state.energy}`;
   heavyButton.textContent = `Heavy Strike · ${HEAVY_STRIKE.damage} damage · ${HEAVY_STRIKE.cost} energy`;
   heavyButton.disabled = state.phase !== 'player' || state.energy < HEAVY_STRIKE.cost;
+  healButton.textContent = `Heal · ${HEAL.amount} HP · ${HEAL.cost} energy`;
+  healButton.disabled = state.phase !== 'player' || state.energy < HEAL.cost || state.playerHp === state.playerMaxHp;
   parryButton.disabled = state.phase !== 'enemy' || state.defenseResult !== null;
   dodgeButton.disabled = parryButton.disabled;
   timeline.hidden = state.phase !== 'enemy' || !practice.checked;
@@ -61,7 +64,7 @@ function updateEnemy(now) {
   enemyFrame = requestAnimationFrame(updateEnemy);
 }
 
-function tryAttack(action) {
+function tryAction(action) {
   const next = action(state, performance.now());
   if (next === state) return;
   state = next;
@@ -72,8 +75,9 @@ function tryAttack(action) {
   }
 }
 
-attackButton.addEventListener('click', () => tryAttack(attack));
-heavyButton.addEventListener('click', () => tryAttack(heavyStrike));
+attackButton.addEventListener('click', () => tryAction(attack));
+heavyButton.addEventListener('click', () => tryAction(heavyStrike));
+healButton.addEventListener('click', () => tryAction(heal));
 practice.addEventListener('change', render);
 
 function tryDefense(action) {

@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newCombat, nextFight, attack, heavyStrike, parry, dodge, retaliate, advanceEnemy, ENEMIES, BOSS, RUN_LENGTH, PARRY_WINDOW_MS, DODGE_WINDOW_MS } from './combat.js';
+import { newCombat, nextFight, attack, heavyStrike, heal, parry, dodge, retaliate, advanceEnemy, ENEMIES, BOSS, RUN_LENGTH, PARRY_WINDOW_MS, DODGE_WINDOW_MS } from './combat.js';
 
 function perfectCombo(state) {
+  if (state.phase !== 'enemy') return state;
   for (const offset of state.hits) {
     const impact = state.comboStartedAt + offset.time;
     state = advanceEnemy(parry(state, impact), impact);
@@ -345,5 +346,36 @@ test('shorter variants resolve every hit and a dodge still forfeits the counter'
       assert.equal(avoided.playerHp, 40);
       assert.equal(avoided.enemyHp, 40);
     }
+  }
+});
+
+test('healing spends energy and starts the next enemy pattern without dealing damage', () => {
+  const initial = { ...newCombat(), playerHp: 20, energy: 3, enemyTurns: 1 };
+  const result = heal(initial, 100);
+  assert.equal(result.playerHp, 32);
+  assert.equal(result.energy, 1);
+  assert.equal(result.enemyHp, initial.enemyHp);
+  assert.equal(result.phase, 'enemy');
+  assert.equal(result.patternIndex, 1);
+  assert.equal(result.impactAt, 1900);
+  assert.equal(result.enemyTurns, 2);
+  assert.equal(advanceEnemy(result, 99999).playerHp, 21);
+});
+
+test('healing caps at upgraded max health and rejects invalid actions without spending', () => {
+  const nearFull = { ...newCombat(), playerHp: 44, playerMaxHp: 46, energy: 2 };
+  const result = heal(nearFull);
+  assert.equal(result.playerHp, 46);
+  assert.equal(result.energy, 0);
+  assert.match(result.message, /recover 2 HP/);
+  const full = { ...newCombat(), energy: 2 };
+  assert.equal(heal(full), full);
+  for (const energy of [0, 1]) {
+    const poor = { ...newCombat(), playerHp: 20, energy };
+    assert.equal(heal(poor), poor);
+  }
+  for (const phase of ['enemy', 'victory', 'defeat', 'complete']) {
+    const state = { ...newCombat(), playerHp: 20, energy: 3, phase };
+    assert.equal(heal(state), state);
   }
 });
