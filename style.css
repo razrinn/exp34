@@ -1,6 +1,9 @@
 :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #111519; color: #e5e8e7; --muted: #9ba8ab; --line: #ffffff1c; --gold: #d1aa72; }
 * { box-sizing: border-box; }
 body { margin: 0; }
+#loading { display: none; }
+.loading #loading { min-height: 100dvh; display: grid; place-items: center; color: var(--muted); font-size: 14px; }
+.loading main { display: none; }
 button, summary, input { font: inherit; }
 button, summary { cursor: pointer; }
 button { color: inherit; border: 1px solid var(--line); border-radius: 8px; background: #20272d; padding: 14px 18px; }

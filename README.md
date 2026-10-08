@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 27
+## Checkpoint 28
 
 One character, two regular enemies, a final boss, turns, health, restart, timed defenses, and counters.
 Runs have five fights: Sentinel → Duelist → Sentinel → Duelist → Warden.
@@ -91,6 +91,8 @@ defeat and completion also persist. Restart run clears the save.
 Only progression fields are stored; enemy definitions and timing are rebuilt
 from current game data. Invalid or incompatible saves start a fresh run.
 If browser storage blocks writes, Help & settings reports that saving is unavailable.
+The battle stays hidden behind a loading screen until the restored state is rendered,
+so later stages do not briefly flash the first encounter's default UI.
 
 Keyboard controls: Q attacks, W uses Heavy Strike, E heals, Space parries,
 and Shift dodges. Holding a key does not repeat actions. Shortcuts respect

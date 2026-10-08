@@ -6,12 +6,14 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
   const listeners = {};
   const previous = { document: globalThis.document, requestAnimationFrame: globalThis.requestAnimationFrame, cancelAnimationFrame: globalThis.cancelAnimationFrame };
   globalThis.document = {
+    body: { classList: { remove() {} } },
     querySelector(selector) {
       if (!elements.has(selector)) elements.set(selector, {
         style: {}, checked: false, listeners: {}, open: false,
         showModal() { this.open = true; },
         close() { this.open = false; },
         animate() {},
+        remove() {},
         addEventListener(type, handler) { this.listeners[type] = handler; },
       });
       return elements.get(selector);

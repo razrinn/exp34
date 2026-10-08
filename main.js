@@ -183,3 +183,5 @@ for (const button of document.querySelectorAll('[data-upgrade]')) {
 }
 
 render();
+document.body.classList.remove('loading');
+document.querySelector('#loading').remove();
