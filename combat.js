@@ -16,6 +16,8 @@ export const ENEMIES = [
     ],
   },
 ];
+export const RUN_LENGTH = 5;
+export const BOSS = { ...ENEMIES[0], name: 'Warden', symbol: '♛' };
 export const PARRY_WINDOW_MS = 180;
 export const DODGE_WINDOW_MS = 360;
 export const HEAVY_STRIKE = { cost: 3, damage: 20 };
@@ -29,7 +31,7 @@ export function newCombat() {
 }
 
 export function nextFight(state, upgrade) {
-  if (state.phase !== 'victory' || !['attack', 'health'].includes(upgrade)) return state;
+  if (state.phase !== 'victory' || state.fight >= RUN_LENGTH || !['attack', 'health'].includes(upgrade)) return state;
   const playerMaxHp = state.playerMaxHp + (upgrade === 'health' ? 6 : 0);
   const enemyMaxHp = state.enemyMaxHp + 8;
   return {
@@ -40,7 +42,7 @@ export function nextFight(state, upgrade) {
     enemyMaxHp,
     enemyHp: enemyMaxHp,
     fight: state.fight + 1,
-    enemy: ENEMIES[state.fight % ENEMIES.length],
+    enemy: state.fight + 1 === RUN_LENGTH ? BOSS : ENEMIES[state.fight % ENEMIES.length],
     message: upgrade === 'health' ? 'Health upgraded and fully restored. Your turn.' : 'Attack upgraded. Your turn.',
   };
 }
@@ -74,7 +76,7 @@ function strike(state, now, heavy) {
     impactAt: now + hits[0].time,
     allParried: true,
     defenseResult: null,
-    phase: enemyHp === 0 ? 'victory' : 'enemy',
+    phase: enemyHp === 0 ? state.fight === RUN_LENGTH ? 'complete' : 'victory' : 'enemy',
     message: enemyHp === 0 ? `Victory! The ${state.enemy.name} falls.` : `You deal ${damage} damage. The ${state.enemy.name} prepares to strike…`,
   };
 }
@@ -119,7 +121,7 @@ export function retaliate(state) {
     hitIndex,
     defenseResult: null,
     impactAt: finished ? null : state.comboStartedAt + state.hits[hitIndex].time,
-    phase: playerHp === 0 ? 'defeat' : enemyHp === 0 ? 'victory' : finished ? 'player' : 'enemy',
+    phase: playerHp === 0 ? 'defeat' : enemyHp === 0 ? state.fight === RUN_LENGTH ? 'complete' : 'victory' : finished ? 'player' : 'enemy',
     message: playerHp === 0 ? 'Defeat. Try again.'
       : enemyHp === 0 ? `Parried! Your counter finishes the ${state.enemy.name}. Victory!`
       : finished && allParried ? 'Perfect combo! You counter for 4 damage. Your turn.'

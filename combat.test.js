@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newCombat, nextFight, attack, heavyStrike, parry, dodge, retaliate, advanceEnemy, ENEMIES, PARRY_WINDOW_MS, DODGE_WINDOW_MS } from './combat.js';
+import { newCombat, nextFight, attack, heavyStrike, parry, dodge, retaliate, advanceEnemy, ENEMIES, BOSS, RUN_LENGTH, PARRY_WINDOW_MS, DODGE_WINDOW_MS } from './combat.js';
 
 function perfectCombo(state) {
   for (const offset of state.hits) {
@@ -230,7 +230,7 @@ test('heavy strike rejects unaffordable and out-of-turn actions; lethal damage c
     const state = { ...newCombat(), energy };
     assert.equal(heavyStrike(state), state);
   }
-  for (const phase of ['enemy', 'victory', 'defeat']) {
+  for (const phase of ['enemy', 'victory', 'defeat', 'complete']) {
     const state = { ...newCombat(), energy: 5, phase };
     assert.equal(heavyStrike(state), state);
   }
@@ -255,7 +255,7 @@ test('each hit applies its own damage, including the stronger finisher', () => {
 
 test('damage increases every two fights while health rises every fight', () => {
   let state = newCombat();
-  const expected = [[2, 2, 3], [2, 2, 3], [3, 3, 4], [3, 3, 4], [4, 4, 5], [4, 4, 5]];
+  const expected = [[2, 2, 3], [2, 2, 3], [3, 3, 4], [3, 3, 4], [4, 4, 5]];
   for (let fight = 0; fight < expected.length; fight++) {
     assert.equal(state.enemyMaxHp, 36 + fight * 8);
     const incoming = attack(state);
@@ -265,4 +265,30 @@ test('damage increases every two fights while health rises every fight', () => {
     state = nextFight({ ...state, phase: 'victory', enemyHp: 0 }, 'health');
   }
   assert.deepEqual(ENEMIES[0].patterns[0].map(hit => hit.damage), [2, 2, 3]);
+});
+
+test('a full run reaches the final boss, completes, and cannot progress again', () => {
+  let state = newCombat();
+  for (let fight = 1; fight <= RUN_LENGTH; fight++) {
+    assert.equal(state.fight, fight);
+    assert.equal(state.enemy, fight === RUN_LENGTH ? BOSS : ENEMIES[(fight - 1) % 2]);
+    while (state.phase === 'player') state = perfectCombo(attack(state));
+    assert.equal(state.phase, fight === RUN_LENGTH ? 'complete' : 'victory');
+    if (fight < RUN_LENGTH) state = nextFight(state, 'health');
+  }
+  assert.equal(nextFight(state, 'health'), state);
+  assert.equal(attack(state), state);
+  assert.equal(heavyStrike(state), state);
+  assert.equal(parry(state, 99999), state);
+  assert.equal(dodge(state, 99999), state);
+  assert.equal(newCombat().fight, 1);
+});
+
+test('all ways of landing the final blow complete the run', () => {
+  const final = { ...newCombat(), enemy: BOSS, fight: RUN_LENGTH, enemyHp: 8, energy: 3 };
+  assert.equal(attack(final).phase, 'complete');
+  assert.equal(heavyStrike(final).phase, 'complete');
+  assert.equal(perfectCombo(attack({ ...final, enemyHp: 10 })).phase, 'complete');
+  const forgedVictory = { ...final, enemyHp: 0, phase: 'victory' };
+  assert.equal(nextFight(forgedVictory, 'attack'), forgedVictory);
 });

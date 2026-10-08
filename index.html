@@ -8,7 +8,7 @@
   </head>
   <body>
     <main>
-      <header><p class="eyebrow">COMBAT PROTOTYPE · CHECKPOINT 14</p><h1>exp34</h1><p id="fight-label">Fight 1</p></header>
+      <header><p class="eyebrow">COMBAT PROTOTYPE · CHECKPOINT 15</p><h1>exp34</h1><p id="fight-label">Fight 1 / 5</p></header>
       <section class="arena" aria-label="Combatants">
         <article><div class="figure player" aria-hidden="true">◇</div><h2>Expeditioner</h2><label for="player-health">Health <span id="player-hp"></span></label><meter id="player-health" min="0" max="40"></meter></article>
         <span class="versus" aria-hidden="true">VS</span>
@@ -28,6 +28,10 @@
         <button id="parry" type="button" disabled>Parry · Space</button>
         <button id="dodge" type="button" disabled>Dodge · Shift</button>
         <button id="restart" type="button">Restart run</button>
+        <div id="run-complete" hidden>
+          <h2>Expedition complete</h2>
+          <p>You defeated the Warden and cleared all five fights. Restart to take another run.</p>
+        </div>
         <div id="upgrades" hidden>
           <h2>Choose an upgrade</h2>
           <p class="hint">Your next opponent has 8 more health. Attack upgrades carry your current health forward.</p>

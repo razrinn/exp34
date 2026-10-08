@@ -1,4 +1,4 @@
-import { newCombat, nextFight, attack, heavyStrike, parry, dodge, advanceEnemy, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE } from './combat.js';
+import { newCombat, nextFight, attack, heavyStrike, parry, dodge, advanceEnemy, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE, RUN_LENGTH } from './combat.js';
 
 let state = newCombat();
 let enemyFrame;
@@ -20,7 +20,8 @@ function render() {
   document.querySelector('#player-health').value = state.playerHp;
   document.querySelector('#enemy-health').value = state.enemyHp;
   document.querySelector('#message').textContent = state.message;
-  document.querySelector('#fight-label').textContent = `Fight ${state.fight}`;
+  document.querySelector('#fight-label').textContent = `Fight ${state.fight} / ${RUN_LENGTH}${state.fight === RUN_LENGTH ? ' · FINAL BOSS' : ''}`;
+  document.querySelector('#run-complete').hidden = state.phase !== 'complete';
   document.querySelector('#upgrades').hidden = state.phase !== 'victory';
   attackButton.textContent = `Attack · ${state.attackDamage} damage`;
   attackButton.disabled = state.phase !== 'player';

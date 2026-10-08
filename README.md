@@ -4,9 +4,12 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 14
+## Checkpoint 15
 
-One character, two alternating enemies, alternating turns, health, victory, restart, timed parries, and counters.
+One character, two regular enemies, a final boss, turns, health, restart, timed defenses, and counters.
+Runs have five fights: Sentinel → Duelist → Sentinel → Duelist → Warden.
+The Warden currently uses Sentinel patterns; unique boss mechanics come next.
+Defeating it enters `complete`, ends progression, and leaves Restart run available.
 Combat rules live in `combat.js`; `main.js` connects them to the screen.
 The `phase` field determines which actions are allowed: player → enemy → player,
 or victory/defeat when health reaches zero.
@@ -45,7 +48,7 @@ You start with 40 health. Missing a whole combo costs 7 health in the opening fi
 Each pattern pairs a hit time with its damage, e.g. `{ time: 3100, damage: 3 }`.
 
 Every two fights adds 1 damage to every hit: fights 1–2 deal 2/2/3,
-fights 3–4 deal 3/3/4, and fights 5–6 deal 4/4/5. Timing windows stay constant.
+fights 3–4 deal 3/3/4, and the final boss deals 4/4/5. Timing windows stay constant.
 
 After victory, choose +2 attack damage (keep current health) or +6 max health
 with a full heal. Each next opponent has 8 more health. Upgrades accumulate
@@ -57,4 +60,4 @@ Basic attacks earn 1 energy. Heavy Strike costs 3 energy and deals a fixed
 without changing state. Energy starts at 0 and resets between fights.
 Attack upgrades improve the basic attack; Heavy Strike stays at 20 damage.
 
-A final boss and saving progress are not implemented yet.
+Unique boss patterns and saving progress are not implemented yet.
