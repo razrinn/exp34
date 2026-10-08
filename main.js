@@ -24,8 +24,16 @@ function feedback(kind, target) {
     { filter: `brightness(1.8) drop-shadow(0 0 22px ${colors[kind]})`, opacity: kind === 'dodge' ? 0.3 : 1 },
     { filter: 'brightness(1)', opacity: 1 },
   ], { duration: 250 });
-  if (sound.checked) playCue(kind);
+  if (sound.checked) playSound(kind);
 }
+
+async function playSound(kind) {
+  const played = await playCue(kind);
+  document.querySelector('#sound-status').textContent = played
+    ? '' : 'Audio could not start. Check browser sound permissions and try Test sound.';
+}
+
+document.querySelector('#test-sound').addEventListener('click', () => playSound('parry'));
 
 function render() {
   document.querySelector('#player-hp').textContent = `${state.playerHp} / ${state.playerMaxHp}`;

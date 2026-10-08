@@ -2,14 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { playCue } from './sound.js';
 
-test('sound cues reuse the audio context, fade out, and disconnect their nodes', () => {
+test('sound cues reuse the audio context, fade out, and disconnect their nodes', async () => {
   const previous = globalThis.AudioContext;
   let contexts = 0;
+  let instance;
   const oscillators = [];
   const gains = [];
   const parameter = () => ({ setValueAtTime() {}, exponentialRampToValueAtTime() {} });
   globalThis.AudioContext = class {
-    constructor() { contexts++; this.currentTime = 10; this.state = 'running'; }
+    constructor() { contexts++; instance = this; this.currentTime = 10; this.state = 'running'; }
     createOscillator() {
       const node = {
         frequency: parameter(), connect() {},
@@ -27,7 +28,7 @@ test('sound cues reuse the audio context, fade out, and disconnect their nodes',
     }
   };
   try {
-    for (const kind of ['attack', 'heavy', 'hit', 'parry', 'dodge', 'counter', 'heal']) playCue(kind);
+    for (const kind of ['attack', 'heavy', 'hit', 'parry', 'dodge', 'counter', 'heal']) assert.equal(await playCue(kind), true);
     assert.equal(contexts, 1);
     assert.equal(oscillators.length, 7);
     for (let i = 0; i < oscillators.length; i++) {
@@ -37,6 +38,17 @@ test('sound cues reuse the audio context, fade out, and disconnect their nodes',
       assert.equal(oscillators[i].disconnected, true);
       assert.equal(gains[i].disconnected, true);
     }
+    instance.state = 'suspended';
+    instance.resume = async () => {
+      assert.equal(oscillators.length, 7);
+      instance.state = 'running';
+    };
+    assert.equal(await playCue('parry'), true);
+    assert.equal(oscillators.length, 8);
+    instance.state = 'suspended';
+    instance.resume = async () => { throw new Error('Audio blocked'); };
+    assert.equal(await playCue('parry'), false);
+    assert.equal(oscillators.length, 8);
   } finally {
     globalThis.AudioContext = previous;
   }
