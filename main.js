@@ -1,4 +1,5 @@
 import { newCombat, nextFight, attack, heavyStrike, parry, dodge, advanceEnemy, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE, RUN_LENGTH } from './combat.js';
+import { enemyPose } from './animation.js';
 
 let state = newCombat();
 let enemyFrame;
@@ -8,7 +9,8 @@ const parryButton = document.querySelector('#parry');
 const dodgeButton = document.querySelector('#dodge');
 const timeline = document.querySelector('#timeline');
 const marker = document.querySelector('#marker');
-
+const enemyFigure = document.querySelector('#enemy-symbol');
+const practice = document.querySelector('#practice');
 
 function render() {
   document.querySelector('#player-hp').textContent = `${state.playerHp} / ${state.playerMaxHp}`;
@@ -30,7 +32,8 @@ function render() {
   heavyButton.disabled = state.phase !== 'player' || state.energy < HEAVY_STRIKE.cost;
   parryButton.disabled = state.phase !== 'enemy' || state.defenseResult !== null;
   dodgeButton.disabled = parryButton.disabled;
-  timeline.hidden = state.phase !== 'enemy';
+  timeline.hidden = state.phase !== 'enemy' || !practice.checked;
+  if (state.phase !== 'enemy') enemyFigure.style.transform = '';
   if (state.phase === 'enemy') {
     document.querySelector('#dodge-window').style.width = `${DODGE_WINDOW_MS / hitDuration() * 100}%`;
     document.querySelector('#parry-window').style.width = `${PARRY_WINDOW_MS / hitDuration() * 100}%`;
@@ -46,11 +49,14 @@ function hitDuration() {
 function updateEnemy(now) {
   const next = advanceEnemy(state, now);
   if (next !== state) {
+    enemyFigure.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 160 });
     state = next;
     render();
   }
   if (state.phase !== 'enemy') return;
   const progress = 1 - (state.impactAt - now) / hitDuration();
+  const pose = enemyPose(state.impactAt - now, hitDuration());
+  enemyFigure.style.transform = `translate(${pose.x}px, ${pose.y}px) rotate(${pose.rotation}deg)`;
   marker.style.left = `${Math.max(0, progress) * 100}%`;
   enemyFrame = requestAnimationFrame(updateEnemy);
 }
@@ -62,12 +68,13 @@ function tryAttack(action) {
   render();
   if (state.phase === 'enemy') {
     marker.style.left = '0%';
-    enemyFrame = requestAnimationFrame(updateEnemy);
+    updateEnemy(performance.now());
   }
 }
 
 attackButton.addEventListener('click', () => tryAttack(attack));
 heavyButton.addEventListener('click', () => tryAttack(heavyStrike));
+practice.addEventListener('change', render);
 
 function tryDefense(action) {
   state = action(state, performance.now());

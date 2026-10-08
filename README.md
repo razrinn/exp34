@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 19
+## Checkpoint 20
 
 One character, two regular enemies, a final boss, turns, health, restart, timed defenses, and counters.
 Runs have five fights: Sentinel → Duelist → Sentinel → Duelist → Warden.
@@ -36,6 +36,11 @@ Late frames resolve all overdue hits in order.
 `performance.now()` measures elapsed time locally in the browser;
 `requestAnimationFrame` updates the marker and resolves the strike at impact.
 Timing is based on elapsed milliseconds, not the number of frames rendered.
+The timing bar is hidden by default. Watch the enemy pull back during wind-up
+and swing toward you during the final 240 ms before impact. A flash marks impact.
+Practice mode restores the timing bar without changing combat rules.
+`animation.js` derives the enemy pose from the same impact time as defense checks;
+the animation does not use a separate timer that can drift away from the strike.
 
 Run `npm start` on the VPS. From your local machine, forward its port:
 
@@ -67,4 +72,4 @@ Basic attacks earn 1 energy. Heavy Strike costs 3 energy and deals a fixed
 without changing state. Energy starts at 0 and resets between fights.
 Attack upgrades improve the basic attack; Heavy Strike stays at 20 damage.
 
-Healing skills, combat effects, and saving progress are not implemented yet.
+Healing skills, sound cues, and saving progress are not implemented yet.

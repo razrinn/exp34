@@ -8,7 +8,7 @@
   </head>
   <body>
     <main>
-      <header><p class="eyebrow">COMBAT PROTOTYPE · CHECKPOINT 19</p><h1>exp34</h1><p id="fight-label">Fight 1 / 5</p></header>
+      <header><p class="eyebrow">COMBAT PROTOTYPE · CHECKPOINT 20</p><h1>exp34</h1><p id="fight-label">Fight 1 / 5</p></header>
       <section class="arena" aria-label="Combatants">
         <article><div class="figure player" aria-hidden="true">◇</div><h2>Expeditioner</h2><label for="player-health">Health <span id="player-hp"></span></label><meter id="player-health" min="0" max="40"></meter></article>
         <span class="versus" aria-hidden="true">VS</span>
@@ -16,6 +16,8 @@
       </section>
       <section class="controls" aria-label="Combat controls">
         <p id="message" role="status"></p>
+        <p class="hint">Watch the enemy pull back, then swing toward you. Parry just before impact, or dodge a little earlier.</p>
+        <label class="practice"><input id="practice" type="checkbox"> Practice mode — show timing bar</label>
         <div id="timeline" hidden>
           <p id="hit-label"></p>
           <p class="hint">Dodge in the blue or gold zone; parry only in gold. The strike lands at the right edge.</p>
