@@ -15,25 +15,25 @@ test('misses resolve individually and the turn ends after the final hit', () => 
   assert.equal(attack(state), state);
   assert.equal(advanceEnemy(state, 1599), state);
   state = advanceEnemy(state, 1600);
-  assert.equal(state.playerHp, 24);
+  assert.equal(state.playerHp, 20);
   assert.equal(state.hitIndex, 1);
   assert.equal(state.impactAt, 2300);
   assert.equal(state.phase, 'enemy');
   state = advanceEnemy(state, 3200);
-  assert.equal(state.playerHp, 12);
-  assert.equal(state.enemyHp, 16);
-  assert.equal(state.phase, 'player');
+  assert.equal(state.playerHp, 0);
+  assert.equal(state.enemyHp, 40);
+  assert.equal(state.phase, 'defeat');
 });
 
 test('parries block individual hits; only a perfect combo counters', () => {
   const incoming = attack(newCombat(), 100);
   const first = advanceEnemy(parry(incoming, incoming.impactAt), incoming.impactAt);
   assert.equal(first.playerHp, 30);
-  assert.equal(first.enemyHp, 16);
+  assert.equal(first.enemyHp, 40);
   assert.equal(first.parryResult, null);
   const result = perfectCombo(incoming);
   assert.equal(result.playerHp, 30);
-  assert.equal(result.enemyHp, 12);
+  assert.equal(result.enemyHp, 36);
   assert.equal(result.phase, 'player');
 });
 
@@ -42,8 +42,8 @@ test('missing a middle hit prevents a counter even with a final parry', () => {
   state = advanceEnemy(parry(state, 1500), 1500);
   state = advanceEnemy(state, 2200);
   state = advanceEnemy(parry(state, 3100), 3100);
-  assert.equal(state.playerHp, 24);
-  assert.equal(state.enemyHp, 16);
+  assert.equal(state.playerHp, 20);
+  assert.equal(state.enemyHp, 40);
   assert.equal(state.allParried, false);
   assert.equal(state.phase, 'player');
 });
@@ -57,7 +57,7 @@ test('timing boundaries work; early attempts cannot be retried on the same hit',
   assert.equal(early.parryResult, 'miss');
   assert.equal(parry(early, incoming.impactAt), early);
   const late = parry(incoming, incoming.impactAt + 1);
-  assert.equal(late.playerHp, 24);
+  assert.equal(late.playerHp, 20);
   assert.equal(late.hitIndex, 1);
   assert.equal(late.parryResult, 'miss');
 });
@@ -80,7 +80,7 @@ test('lethal hits stop the combo; lethal counters stop combat', () => {
 });
 
 test('new turns reset combo history and new fights reset health', () => {
-  const missed = advanceEnemy(attack(newCombat()), 9999);
+  const missed = advanceEnemy(attack({ ...newCombat(), playerHp: 40, playerMaxHp: 40 }), 9999);
   const next = attack(missed, 10000);
   assert.equal(next.allParried, true);
   assert.equal(next.hitIndex, 0);
@@ -96,13 +96,13 @@ test('attack upgrades persist, retain current health, and increase enemy health'
   assert.equal(next.playerHp, 12);
   assert.equal(next.playerMaxHp, 30);
   assert.equal(next.attackDamage, 10);
-  assert.equal(next.enemyHp, 32);
-  assert.equal(next.enemyMaxHp, 32);
+  assert.equal(next.enemyHp, 56);
+  assert.equal(next.enemyMaxHp, 56);
   assert.equal(next.phase, 'player');
-  assert.equal(attack(next).enemyHp, 22);
+  assert.equal(attack(next).enemyHp, 46);
   const third = nextFight({ ...next, phase: 'victory', enemyHp: 0 }, 'attack');
   assert.equal(third.attackDamage, 12);
-  assert.equal(third.enemyMaxHp, 40);
+  assert.equal(third.enemyMaxHp, 64);
 });
 
 test('health upgrades heal fully and cannot be purchased outside victory', () => {
@@ -133,7 +133,7 @@ test('enemies alternate and the Duelist uses its own rhythm', () => {
   assert.equal(advanceEnemy(incoming, 2800), incoming);
   const result = advanceEnemy(parry(incoming, 2900), 2900);
   assert.equal(result.playerHp, 36);
-  assert.equal(result.enemyHp, 20);
+  assert.equal(result.enemyHp, 44);
   assert.equal(result.phase, 'player');
   const third = nextFight({ ...second, phase: 'victory', enemyHp: 0 }, 'attack');
   assert.equal(third.enemy, ENEMIES[0]);
@@ -159,5 +159,18 @@ test('each enemy cycles through three distinct patterns and all support perfect 
     const next = nextFight({ ...state, phase: 'victory', enemyHp: 0 }, 'health');
     assert.equal(next.enemyTurns, 0);
     assert.equal(attack(next).patternIndex, 0);
+  }
+});
+
+test('starting balance requires four perfect rounds and exposes all three patterns', () => {
+  let state = newCombat();
+  for (let turn = 0; turn < 4; turn++) {
+    state = attack(state, turn * 10000);
+    assert.equal(state.phase, 'enemy');
+    assert.equal(state.patternIndex, turn % 3);
+    state = perfectCombo(state);
+    assert.equal(state.playerHp, 30);
+    assert.equal(state.enemyHp, 48 - (turn + 1) * 12);
+    assert.equal(state.phase, turn === 3 ? 'victory' : 'player');
   }
 });

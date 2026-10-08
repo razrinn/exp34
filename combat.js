@@ -1,10 +1,10 @@
 export const ENEMIES = [
   {
-    name: 'Sentinel', symbol: '♜', damage: 6,
+    name: 'Sentinel', symbol: '♜', damage: 10,
     patterns: [[1500, 2200, 3100], [1800, 2300, 2800], [1100, 2100, 3500]],
   },
   {
-    name: 'Duelist', symbol: '⚔', damage: 6,
+    name: 'Duelist', symbol: '⚔', damage: 10,
     patterns: [[1200, 1600, 2800], [1600, 2000, 2400], [1000, 2300, 2700]],
   },
 ];
@@ -13,7 +13,7 @@ export const PARRY_WINDOW_MS = 180;
 export function newCombat() {
   return {
     playerHp: 30, playerMaxHp: 30, attackDamage: 8,
-    enemy: ENEMIES[0], enemyTurns: 0, enemyHp: 24, enemyMaxHp: 24, fight: 1,
+    enemy: ENEMIES[0], enemyTurns: 0, enemyHp: 48, enemyMaxHp: 48, fight: 1,
     phase: 'player', message: 'Your turn. Choose Attack.',
   };
 }
