@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>exp34</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main>
+      <header><p class="eyebrow">COMBAT PROTOTYPE · CHECKPOINT 04</p><h1>exp34</h1></header>
+      <section class="arena" aria-label="Combatants">
+        <article><div class="figure player" aria-hidden="true">◇</div><h2>Expeditioner</h2><label for="player-health">Health <span id="player-hp"></span></label><meter id="player-health" min="0" max="30"></meter></article>
+        <span class="versus" aria-hidden="true">VS</span>
+        <article><div class="figure enemy" aria-hidden="true">♜</div><h2>Sentinel</h2><label for="enemy-health">Health <span id="enemy-hp"></span></label><meter id="enemy-health" min="0" max="24"></meter></article>
+      </section>
+      <section class="controls" aria-label="Combat controls">
+        <p id="message" role="status"></p>
+        <div id="timeline" hidden>
+          <p id="hit-label"></p>
+          <p class="hint">Parry when the marker enters the gold zone. The strike lands at the right edge.</p>
+          <div class="track" aria-hidden="true"><div id="parry-window"></div><div id="marker"></div></div>
+        </div>
+        <button id="attack" type="button">Attack · 8 damage</button>
+        <button id="parry" type="button" disabled>Parry · Space</button>
+        <button id="restart" type="button">Restart</button>
+        <p class="hint">One attempt per strike. Parry every hit to counter for 4 damage at the end. Each missed hit deals 6 damage.</p>
+      </section>
+    </main>
+    <script type="module" src="main.js"></script>
+  </body>
+</html>

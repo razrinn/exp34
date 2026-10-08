@@ -1,0 +1,65 @@
+export const ENEMY_ATTACK = { impactTimes: [1500, 2200, 3100], damage: 6 };
+export const PARRY_WINDOW_MS = 180;
+
+export function newCombat() {
+  return { playerHp: 30, enemyHp: 24, phase: 'player', message: 'Your turn. Choose Attack.' };
+}
+
+export function attack(state, now = 0) {
+  if (state.phase !== 'player') return state;
+  const enemyHp = Math.max(0, state.enemyHp - 8);
+  return {
+    ...state,
+    enemyHp,
+    comboStartedAt: now,
+    hitIndex: 0,
+    impactAt: now + ENEMY_ATTACK.impactTimes[0],
+    allParried: true,
+    parryResult: null,
+    phase: enemyHp === 0 ? 'victory' : 'enemy',
+    message: enemyHp === 0 ? 'Victory! The sentinel falls.' : 'You deal 8 damage. The sentinel prepares to strike…',
+  };
+}
+
+export function parry(state, now) {
+  if (state.phase === 'enemy' && now > state.impactAt) state = advanceEnemy(state, now);
+  if (state.phase !== 'enemy' || state.parryResult !== null) return state;
+  const remaining = state.impactAt - now;
+  const success = remaining >= 0 && remaining <= PARRY_WINDOW_MS;
+  return {
+    ...state,
+    parryResult: success ? 'success' : 'miss',
+    message: success ? 'Parry ready!' : remaining > 0 ? 'Too early! Brace for impact.' : 'Too late!',
+  };
+}
+
+export function retaliate(state) {
+  if (state.phase !== 'enemy') return state;
+  const blocked = state.parryResult === 'success';
+  const playerHp = Math.max(0, state.playerHp - (blocked ? 0 : ENEMY_ATTACK.damage));
+  const allParried = state.allParried && blocked;
+  const hitIndex = state.hitIndex + 1;
+  const finished = hitIndex === ENEMY_ATTACK.impactTimes.length;
+  const enemyHp = Math.max(0, state.enemyHp - (finished && allParried ? 4 : 0));
+  return {
+    ...state,
+    playerHp,
+    enemyHp,
+    allParried,
+    hitIndex,
+    parryResult: null,
+    impactAt: finished ? null : state.comboStartedAt + ENEMY_ATTACK.impactTimes[hitIndex],
+    phase: playerHp === 0 ? 'defeat' : enemyHp === 0 ? 'victory' : finished ? 'player' : 'enemy',
+    message: playerHp === 0 ? 'Defeat. Try again.'
+      : enemyHp === 0 ? 'Parried! Your counter finishes the sentinel. Victory!'
+      : finished && allParried ? 'Perfect combo! You counter for 4 damage. Your turn.'
+      : finished ? 'Combo over. No counter. Your turn.'
+      : blocked ? `Hit ${hitIndex} parried! Prepare for the next strike.`
+      : `Hit ${hitIndex} deals ${ENEMY_ATTACK.damage} damage. Prepare for the next strike.`,
+  };
+}
+
+export function advanceEnemy(state, now) {
+  while (state.phase === 'enemy' && now >= state.impactAt) state = retaliate(state);
+  return state;
+}
