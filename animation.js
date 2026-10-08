@@ -10,7 +10,14 @@ export function enemyPose(remaining, duration) {
 
 export const PLAYER_IMPACT_MS = 320;
 export const PLAYER_ACTION_MS = 720;
+export const HOME_X = 3;
+export const STRIKE_REACH = 4;
+export const ENEMY_STEP_BACK_MS = 160;
 const smooth = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+
+export function retreatDistance(elapsed, duration) {
+  return STRIKE_REACH * (1 - smooth(elapsed / duration));
+}
 
 export function actionPose(kind, elapsed) {
   const duration = ['attack', 'heavy', 'counter'].includes(kind) ? PLAYER_ACTION_MS : 300;
@@ -18,8 +25,9 @@ export function actionPose(kind, elapsed) {
   const pulse = Math.sin(Math.PI * t);
   const pose = { x: 0, lift: 0, lean: 0, sword: 0, active: elapsed < duration };
   if (['attack', 'heavy', 'counter'].includes(kind)) {
-    pose.x = 1.4 * (elapsed <= PLAYER_IMPACT_MS
-      ? smooth(elapsed / 180) : 1 - smooth((elapsed - PLAYER_IMPACT_MS) / (PLAYER_ACTION_MS - PLAYER_IMPACT_MS)));
+    pose.x = elapsed <= PLAYER_IMPACT_MS
+      ? STRIKE_REACH * smooth(elapsed / (kind === 'counter' ? PLAYER_IMPACT_MS : 180))
+      : retreatDistance(elapsed - PLAYER_IMPACT_MS, PLAYER_ACTION_MS - PLAYER_IMPACT_MS);
     pose.lean = -pulse * .12;
     pose.sword = -pulse * (kind === 'heavy' ? 2.2 : 1.7);
   } else if (kind === 'dodge') {
@@ -60,8 +68,9 @@ export function enemyAttackPose(remaining, duration, hitIndex, style = 'chop') {
   const progress = remaining > swing
     ? attack.windup * smooth((duration - remaining) / prepare)
     : attack.windup + (attack.contact - attack.windup) * smooth(1 - remaining / swing);
+  const approachMs = Math.min(400, hitIndex > 0 ? Math.max(1, duration - ENEMY_STEP_BACK_MS) : duration);
   return {
-    x: hitIndex > 0 ? 1.4 : 1.4 * smooth(1 - remaining / Math.min(400, duration)),
+    x: STRIKE_REACH * smooth(1 - remaining / approachMs),
     clip: Math.max(0, Math.min(attack.contact, progress)),
   };
 }

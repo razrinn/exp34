@@ -88,6 +88,11 @@ function render() {
   heavyButton.disabled = !!actionPending || state.phase !== 'player' || state.energy < HEAVY_STRIKE.cost;
   document.querySelector('#heal-detail').textContent = `${HEAL.amount} HP · ${HEAL.cost} energy`;
   healButton.disabled = !!actionPending || state.phase !== 'player' || state.energy < HEAL.cost || state.playerHp === state.playerMaxHp;
+  document.querySelector('.actions').hidden = state.phase === 'enemy';
+  document.querySelector('.defenses').hidden = state.phase !== 'enemy';
+  attackButton.title = document.querySelector('#attack-detail').textContent;
+  heavyButton.title = document.querySelector('#heavy-detail').textContent;
+  healButton.title = document.querySelector('#heal-detail').textContent;
   parryButton.disabled = state.phase !== 'enemy' || state.defenseResult !== null;
   dodgeButton.disabled = parryButton.disabled;
   timeline.hidden = state.phase !== 'enemy' || !practice.checked;

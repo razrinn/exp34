@@ -38,6 +38,8 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
   });
   try {
     await import('./main.js');
+    assert.equal(elements.get('.actions').hidden, false);
+    assert.equal(elements.get('.defenses').hidden, true);
     for (const overrides of [{ repeat: true }, { ctrlKey: true }, { altKey: true }, { metaKey: true }, { target: { matches: () => true } }]) press('KeyQ', overrides);
     let prevented = false;
     press('Space', { preventDefault() { prevented = true; } });
@@ -62,6 +64,8 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     impact();
     assert.equal(elements.get('#enemy-hp').textContent, '40 / 48');
     assert.equal(elements.get('#energy').textContent, 'Energy: 1');
+    assert.equal(elements.get('.actions').hidden, true);
+    assert.equal(elements.get('.defenses').hidden, false);
     press('KeyQ');
     press('KeyW');
     press('KeyE');

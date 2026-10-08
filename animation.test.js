@@ -25,11 +25,11 @@ test('player actions move and return to rest without changing combat timing', ()
 });
 
 
-import { playerClipProgress, enemyAttackPose, PLAYER_IMPACT_MS, PLAYER_ACTION_MS } from './animation.js';
+import { playerClipProgress, enemyAttackPose, PLAYER_IMPACT_MS, PLAYER_ACTION_MS, HOME_X, STRIKE_REACH, ENEMY_STEP_BACK_MS, retreatDistance } from './animation.js';
 test('approach reaches contact at damage time, then retreats with the clip', () => {
   for (const [kind, contact] of [['attack', .2], ['heavy', .65], ['counter', .35]]) {
     assert.equal(actionPose(kind, 0).x, 0);
-    assert.equal(actionPose(kind, PLAYER_IMPACT_MS).x, 1.4);
+    assert.equal(actionPose(kind, PLAYER_IMPACT_MS).x, STRIKE_REACH);
     assert.equal(playerClipProgress(kind, PLAYER_IMPACT_MS), contact);
     assert.equal(playerClipProgress(kind, PLAYER_ACTION_MS), 1);
     assert.equal(actionPose(kind, PLAYER_ACTION_MS).x, 0);
@@ -39,9 +39,9 @@ test('approach reaches contact at damage time, then retreats with the clip', () 
 test('enemy arrives at the same contact pose for slow and fast strikes', () => {
   for (const duration of [400, 1500, 2400]) {
     assert.deepEqual(enemyAttackPose(duration, duration, 0), { x: 0, clip: 0 });
-    assert.deepEqual(enemyAttackPose(0, duration, 0), { x: 1.4, clip: .65 });
+    assert.deepEqual(enemyAttackPose(0, duration, 0), { x: STRIKE_REACH, clip: .65 });
     assert.deepEqual(enemyAttackPose(-100, duration, 0), enemyAttackPose(0, duration, 0));
-    assert.equal(enemyAttackPose(duration, duration, 1).x, 1.4);
+    assert.equal(enemyAttackPose(duration, duration, 1).x, 0);
   }
 });
 
@@ -59,7 +59,7 @@ test('every enemy selects three distinct clips and reaches its contact pose at e
         const contact = enemyAttackPose(0, duration, hitIndex, style);
         assert.equal(start.clip, 0);
         assert.equal(contact.clip, attack.contact);
-        assert.equal(contact.x, 1.4);
+        assert.equal(contact.x, STRIKE_REACH);
         assert.deepEqual(enemyAttackPose(-20, duration, hitIndex, style), contact);
       }
     }
@@ -73,4 +73,17 @@ test('delayed thrust holds its drawn-back pose until the final swing', () => {
   assert.equal(held.clip, early.clip);
   assert.equal(enemyAttackPose(180, 2400, 0, 'thrust').clip, .2);
   assert.ok(enemyAttackPose(90, 2400, 0, 'thrust').clip > held.clip);
+});
+
+
+test('fighters keep their distance and recover before every subsequent approach', () => {
+  assert.ok(2 * HOME_X > STRIKE_REACH);
+  for (const duration of [400, 700, 1500]) {
+    assert.equal(enemyAttackPose(duration, duration, 1).x, 0);
+    assert.equal(enemyAttackPose(duration - ENEMY_STEP_BACK_MS, duration, 1).x, 0);
+    assert.equal(retreatDistance(0, ENEMY_STEP_BACK_MS), STRIKE_REACH);
+    assert.equal(retreatDistance(ENEMY_STEP_BACK_MS, ENEMY_STEP_BACK_MS), 0);
+    assert.equal(retreatDistance(300, ENEMY_STEP_BACK_MS), 0);
+    assert.equal(enemyAttackPose(0, duration, 1).x, STRIKE_REACH);
+  }
 });

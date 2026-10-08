@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 35
+## Checkpoint 36
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -22,8 +22,8 @@ Damage, energy, sound, and enemy hit reactions resolve at contact, and the enemy
 combo clock starts then. Repeated inputs during the approach are ignored; restart
 cancels pending damage. Counter damage is awarded by the final parry; its visual follow-through finishes
 before another attack is allowed. Enemy motion and clip time use `impactAt - performance.now()`: the enemy
-arrives at the contact pose at zero, holds range across the combo, and retreats after
-the last hit. All defense windows, damage values, and rhythm patterns are unchanged.
+arrives at the contact pose at zero, then returns to its side after every hit.
+All defense windows, damage values, and rhythm patterns are unchanged.
 The normalized clip progress and smooth approach/retreat curves live in `animation.js`.
 
 Attacks remain locked through the enemy's final recovery (300 ms, or 720 ms for a
@@ -32,7 +32,7 @@ button; dialogs and settings keep their native keyboard behavior. Late defenses
 resolve overdue hits without spending an early attempt on the following strike.
 Input and animation frames share the same hit-resolution feedback, including when
 several hits are overdue. The camera looks diagonally over the hero's shoulder;
-regular enemies are 3.0 units tall and the boss is 3.6, against the hero's 2.2.
+regular enemies are 3.5 units tall and the boss is 4.2, against the hero's 2.6.
 
 Each regular enemy now cycles through sideways slash, overhead chop, and delayed
 thrust animations with its three existing patterns. The boss cycles chop, slash,
@@ -41,9 +41,6 @@ and thrust. `attackStyles` on each enemy selects the clip; `ENEMY_ATTACKS` in
 early and hold before releasing. Recovery continues the same clip that struck,
 so a slash does not snap into a chop after impact. Hit times, damage, defense
 windows, and combo lengths are unchanged; existing saves remain compatible.
-
-
-
 
 One character, two regular enemies, a final boss, turns, health, restart, timed defenses, and counters.
 Runs have five fights: Sentinel → Duelist → Sentinel → Duelist → Warden.
@@ -148,3 +145,10 @@ The policy prioritizes lethal blows, healing when at least 12 HP is missing,
 then affordable Heavy Strikes. Perfect defense clears every build; ignoring
 defense loses. Heavy Strike costs 2 energy to make offense compete with healing
 and shorten dodge-focused fights. See `BALANCE.md` for the comparison.
+
+The arena now fills the viewport beneath a minimal overlay HUD. Only the active
+turn's controls are visible: Attack/Heavy/Heal or Parry/Dodge. Damage and energy
+costs live in settings and button tooltips. Characters start six world units apart,
+close four units for contact, then return home; every enemy strike retreats before
+the next approach, including the 400 ms follow-ups. The portrait camera angle and
+fog distance adapt to keep both sides visible. Damage and defense timing are unchanged.

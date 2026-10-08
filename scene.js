@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './node_modules/three/examples/jsm/loaders/GLTFLoader.js';
-import { actionPose, playerClipProgress, enemyAttackPose, ENEMY_ATTACKS, PLAYER_IMPACT_MS } from './animation.js';
+import { actionPose, playerClipProgress, enemyAttackPose, ENEMY_ATTACKS, PLAYER_IMPACT_MS, HOME_X, ENEMY_STEP_BACK_MS, retreatDistance } from './animation.js';
 
 const CLIPS = {
   attack: '1H_Melee_Attack_Slice_Horizontal', heavy: '1H_Melee_Attack_Chop',
@@ -36,7 +36,7 @@ export async function createScene(canvas) {
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
   scene.add(floor);
-  for (const x of [-1.5, 1.5]) {
+  for (const x of [-HOME_X, HOME_X]) {
     const ring = new THREE.Mesh(new THREE.RingGeometry(.85, .88, 48), new THREE.MeshBasicMaterial({ color: x < 0 ? '#588d97' : '#9c7850', side: THREE.DoubleSide }));
     ring.rotation.x = -Math.PI / 2;
     ring.position.set(x, .01, 0);
@@ -63,11 +63,11 @@ export async function createScene(canvas) {
       }
     });
     const bounds = new THREE.Box3().setFromObject(model);
-    const scale = (index === 0 ? 2.2 : index === 3 ? 3.6 : 3.0) / bounds.getSize(new THREE.Vector3()).y;
+    const scale = (index === 0 ? 2.6 : index === 3 ? 4.2 : 3.5) / bounds.getSize(new THREE.Vector3()).y;
     model.scale.setScalar(scale);
     const group = new THREE.Group();
     group.add(model);
-    group.position.x = index === 0 ? -1.5 : 1.5;
+    group.position.x = index === 0 ? -HOME_X : HOME_X;
     group.rotation.y = index === 0 ? Math.PI / 2 : -Math.PI / 2;
     scene.add(group);
     group.visible = index < 2;
@@ -142,7 +142,7 @@ export async function createScene(canvas) {
         const t = Math.max(0, Math.min(1, (now - recovery.at) / recovery.duration));
         const contact = ENEMY_ATTACKS[recovery.style].contact;
         sampleStrike(character, recovery.style, contact + (1 - contact) * t);
-        approach = recovery.finished ? 1.4 * (1 - t * t * (3 - 2 * t)) : 1.4;
+        approach = retreatDistance(now - recovery.at, recovery.duration);
       } else if (character === enemy && timing && !character.effect) {
         const strike = enemyAttackPose(timing.impactAt - now, timing.duration, timing.hitIndex, timing.style);
         sampleStrike(character, timing.style, strike.clip);
@@ -155,7 +155,7 @@ export async function createScene(canvas) {
         if (character.attacking) idle(character);
         character.mixer.update(delta);
       }
-      character.group.position.x = direction * (-1.5 + motion.x + approach);
+      character.group.position.x = direction * (-HOME_X + motion.x + approach);
       character.group.position.y = motion.lift;
       character.group.rotation.z = motion.lean * direction;
       character.model.traverse(node => {
@@ -173,9 +173,12 @@ export async function createScene(canvas) {
     const height = Math.max(1, canvas.clientHeight);
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
-    const distance = Math.max(8.2, 8.8 / camera.aspect);
-    camera.position.set(-distance * .72, 1.4 + distance * .18, distance * .7);
-    camera.lookAt(.4, 1.4, 0);
+    const distance = Math.max(11, 9 / camera.aspect);
+    const portrait = camera.aspect < 1;
+    camera.position.set(-distance * (portrait ? .85 : .72), 1.6 + distance * .16, distance * (portrait ? .53 : .7));
+    scene.fog.near = distance + 6;
+    scene.fog.far = distance + 20;
+    camera.lookAt(0, 1.6, 0);
     camera.updateProjectionMatrix();
   }
   new ResizeObserver(resize).observe(canvas);
@@ -203,7 +206,7 @@ export async function createScene(canvas) {
       } else play(target === 'player' ? models[0] : enemy, target === 'enemy' ? 'hit' : kind, hex);
     },
     startAction(kind) { play(models[0], kind, '#91c4ce'); },
-    enemyImpact(at, finished, style) { recovery = { at, finished, style, duration: finished ? 300 : 160 }; },
+    enemyImpact(at, finished, style) { recovery = { at, finished, style, duration: finished ? 300 : ENEMY_STEP_BACK_MS }; },
     reset() {
       timing = null;
       recovery = null;
