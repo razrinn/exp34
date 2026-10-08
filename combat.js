@@ -124,10 +124,13 @@ export function dodge(state, now) {
 }
 
 function defend(state, now, action) {
-  if (state.phase === 'enemy' && now > state.impactAt) state = advanceEnemy(state, now);
+  const late = state.phase === 'enemy' && now > state.impactAt;
+  if (late) state = advanceEnemy(state, now);
   if (state.phase !== 'enemy' || state.defenseResult !== null) return state;
   const remaining = state.impactAt - now;
   const window = action === 'parry' ? PARRY_WINDOW_MS : DODGE_WINDOW_MS;
+  // A late press for the previous hit must not spend the next hit's attempt.
+  if (late && remaining > window) return state;
   const success = remaining >= 0 && remaining <= window;
   return {
     ...state,

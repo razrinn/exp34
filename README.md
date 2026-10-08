@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 33
+## Checkpoint 34
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -25,6 +25,15 @@ before another attack is allowed. Enemy motion and clip time use `impactAt - per
 arrives at the contact pose at zero, holds range across the combo, and retreats after
 the last hit. All defense windows, damage values, and rhythm patterns are unchanged.
 The normalized clip progress and smooth approach/retreat curves live in `animation.js`.
+
+Attacks remain locked through the enemy's final recovery (300 ms, or 720 ms for a
+counter). Space is reserved for combat rather than activating a focused Attack
+button; dialogs and settings keep their native keyboard behavior. Late defenses
+resolve overdue hits without spending an early attempt on the following strike.
+Input and animation frames share the same hit-resolution feedback, including when
+several hits are overdue. The camera looks diagonally over the hero's shoulder;
+regular enemies are 3.0 units tall and the boss is 3.6, against the hero's 2.2.
+
 
 
 One character, two regular enemies, a final boss, turns, health, restart, timed defenses, and counters.

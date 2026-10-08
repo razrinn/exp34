@@ -1,4 +1,4 @@
-import { newCombat, nextFight, attack, heavyStrike, heal, parry, dodge, advanceEnemy, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE, HEAL, RUN_LENGTH } from './combat.js';
+import { newCombat, nextFight, attack, heavyStrike, heal, parry, dodge, retaliate, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE, HEAL, RUN_LENGTH } from './combat.js';
 import { createScene } from './scene.js';
 import { enemyPose, PLAYER_IMPACT_MS, PLAYER_ACTION_MS } from './animation.js';
 import { playCue } from './sound.js';
@@ -65,7 +65,8 @@ function render() {
   document.querySelector('#enemy-health').max = state.enemyMaxHp;
   document.querySelector('#player-health').value = state.playerHp;
   document.querySelector('#enemy-health').value = state.enemyHp;
-  document.querySelector('#message').textContent = state.message;
+  document.querySelector('#message').textContent = actionPending === 'recovery'
+    ? state.message.replace(/Your turn\./gi, 'Recovering…') : state.message;
   document.querySelector('#fight-label').textContent = `Fight ${state.fight} / ${RUN_LENGTH}${state.fight === RUN_LENGTH ? ' · FINAL BOSS' : ''}`;
   if (state.phase === 'victory') {
     if (!rewards.open) rewards.showModal();
@@ -75,18 +76,18 @@ function render() {
     document.querySelector('#result-text').textContent = state.phase === 'complete' ? 'The Warden is defeated. All five encounters cleared.' : `Your expedition ended at fight ${state.fight}. Learn the rhythm and try again.`;
     if (!result.open) result.showModal();
   } else if (result.open) result.close();
-  document.querySelector('#turn-label').textContent = actionPending ? 'STRIKING' : state.phase === 'player' ? 'YOUR TURN' : state.phase === 'enemy' ? 'DEFEND' : 'ENCOUNTER ENDED';
+  document.querySelector('#turn-label').textContent = actionPending === 'attack' ? 'STRIKING' : actionPending ? 'RECOVERING' : state.phase === 'player' ? 'YOUR TURN' : state.phase === 'enemy' ? 'DEFEND' : 'ENCOUNTER ENDED';
   document.querySelector('#attack-detail').textContent = `${state.attackDamage} damage · +1 energy`;
-  attackButton.disabled = actionPending || state.phase !== 'player';
+  attackButton.disabled = !!actionPending || state.phase !== 'player';
   document.querySelector('#build').textContent = `Counter: ${state.counterDamage} damage · Starting energy: ${state.startingEnergy}`;
   document.querySelector('[data-upgrade=counter]').textContent = `Stronger counters · ${state.counterDamage} → ${state.counterDamage + 3} damage`;
   document.querySelector('[data-upgrade=energy]').textContent = `Prepared · ${state.startingEnergy} → ${state.startingEnergy + 1} starting energy`;
   document.querySelector('[data-upgrade=heavy]').textContent = `Heavy hitter · ${state.heavyDamage} → ${state.heavyDamage + 6} damage`;
   document.querySelector('#energy').textContent = `Energy: ${state.energy}`;
   document.querySelector('#heavy-detail').textContent = `${state.heavyDamage} damage · ${HEAVY_STRIKE.cost} energy`;
-  heavyButton.disabled = actionPending || state.phase !== 'player' || state.energy < HEAVY_STRIKE.cost;
+  heavyButton.disabled = !!actionPending || state.phase !== 'player' || state.energy < HEAVY_STRIKE.cost;
   document.querySelector('#heal-detail').textContent = `${HEAL.amount} HP · ${HEAL.cost} energy`;
-  healButton.disabled = actionPending || state.phase !== 'player' || state.energy < HEAL.cost || state.playerHp === state.playerMaxHp;
+  healButton.disabled = !!actionPending || state.phase !== 'player' || state.energy < HEAL.cost || state.playerHp === state.playerMaxHp;
   parryButton.disabled = state.phase !== 'enemy' || state.defenseResult !== null;
   dodgeButton.disabled = parryButton.disabled;
   timeline.hidden = state.phase !== 'enemy' || !practice.checked;
@@ -95,6 +96,7 @@ function render() {
     scene?.render(state.enemy.name);
   }
   if (state.phase === 'enemy') {
+    scene?.render(state.enemy.name, { impactAt: state.impactAt, duration: hitDuration(), hitIndex: state.hitIndex });
     document.querySelector('#dodge-window').style.width = `${DODGE_WINDOW_MS / hitDuration() * 100}%`;
     document.querySelector('#parry-window').style.width = `${PARRY_WINDOW_MS / hitDuration() * 100}%`;
     document.querySelector('#hit-label').textContent = `Combo ${state.patternIndex + 1} · Strike ${state.hitIndex + 1} / ${state.hits.length} · ${state.hits[state.hitIndex].damage} damage`;
@@ -106,33 +108,38 @@ function hitDuration() {
   return state.hits[state.hitIndex].time - previous;
 }
 
-function updateEnemy(now) {
-  const next = advanceEnemy(state, now);
-  if (next !== state) {
+function resolveEnemy(now, beforeInput = false) {
+  let changed = false;
+  while (state.phase === 'enemy' && (beforeInput ? now > state.impactAt : now >= state.impactAt)) {
+    const next = retaliate(state);
     scene?.enemyImpact(state.impactAt, next.phase !== 'enemy');
     feedback(state.defenseResult === 'parry' ? 'parry' : state.defenseResult === 'dodge' ? 'dodge' : 'hit', playerFigure);
-    if (next.enemyHp < state.enemyHp) {
-      feedback('counter', enemyFigure);
-      actionPending = true;
-      actionTimer = setTimeout(() => { actionPending = false; render(); }, PLAYER_ACTION_MS);
+    const countered = next.enemyHp < state.enemyHp;
+    if (countered) feedback('counter', enemyFigure);
+    if (next.phase === 'player') {
+      actionPending = 'recovery';
+      actionTimer = setTimeout(() => { actionPending = false; render(); }, countered ? PLAYER_ACTION_MS : 300);
     }
     state = next;
-    saveIfEnded();
-    render();
+    changed = true;
   }
+  if (changed) { saveIfEnded(); render(); }
+}
+
+function updateEnemy(now) {
+  resolveEnemy(now);
   if (state.phase !== 'enemy') return;
   const progress = 1 - (state.impactAt - now) / hitDuration();
   const pose = enemyPose(state.impactAt - now, hitDuration());
-  scene?.render(state.enemy.name, { impactAt: state.impactAt, duration: hitDuration(), hitIndex: state.hitIndex });
   enemyFigure.style.transform = `translate(${pose.x}px, ${pose.y}px) rotate(${pose.rotation}deg)`;
   marker.style.left = `${Math.max(0, progress) * 100}%`;
   enemyFrame = requestAnimationFrame(updateEnemy);
 }
 
 function tryAction(action) {
-  if (actionPending || action(state, performance.now()) === state) return;
+  if (actionPending || state.phase !== 'player' || action(state, performance.now()) === state) return;
   if (action === heal) { commitAction(action); return; }
-  actionPending = true;
+  actionPending = 'attack';
   scene?.startAction(action === heavyStrike ? 'heavy' : 'attack');
   render();
   actionTimer = setTimeout(() => {
@@ -160,7 +167,10 @@ healButton.addEventListener('click', () => tryAction(heal));
 practice.addEventListener('change', render);
 
 function tryDefense(action) {
-  state = action(state, performance.now());
+  const now = performance.now();
+  const next = action(state, now);
+  resolveEnemy(now, true);
+  state = next;
   saveIfEnded();
   render();
 }
@@ -168,19 +178,19 @@ function tryDefense(action) {
 parryButton.addEventListener('click', () => tryDefense(parry));
 dodgeButton.addEventListener('click', () => tryDefense(dodge));
 document.addEventListener('keydown', (event) => {
-  if (event.ctrlKey || event.altKey || event.metaKey) return;
+  if (event.ctrlKey || event.altKey || event.metaKey || rewards.open || result.open) return;
+  if (event.code === 'Space' && event.target.matches('summary, #fullscreen, #restart, #test-sound')) return;
   if (event.target.matches('input, textarea, select, [contenteditable]')) return;
-  if (state.phase === 'player') {
-    const action = { KeyQ: attack, KeyW: heavyStrike, KeyE: heal }[event.code];
-    if (!action) return;
-    event.preventDefault();
-    if (!event.repeat) tryAction(action);
-    return;
-  }
-  if (state.phase !== 'enemy') return;
-  if (!['Space', 'ShiftLeft', 'ShiftRight'].includes(event.code)) return;
+  const actions = { KeyQ: attack, KeyW: heavyStrike, KeyE: heal };
+  const defense = ['Space', 'ShiftLeft', 'ShiftRight'].includes(event.code);
+  if (!actions[event.code] && !defense) return;
+  // Reserve combat keys even outside their turn, including focused-button Space.
   event.preventDefault();
-  if (!event.repeat) tryDefense(event.code === 'Space' ? parry : dodge);
+  if (event.repeat) return;
+  if (defense) {
+    if (state.phase === 'enemy') tryDefense(event.code === 'Space' ? parry : dodge);
+  } else tryAction(actions[event.code]);
+
 });
 
 function restartRun() {

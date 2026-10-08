@@ -63,12 +63,12 @@ export async function createScene(canvas) {
       }
     });
     const bounds = new THREE.Box3().setFromObject(model);
-    const scale = (index === 3 ? 2.65 : 2.2) / bounds.getSize(new THREE.Vector3()).y;
+    const scale = (index === 0 ? 2.2 : index === 3 ? 3.6 : 3.0) / bounds.getSize(new THREE.Vector3()).y;
     model.scale.setScalar(scale);
     const group = new THREE.Group();
     group.add(model);
     group.position.x = index === 0 ? -1.5 : 1.5;
-    group.rotation.y = index === 0 ? 1.15 : -1.15;
+    group.rotation.y = index === 0 ? Math.PI / 2 : -Math.PI / 2;
     scene.add(group);
     group.visible = index < 2;
     const mixer = new THREE.AnimationMixer(model);
@@ -176,9 +176,9 @@ export async function createScene(canvas) {
     const height = Math.max(1, canvas.clientHeight);
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
-    const distance = Math.max(7.5, 8.8 / camera.aspect);
-    camera.position.set(0, 1.1 + distance * .24, distance);
-    camera.lookAt(0, 1.1, 0);
+    const distance = Math.max(8.2, 8.8 / camera.aspect);
+    camera.position.set(-distance * .72, 1.4 + distance * .18, distance * .7);
+    camera.lookAt(.4, 1.4, 0);
     camera.updateProjectionMatrix();
   }
   new ResizeObserver(resize).observe(canvas);

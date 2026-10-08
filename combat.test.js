@@ -60,7 +60,7 @@ test('timing boundaries work; early attempts cannot be retried on the same hit',
   const late = parry(incoming, incoming.impactAt + 1);
   assert.equal(late.playerHp, 37);
   assert.equal(late.hitIndex, 1);
-  assert.equal(late.defenseResult, 'miss');
+  assert.equal(late.defenseResult, null);
 });
 
 test('lethal hits stop the combo; lethal counters stop combat', () => {
@@ -196,7 +196,7 @@ test('dodge has a wider inclusive window and shares the one-attempt limit', () =
   assert.equal(advanceEnemy(early, state.impactAt).playerHp, 37);
   const late = dodge(state, state.impactAt + 1);
   assert.equal(late.playerHp, 37);
-  assert.equal(late.defenseResult, 'miss');
+  assert.equal(late.defenseResult, null);
   const idle = newCombat();
   assert.equal(dodge(idle, 0), idle);
 });
@@ -400,4 +400,30 @@ test('combat uses rewarded damage and Prepared unlocks earlier skills', () => {
   const afterSecond = perfectCombo(attack(afterAttack));
   assert.equal(afterSecond.energy, 3);
   assert.equal(heavyStrike(afterSecond).energy, 1);
+});
+
+test('a late defense does not consume the next strike, including a previously used defense', () => {
+  for (const defense of [parry, dodge]) {
+    for (const used of [false, true]) {
+      let state = attack(newCombat());
+      if (used) state = defense(state, state.impactAt - 1);
+      state = defense(state, state.impactAt + 20);
+      assert.equal(state.hitIndex, 1);
+      assert.equal(state.defenseResult, null);
+      const hp = state.playerHp;
+      state = defense(state, state.impactAt - 1);
+      assert.equal(state.defenseResult, defense === parry ? 'parry' : 'dodge');
+      assert.equal(advanceEnemy(state, state.impactAt).playerHp, hp);
+    }
+  }
+});
+
+test('defense can catch up stale frames and defend the current strike in its window', () => {
+  for (const defense of [parry, dodge]) {
+    const state = defense(attack(newCombat()), 2200 - 1);
+    assert.equal(state.hitIndex, 1);
+    assert.equal(state.playerHp, 37);
+    assert.equal(state.defenseResult, defense === parry ? 'parry' : 'dodge');
+    assert.equal(advanceEnemy(state, 2200).playerHp, 37);
+  }
 });
