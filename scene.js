@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createSceneClock } from './scene-clock.js';
 import { GLTFLoader } from './node_modules/three/examples/jsm/loaders/GLTFLoader.js';
-import { actionPose, deathClipProgress, attackEffects, playerClipProgress, enemyAttackPose, enemyWindupPose, ENEMY_ATTACKS, PLAYER_IMPACT_MS, HOME_X, STRIKE_REACH, ENEMY_STEP_BACK_MS, retreatDistance } from './animation.js';
+import { actionPose, deathClipProgress, attackEffects, playerClipProgress, enemyAttackPose, enemyWindupPose, ENEMY_ATTACKS, PLAYER_IMPACT_MS, HOME_X, STRIKE_REACH, ENEMY_STEP_BACK_MS, retreatDistance, playerComboApproach } from './animation.js';
 
 const CLIPS = {
   attack: '1H_Melee_Attack_Slice_Horizontal', heavy: 'Heavy_Upper',
@@ -319,7 +319,7 @@ export async function createScene(canvas) {
       if (character === models[0] && playerCombo) {
         const prep = character.preparing;
         const progress = prep?.progress || 0;
-        const approach = playerCombo.index === 0 && effect ? STRIKE_REACH * Math.min(1, elapsed / 180) : STRIKE_REACH;
+        const approach = playerComboApproach(playerCombo.index, elapsed, !!effect);
         character.group.position.x = -HOME_X + approach;
         character.group.position.z = prep ? (playerCombo.index % 2 ? 1 : -1) * .65 * Math.sin(Math.PI * progress) : motion.side;
         character.group.rotation.y += prep ? (playerCombo.index % 2 ? -.3 : .3) * Math.sin(Math.PI * progress) : 0;
@@ -498,7 +498,7 @@ export async function createScene(canvas) {
       scene.background = focused ? focusSky : colorSky;
       clock.focus(focused);
     },
-    startPlayerCombo() { playerCombo = { index: 0 }; playerRetreat = null; },
+    startPlayerCombo() { playerCombo = { index: -1 }; playerRetreat = null; },
     endPlayerCombo() { playerCombo = null; playerRetreat = clock.now(); models[0].preparing = null; },
     prepareAction(kind, progress, index = 0) { models[0].preparing = { kind, progress }; if (playerCombo) playerCombo.index = index; },
     promptPosition() {
@@ -506,6 +506,7 @@ export async function createScene(canvas) {
       return { left: (numberPosition.x + 1) * canvas.clientWidth / 2, top: (1 - numberPosition.y) * canvas.clientHeight / 2 };
     },
     startAction(kind, index = 0) { if (playerCombo) playerCombo.index = index; models[0].preparing = null; play(models[0], kind, '#91c4ce'); },
+    releasePlayerStrike() { return models[0].effect ? Math.max(0, PLAYER_IMPACT_MS - (clock.now() - models[0].effect.started)) : 0; },
     enemyImpact(at, finished, style, nextDelay) {
       at = clock.now() + at - performance.now();
       enemy.burst = { at, style };

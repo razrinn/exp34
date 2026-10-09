@@ -112,3 +112,8 @@ export const DEATH_MS = 2200;
 export function deathClipProgress(elapsed) {
   return Math.max(0, Math.min(1, elapsed / DEATH_MS));
 }
+
+export function playerComboApproach(index, elapsed, hasEffect) {
+  if (index < 0) return 0;
+  return index === 0 && hasEffect ? STRIKE_REACH * smooth(elapsed / 180) : STRIKE_REACH;
+}

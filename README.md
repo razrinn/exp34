@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 55
+## Checkpoint 56
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -321,3 +321,27 @@ then continues at full speed without jumping. Enemy impact timestamps are
 translated into that clock so defense cues remain aligned after an attack.
 The diamond keeps its real-time 500 ms input window and follows above the hero;
 the monochrome surroundings and gold hero glow stay. Restart restores full speed.
+
+Checkpoint 56 makes the slow cue the actual strike wind-up. The hero begins the
+selected animation at 15% speed, then continues that same clip when the cue
+resolves. Damage waits only for its remaining time to contact (normally 140 ms
+after a cue hit at 1200 ms), and recovery keeps the same 800 ms release-to-next-cue
+interval. Starting a combo stays at home until the first wind-up approaches;
+later strikes hold contact distance and only the final strike retreats. Root
+approach now eases smoothly, removing the first-cue teleport and release reset.
+
+Perks now have distinct roles. Reprisal gives +1 next-attack damage per successful
+parry per rank, capped at +2 per rank. Mixed red combos can still build charge;
+dodges add none, healing preserves it, and starting an attack consumes it even
+if prompts miss. The all-yellow perfect counter remains 4 damage. Ruin improves
+Quickstep by +1 and Flurry/Onslaught by +6 per rank. Resolve still gives +1
+starting energy per rank. Reward text and attack previews show the new effects.
+Existing version-1 saves remain compatible: their counter/heavy progression
+encodes the same perk ranks, and Quickstep damage is derived when restoring.
+Transient parry charge resets at encounter checkpoints.
+
+The balance script now considers charged damage when choosing attacks and also
+runs an 85% attack-cue scenario. At assumed 85% parry success and perfect attack
+cues, simulated completion is 61.2% Reprisal, 58.8% Resolve, and 70.6% Ruin;
+with 85% attack cues it is 55%, 41.4%, and 58%. These are comparisons under a
+fixed action policy, not measured player win rates or proof of equal balance.

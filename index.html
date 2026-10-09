@@ -24,6 +24,7 @@
             <p><kbd>Q</kbd> Quickstep · <kbd>W</kbd> Flurry · <kbd>E</kbd> Onslaught<br><kbd>I</kbd> Parry · <kbd>O</kbd> Dodge · <kbd>P</kbd> Heal</p>
             <p>One defense attempt per hit. Late presses just after impact do not spend the next attempt; early follow-up presses are ignored. A brief flash on the enemy warns before each strike. Yellow attacks can be parried or dodged. Red attacks must be dodged. Parry an entire yellow combo to counter. A dodge blocks damage but forfeits the counter.</p>
             <p>Quickstep: 2 strikes, no energy cost (+1 energy). Flurry: 3 strikes, 2 energy. Onslaught: 4 strikes, 3 energy. Each strike has its own random I/O/P prompt and resolves at weapon contact. A missed prompt lets the enemy evade that strike. The hero stays close until the combo ends.</p>
+            <p>Reprisal adds +1 damage per parry per rank to your next attack, capped at +2 per rank. Red dodges preserve the charge; healing preserves it; starting an attack spends it. Ruin adds +1 Quickstep and +6 Flurry/Onslaught damage per rank. Resolve adds +1 starting energy per rank.</p>
             <p>P heals for 2 energy on your turn. During an attack, P is a timing input. On mobile, tap the matching icon in the bottom row.</p>
             <p id="attack-detail"></p><p id="heavy-detail"></p><p id="heal-detail"></p><p id="onslaught-detail"></p>
             <label><input id="practice" type="checkbox"> Practice timing bar</label>
@@ -85,9 +86,9 @@
         <h2 id="reward-title">Carry the fire.</h2>
         <p class="interlude-note">One battle behind you. Choose what remains.</p>
         <div class="reward-options">
-          <button type="button" data-upgrade="counter" aria-keyshortcuts="Q"><span class="reward-sigil" aria-hidden="true">✧</span><kbd>Q</kbd><strong>Reprisal</strong><span class="reward-flavor">Their strike. Your answer.</span><span id="counter-gain" class="reward-gain"></span></button>
+          <button type="button" data-upgrade="counter" aria-keyshortcuts="Q"><span class="reward-sigil" aria-hidden="true">✧</span><kbd>Q</kbd><strong>Reprisal</strong><span class="reward-flavor">Parry. Charge. Unleash.</span><span id="counter-gain" class="reward-gain"></span></button>
           <button type="button" data-upgrade="energy" aria-keyshortcuts="W"><span class="reward-sigil" aria-hidden="true">☼</span><kbd>W</kbd><strong>Resolve</strong><span class="reward-flavor">Begin with a spark.</span><span id="energy-gain" class="reward-gain"></span></button>
-          <button type="button" data-upgrade="heavy" aria-keyshortcuts="E"><span class="reward-sigil" aria-hidden="true">⚔</span><kbd>E</kbd><strong>Ruin</strong><span class="reward-flavor">Make the next blow count.</span><span id="heavy-gain" class="reward-gain"></span></button>
+          <button type="button" data-upgrade="heavy" aria-keyshortcuts="E"><span class="reward-sigil" aria-hidden="true">⚔</span><kbd>E</kbd><strong>Ruin</strong><span class="reward-flavor">Every strike cuts deeper.</span><span id="heavy-gain" class="reward-gain"></span></button>
         </div>
         <p class="interlude-foot">Recover up to 10 HP · Choose with Q / W / E</p>
       </div>

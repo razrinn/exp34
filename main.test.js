@@ -106,7 +106,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     impact(); assert.equal(elements.get('#upgrades').open, true);
     press('KeyQ', { repeat: true }); assert.equal(elements.get('#upgrades').open, true);
     press('KeyQ'); assert.equal(elements.get('#upgrades').open, false);
-    assert.match(elements.get('#build').textContent, /Counter: 7/);
+    assert.match(elements.get('#build').textContent, /Parry charge: \+1 per parry/);
     elements.get('#restart').listeners.click();
     for (let turn = 0; turn < 3; turn++) {
       runSkill('KeyQ', 2, []); defend(ENEMIES[0].patterns[turn]);

@@ -151,3 +151,15 @@ test('exaggerated actions jump high, lunge quickly, move sideways, and return to
     assert.ok(Math.abs(actionPose(kind, PLAYER_ACTION_MS).side) < 1e-10);
   }
 });
+
+import { playerComboApproach } from './animation.js';
+test('combo waits at home, approaches continuously, holds contact and retreats smoothly', () => {
+  assert.equal(playerComboApproach(-1, 1200, false), 0);
+  assert.equal(playerComboApproach(0, 0, true), 0);
+  assert.equal(playerComboApproach(0, 90, true), STRIKE_REACH / 2);
+  assert.equal(playerComboApproach(0, 180, true), STRIKE_REACH);
+  assert.equal(playerComboApproach(0, 800, false), STRIKE_REACH);
+  for (const index of [1, 2, 3]) assert.equal(playerComboApproach(index, 0, true), STRIKE_REACH);
+  assert.equal(retreatDistance(0, 350), STRIKE_REACH);
+  assert.equal(retreatDistance(350, 350), 0);
+});

@@ -35,7 +35,8 @@ export const RECOVERY_HP = 10;
 export function newCombat() {
   return {
     playerHp: 40, playerMaxHp: 40, attackDamage: 8, energy: 0, startingEnergy: 0,
-    counterDamage: 4, heavyDamage: HEAVY_STRIKE.damage,
+    // counterDamage retains the save format: 4 + 3 per Reprisal rank.
+    counterDamage: 4, parryBonus: 0, heavyDamage: HEAVY_STRIKE.damage,
     enemy: ENEMIES[0], enemyTurns: 0, enemyHp: 48, enemyMaxHp: 48, fight: 1,
     phase: 'player', message: 'Your turn. Choose Attack.',
   };
@@ -50,7 +51,7 @@ export function nextFight(state, upgrade) {
     ...newCombat(),
     playerMaxHp: state.playerMaxHp,
     playerHp,
-    attackDamage: state.attackDamage,
+    attackDamage: state.attackDamage + (upgrade === 'heavy' ? 1 : 0),
     counterDamage: state.counterDamage + (upgrade === 'counter' ? 3 : 0),
     heavyDamage: state.heavyDamage + (upgrade === 'heavy' ? 6 : 0),
     startingEnergy,
@@ -70,13 +71,14 @@ export const PLAYER_SKILLS = {
 };
 
 export function skillDamage(state, skill) {
-  return skill === 'quick' ? state.attackDamage : state.heavyDamage + (skill === 'onslaught' ? 12 : 0);
+  const base = skill === 'quick' ? state.attackDamage : state.heavyDamage + (skill === 'onslaught' ? 12 : 0);
+  return base + (state.phase === 'attacking' ? state.skillBonus : state.parryBonus);
 }
 
 export function startSkill(state, skill) {
   const definition = PLAYER_SKILLS[skill];
   if (state.phase !== 'player' || !definition || state.energy < definition.cost) return state;
-  return { ...state, phase: 'attacking', activeSkill: skill, skillHits: 0, skillPerfect: true,
+  return { ...state, phase: 'attacking', activeSkill: skill, skillHits: 0, skillPerfect: true, skillBonus: state.parryBonus, parryBonus: 0,
     energy: state.energy - definition.cost + (skill === 'quick' ? 1 : 0) };
 }
 
@@ -111,11 +113,12 @@ export function heavyStrike(state, now = 0, quality = 1) {
 function strike(state, now, heavy, quality) {
   if (state.phase !== 'player') return state;
   if (heavy && state.energy < HEAVY_STRIKE.cost) return state;
-  const damage = Math.round((heavy ? state.heavyDamage : state.attackDamage) * Math.max(0, Math.min(1, quality)));
+  const damage = Math.round(skillDamage(state, heavy ? 'heavy' : 'quick') * Math.max(0, Math.min(1, quality)));
   const enemyHp = Math.max(0, state.enemyHp - damage);
   const next = {
     ...state,
     enemyHp,
+    parryBonus: 0,
     energy: state.energy + (heavy ? -HEAVY_STRIKE.cost : 1),
     phase: enemyHp === 0 ? state.fight === RUN_LENGTH ? 'complete' : 'victory' : 'enemy',
     message: enemyHp === 0 ? `Victory! The ${state.enemy.name} falls.` : damage === 0 ? `The ${state.enemy.name} evades your attack.` : `You deal ${damage} damage. The ${state.enemy.name} prepares to strike…`,
@@ -191,19 +194,20 @@ export function retaliate(state) {
   const allParried = state.allParried && parried;
   const hitIndex = state.hitIndex + 1;
   const finished = hitIndex === state.hits.length;
-  const enemyHp = Math.max(0, state.enemyHp - (finished && allParried ? state.counterDamage : 0));
+  const enemyHp = Math.max(0, state.enemyHp - (finished && allParried ? 4 : 0));
   return {
     ...state,
     playerHp,
     enemyHp,
     allParried,
+    parryBonus: Math.min((state.counterDamage - 4) / 3 * 2, state.parryBonus + (parried ? (state.counterDamage - 4) / 3 : 0)),
     hitIndex,
     defenseResult: null,
     impactAt: finished ? null : state.comboStartedAt + state.hits[hitIndex].time,
     phase: playerHp === 0 ? 'defeat' : enemyHp === 0 ? state.fight === RUN_LENGTH ? 'complete' : 'victory' : finished ? 'player' : 'enemy',
     message: playerHp === 0 ? 'Defeat. Try again.'
       : enemyHp === 0 ? `Parried! Your counter finishes the ${state.enemy.name}. Victory!`
-      : finished && allParried ? `Perfect combo! You counter for ${state.counterDamage} damage. Your turn.`
+      : finished && allParried ? `Perfect combo! You counter for 4 damage. Your turn.`
       : finished ? blocked ? 'Final hit avoided. No counter. Your turn.' : `Final hit deals ${damage} damage. No counter. Your turn.`
       : blocked ? `Hit ${hitIndex} ${parried ? 'parried' : 'dodged'}! Prepare for the next strike.`
       : `Hit ${hitIndex} deals ${damage} damage. Prepare for the next strike.`,

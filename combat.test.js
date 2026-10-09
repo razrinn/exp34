@@ -98,7 +98,7 @@ test('rewards stack, recover health equally, and reset energy to the build start
     assert.equal(next.playerMaxHp, 40);
     assert.equal(next.fight, 2);
     assert.equal(next.enemyHp, 60);
-    assert.equal(next.attackDamage, 8);
+    assert.equal(next.attackDamage, upgrade === 'heavy' ? 9 : 8);
     assert.equal(next.counterDamage, upgrade === 'counter' ? 7 : 4);
     assert.equal(next.heavyDamage, upgrade === 'heavy' ? 26 : 20);
     assert.equal(next.energy, upgrade === 'energy' ? 1 : 0);
@@ -107,6 +107,7 @@ test('rewards stack, recover health equally, and reset energy to the build start
     assert.equal(third.counterDamage, upgrade === 'counter' ? 10 : 4);
     assert.equal(third.heavyDamage, upgrade === 'heavy' ? 32 : 20);
     assert.equal(third.startingEnergy, upgrade === 'energy' ? 2 : 0);
+    assert.equal(third.attackDamage, upgrade === 'heavy' ? 10 : 8);
     assert.equal(third.enemyHp, 72);
   }
 });
@@ -387,7 +388,9 @@ test('healing caps at upgraded max health and rejects invalid actions without sp
 test('combat uses rewarded damage and Prepared unlocks earlier skills', () => {
   const won = { ...newCombat(), enemyHp: 0, phase: 'victory' };
   const counterBuild = nextFight(won, 'counter');
-  assert.equal(perfectCombo(attack({ ...counterBuild, enemy: ENEMIES[0] })).enemyHp, 45);
+  const answered = perfectCombo(attack({ ...counterBuild, enemy: ENEMIES[0] }));
+  assert.equal(answered.enemyHp, 48);
+  assert.equal(answered.parryBonus, 2);
   const heavyBuild = nextFight(won, 'heavy');
   assert.equal(heavyStrike({ ...heavyBuild, energy: 3 }).enemyHp, 34);
   const prepared = nextFight(won, 'energy');
@@ -576,5 +579,60 @@ test('only perfect completed combos roll a 5 percent double-damage critical', ()
       assert.equal(rolls, missed === -1 ? 1 : 0);
       if (missed === -1) assert.equal(100 - state.enemyHp, (skill === 'quick' ? 8 : skill === 'heavy' ? 20 : 32) * (critical ? 2 : 1));
     }
+  }
+});
+
+test('Reprisal charges on landed parries, works in red combos, caps, and is spent once', () => {
+  const build = nextFight({ ...newCombat(), phase: 'victory', enemyHp: 0 }, 'counter');
+  let state = attack(build);
+  for (const hit of state.hits) {
+    const defense = hit.parryable === false ? dodge : parry;
+    const prepared = defense(state, state.impactAt);
+    assert.equal(prepared.parryBonus, state.parryBonus, 'charge waits for impact');
+    state = advanceEnemy(prepared, state.impactAt);
+  }
+  assert.equal(state.enemyHp, 52, 'red dodge still forfeits the counter');
+  assert.equal(state.parryBonus, 2);
+  const healed = heal({ ...state, energy: 2, playerHp: 20 });
+  assert.equal(healed.parryBonus, 2, 'healing preserves charge');
+  state = perfectCombo(healed);
+  assert.equal(state.parryBonus, 2, 'charge cannot grow by farming heals');
+  const started = startSkill(state, 'quick');
+  assert.equal(started.parryBonus, 0);
+  assert.equal(started.skillBonus, 2);
+  let struck = landSkillHit(started, 0, true, () => .5);
+  struck = landSkillHit(struck, 1, true, () => .5);
+  assert.equal(state.enemyHp - struck.enemyHp, 10);
+  const missed = landSkillHit(landSkillHit(started, 0, false), 1, false);
+  assert.equal(missed.parryBonus, 0, 'missed attacks spend their reserved charge');
+  const poor = { ...state, energy: 0 };
+  assert.equal(startSkill(poor, 'heavy'), poor, 'unaffordable skill preserves charge');
+});
+
+test('Ruin improves every skill and Reprisal damage participates in criticals', () => {
+  const ruin = nextFight({ ...newCombat(), phase: 'victory', enemyHp: 0 }, 'heavy');
+  assert.equal(ruin.attackDamage, 9);
+  assert.equal(ruin.heavyDamage, 26);
+  for (const [skill, expected] of [['quick', 9], ['heavy', 26], ['onslaught', 38]]) {
+    let attacked = startSkill({ ...ruin, energy: 3 }, skill);
+    for (let index = 0; index < PLAYER_SKILLS[skill].strikes; index++) attacked = landSkillHit(attacked, index, true, () => .5);
+    assert.equal(ruin.enemyHp - attacked.enemyHp, expected);
+  }
+  const charged = startSkill({ ...ruin, parryBonus: 3 }, 'quick');
+  const final = landSkillHit(landSkillHit(charged, 0, true), 1, true, () => 0);
+  assert.equal(ruin.enemyHp - final.enemyHp, 24);
+});
+
+test('Reprisal stacks by rank and failed defenses or dodges add no charge', () => {
+  for (let rank = 1; rank <= 4; rank++) {
+    let state = attack({ ...newCombat(), counterDamage: 4 + 3 * rank });
+    state = advanceEnemy(parry(state, state.impactAt), state.impactAt);
+    assert.equal(state.parryBonus, rank);
+    state = advanceEnemy(dodge(state, state.impactAt), state.impactAt);
+    assert.equal(state.parryBonus, rank);
+    state = advanceEnemy(state, state.impactAt);
+    assert.equal(state.parryBonus, rank);
+    state = perfectCombo(heal({ ...state, energy: 2, playerHp: 20 }));
+    assert.equal(state.parryBonus, rank * 2);
   }
 });

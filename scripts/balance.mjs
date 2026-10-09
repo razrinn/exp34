@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
-import { newCombat, nextFight, startSkill, landSkillHit, finishSkill, PLAYER_SKILLS, heal, parry, dodge, advanceEnemy, HEAL, HEAVY_STRIKE, RUN_LENGTH } from '../combat.js';
+import { newCombat, nextFight, startSkill, landSkillHit, finishSkill, PLAYER_SKILLS, skillDamage, heal, parry, dodge, advanceEnemy, HEAL, HEAVY_STRIKE, RUN_LENGTH } from '../combat.js';
 
 // These are assumed input success rates, not measurements of player skill.
 const scenarios = [
   { name: 'Perfect parry + red dodge', defense: 'parry', success: 1 },
   { name: 'Perfect dodge', defense: 'dodge', success: 1 },
   { name: 'Parry 85%', defense: 'parry', success: 0.85 },
+  { name: 'Parry 85%, attack cues 85%', defense: 'parry', success: 0.85, attackSuccess: 0.85 },
   { name: 'Dodge 95%', defense: 'dodge', success: 0.95 },
   { name: 'Mixed 85%', defense: 'mixed', success: 0.85 },
   { name: 'Parry 70%', defense: 'parry', success: 0.70 },
@@ -29,14 +30,14 @@ for (const scenario of scenarios) {
       while (state.phase === 'player') {
         let encounterTurns = 0;
         while (state.phase === 'player') {
-          const action = state.enemyHp <= state.attackDamage ? 'quick'
-            : state.energy >= HEAVY_STRIKE.cost && state.enemyHp <= state.heavyDamage ? 'heavy'
+          const action = state.enemyHp <= skillDamage(state, 'quick') ? 'quick'
+            : state.energy >= HEAVY_STRIKE.cost && state.enemyHp <= skillDamage(state, 'heavy') ? 'heavy'
             : state.playerHp <= state.playerMaxHp - HEAL.amount && state.energy >= HEAL.cost ? heal
             : state.energy >= 3 ? 'onslaught' : state.energy >= HEAVY_STRIKE.cost ? 'heavy' : 'quick';
           if (action === heal) state = heal(state);
           else {
             state = startSkill(state, action);
-            for (let index = 0; index < PLAYER_SKILLS[action].strikes; index++) state = landSkillHit(state, index, true, random);
+            for (let index = 0; index < PLAYER_SKILLS[action].strikes; index++) state = landSkillHit(state, index, scenario.attackSuccess === undefined || random() < scenario.attackSuccess, random);
             state = finishSkill(state, 0);
           }
           turns++; encounterTurns++;

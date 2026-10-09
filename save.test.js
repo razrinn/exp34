@@ -41,6 +41,8 @@ test('pending rewards, defeat, and completion survive reloads', () => {
   assert.equal(loadRun(storage).phase, 'complete');
   assert.equal(loadRun(storage).enemy, BOSS);
   assert.equal(loadRun(storage).heavyDamage, 44);
+  assert.equal(loadRun(storage).attackDamage, 12);
+  assert.equal(loadRun(storage).parryBonus, 0);
   saveRun({ ...state, phase: 'defeat', playerHp: 0, enemyHp: 12 }, storage);
   assert.equal(loadRun(storage).phase, 'defeat');
   assert.equal(loadRun(storage).playerHp, 0);

@@ -95,7 +95,8 @@ function render() {
     .replace(/You deal \d+ damage\. ?/, '')
     .replace(/Hit \d+ deals \d+ damage\. ?/, '')
     .replace(/Final hit deals \d+ damage\. No counter\. ?/, '')
-    .replace(/You counter for \d+ damage\. ?/i, '');
+    .replace(/You counter for \d+ damage\. ?/i, '')
+    .concat(state.phase === 'player' && state.parryBonus ? ` Reprisal: +${state.parryBonus} next attack.` : '');
   document.querySelector('#message').textContent = actionPending === 'timing'
     ? '' : actionPending === 'recovery'
     ? message.replace(/Your turn\./gi, 'Recovering…') : message;
@@ -110,14 +111,14 @@ function render() {
     if (!result.open) result.showModal();
   } else if (result.open) result.close();
   document.querySelector('#turn-label').textContent = actionPending === 'timing' ? 'FIND THE RHYTHM' : actionPending === 'attack' ? 'STRIKING' : actionPending ? 'RECOVERING' : state.phase === 'player' ? 'YOUR TURN' : state.phase === 'enemy' ? 'DEFEND' : 'ENCOUNTER ENDED';
-  document.querySelector('#attack-detail').textContent = `2 strikes · ${state.attackDamage} damage · +1 energy`;
+  document.querySelector('#attack-detail').textContent = `2 strikes · ${skillDamage(state, 'quick')} damage · +1 energy`;
   attackButton.disabled = !!actionPending || state.phase !== 'player';
-  document.querySelector('#build').textContent = `Counter: ${state.counterDamage} damage · Starting energy: ${state.startingEnergy}`;
-  document.querySelector('#counter-gain').textContent = `Counter · ${state.counterDamage} → ${state.counterDamage + 3} damage`;
+  document.querySelector('#build').textContent = `Parry charge: +${(state.counterDamage - 4) / 3} per parry · Ready: +${state.parryBonus} · Starting energy: ${state.startingEnergy}`;
+  document.querySelector('#counter-gain').textContent = `Next attack: +${(state.counterDamage - 4) / 3} → +${(state.counterDamage - 4) / 3 + 1} per parry · up to ${((state.counterDamage - 4) / 3 + 1) * 2} damage`;
   document.querySelector('#energy-gain').textContent = `Starting energy · ${state.startingEnergy} → ${state.startingEnergy + 1}`;
-  document.querySelector('#heavy-gain').textContent = `Heavy strike · ${state.heavyDamage} → ${state.heavyDamage + 6} damage`;
+  document.querySelector('#heavy-gain').textContent = `All skills: Quickstep +1 · Flurry +6 · Onslaught +6 damage`;
   document.querySelector('#energy').textContent = `Energy: ${state.energy}`;
-  document.querySelector('#heavy-detail').textContent = `3 strikes · ${state.heavyDamage} damage · 2 energy`;
+  document.querySelector('#heavy-detail').textContent = `3 strikes · ${skillDamage(state, 'heavy')} damage · 2 energy`;
   heavyButton.disabled = !!actionPending || state.phase !== 'player' || state.energy < HEAVY_STRIKE.cost;
   document.querySelector('#heal-detail').textContent = `${HEAL.amount} HP · ${HEAL.cost} energy`;
   document.querySelector('#onslaught-detail').textContent = `4 strikes · ${skillDamage(state, 'onslaught')} damage · 3 energy`;
@@ -226,7 +227,9 @@ function tryAction(skill) {
 function beginPlayerBeat(index) {
   timedAttack.startedAt = performance.now() - index * ATTACK_BEAT_MS;
   actionPending = 'timing';
-  render(); updateAttackTiming();
+  render();
+  scene?.startAction(PLAYER_SKILLS[timedAttack.skill].moves[index], index);
+  updateAttackTiming();
   actionTimer = setTimeout(() => releasePlayerBeat(index), ATTACK_PROMPT_MS);
 }
 
@@ -239,7 +242,7 @@ function releasePlayerBeat(index) {
   cancelAnimationFrame(timingFrame);
   actionPending = 'attack';
   scene?.focusPrompt(false);
-  scene?.startAction(kind, index);
+  const impactDelay = scene?.releasePlayerStrike() ?? PLAYER_IMPACT_MS;
   render();
   actionTimer = setTimeout(() => {
     const next = landSkillHit(state, index, success);
@@ -265,8 +268,8 @@ function releasePlayerBeat(index) {
         state = finishSkill(state, performance.now());
         actionPending = false; render(); updateEnemy(performance.now());
       }
-    }, ATTACK_BEAT_MS - ATTACK_PROMPT_MS - PLAYER_IMPACT_MS);
-  }, PLAYER_IMPACT_MS);
+    }, ATTACK_BEAT_MS - ATTACK_PROMPT_MS - impactDelay);
+  }, impactDelay);
 }
 
 function updateAttackTiming() {
