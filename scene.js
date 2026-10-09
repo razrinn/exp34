@@ -179,6 +179,36 @@ export async function createScene(canvas) {
     character.tip = new THREE.Vector3(0, length, 0);
     character.base = new THREE.Vector3(0, length * .45, 0);
   }
+  const focus = { value: 0 };
+  const heroMaterials = new Set();
+  models[0].group.traverse(node => { if (node.material) heroMaterials.add(node.material); });
+  const focusMaterials = new Set();
+  scene.traverse(node => {
+    if (!node.material || focusMaterials.has(node.material)) return;
+    const material = node.material;
+    focusMaterials.add(material);
+    const hero = heroMaterials.has(material);
+    material.onBeforeCompile = shader => {
+      shader.uniforms.promptFocus = focus;
+      shader.fragmentShader = 'uniform float promptFocus;\n' + shader.fragmentShader;
+      const tint = hero ? material.isMeshStandardMaterial
+        ? 'gl_FragColor.rgb += promptFocus * vec3(0.65, 0.43, 0.15) * (0.18 + pow(1.0 - abs(dot(normalize(normal), normalize(vViewPosition))), 2.0));'
+        : ''
+        : 'gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(dot(gl_FragColor.rgb, vec3(0.2126, 0.7152, 0.0722))) * 0.48, promptFocus);';
+      shader.fragmentShader = shader.fragmentShader.replace(/}\s*$/, tint + '\n}');
+    };
+    material.customProgramCacheKey = () => hero ? 'prompt-hero' : 'prompt-world';
+  });
+  const colorSky = scene.background;
+  const greySky = document.createElement('canvas');
+  greySky.width = sky.width; greySky.height = sky.height;
+  const pixels = skyPaint.getImageData(0, 0, sky.width, sky.height);
+  for (let i = 0; i < pixels.data.length; i += 4) {
+    const grey = (pixels.data[i] * .2126 + pixels.data[i + 1] * .7152 + pixels.data[i + 2] * .0722) * .48;
+    pixels.data[i] = pixels.data[i + 1] = pixels.data[i + 2] = grey;
+  }
+  greySky.getContext('2d').putImageData(pixels, 0, 0);
+  const focusSky = new THREE.CanvasTexture(greySky);
   let enemy = models[1];
   let timing = null;
   let recovery = null;
@@ -416,6 +446,7 @@ export async function createScene(canvas) {
     camera.aspect = width / height;
     scene.background.repeat.set(Math.min(1, camera.aspect / 2), Math.min(1, 2 / camera.aspect));
     scene.background.offset.set(.72 * (1 - scene.background.repeat.x), .28 * (1 - scene.background.repeat.y));
+    for (const skyTexture of [colorSky, focusSky]) { skyTexture.repeat.copy(scene.background.repeat); skyTexture.offset.copy(scene.background.offset); }
     const distance = Math.max(11, 9 / camera.aspect);
     const portrait = camera.aspect < 1;
     camera.position.set(-distance * (portrait ? .85 : .72), 1.6 + distance * .16, distance * (portrait ? .53 : .7));
@@ -468,6 +499,8 @@ export async function createScene(canvas) {
       damageNumbers.push({ node, character: target === 'player' ? models[0] : enemy, at: performance.now() + delay });
     },
     focusPrompt(focused) {
+      focus.value = focused ? 1 : 0;
+      scene.background = focused ? focusSky : colorSky;
       if (focused && promptFrozenAt === null) promptFrozenAt = performance.now();
       else if (!focused && promptFrozenAt !== null) {
         const paused = performance.now() - promptFrozenAt;
@@ -497,6 +530,7 @@ export async function createScene(canvas) {
       damageNumbers.length = 0;
       timing = null;
       recovery = null;
+      focus.value = 0; scene.background = colorSky;
       promptFrozenAt = null; counterReaction = null; playerCombo = null; playerRetreat = null;
       for (const character of models) { character.effect = null; character.preparing = null; character.death = null; character.burst = null; character.history = []; character.stroke = null; character.cue.visible = false; idle(character); }
     },

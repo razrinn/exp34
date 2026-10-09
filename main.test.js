@@ -17,7 +17,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     body: { classList: { remove() {} } },
     querySelector(selector) {
       if (!elements.has(selector)) elements.set(selector, {
-        setAttribute() {}, classList: { toggle(name, enabled) { this[name] = enabled; } }, style: { setProperty() {} }, dataset: {}, animations: [], clientWidth: 1280, checked: false, listeners: {}, open: false,
+        setAttribute() {}, classList: { toggle(name, enabled) { this[name] = enabled; } }, style: { setProperty() {} }, dataset: {}, animations: [], clientWidth: 1280, clientHeight: 800, checked: false, listeners: {}, open: false,
         showModal() { this.open = true; },
         close() { this.open = false; },
         animate(frames, options) {
@@ -53,6 +53,8 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     for (let index = 0; index < count; index++) {
       const beatStart = now;
       assert.equal(elements.get('main').classList['timing-focus'], true);
+      assert.equal(elements.get('#attack-timing').style.left, '150px');
+      assert.equal(elements.get('#attack-timing').style.top, '310px');
       frame(beatStart + 1200);
       assert.equal(elements.get('#timing-step').textContent, `${index + 1} / ${count}`);
       for (let cue = 0; cue < 4; cue++) assert.equal(elements.get(`#timing-${cue}`).hidden, cue !== index);

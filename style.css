@@ -166,9 +166,12 @@ dialog::backdrop { background: #080b10aa; backdrop-filter: blur(3px); }
 .icon-definitions { position: absolute; width: 0; height: 0; overflow: hidden; }
 .command-icon { width: 27px; height: 27px; }
 
-.timing-focus .arena { filter: grayscale(1) brightness(.38); }
+.timing-focus .arena { background: #101010; }
+.timing-focus .health-card, .timing-focus .enemy, .timing-focus .battle-status, .timing-focus .damage-number { filter: grayscale(1) brightness(.48); }
+.timing-focus .player { filter: drop-shadow(0 0 14px #ffe3a4) drop-shadow(0 0 32px #d1aa72); }
+.timing-focus .controls, .timing-focus .topbar { filter: grayscale(1); }
 .timing-focus .topbar, .timing-focus .turn-info { opacity: .35; }
-.timing-focus #attack-timing { left: 50%; top: 44%; transform: translate(-50%, -50%); width: 220px; text-shadow: 0 2px 16px #000; }
+.timing-focus #attack-timing { transform: translate(-50%, -100%); width: 220px; text-shadow: 0 2px 16px #000; }
 .timing-focus .timing-diamonds > div { width: 146px; height: 146px; }
 .timing-focus .timing-marker { r: 5px; filter: drop-shadow(0 0 6px #fff1c4); }
 .timing-focus #attack-timing p { font-size: 14px; letter-spacing: 2px; }

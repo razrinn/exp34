@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 53
+## Checkpoint 54
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -306,3 +306,11 @@ and damage popups preserve their remaining time while frozen. Restart clears
 focus, and a stalled frame can expire only the current cue. Defense timing and
 critical rules stay unchanged. Loading now uses a gold diamond expedition sigil,
 serif branding, a dark vignette, and a subtle line animation respecting reduced motion.
+
+Checkpoint 54 keeps the frozen hero in color with a warm gold rim glow while
+world materials, enemies, and the sky become grayscale. The effect uses existing
+Three.js material shaders rather than filtering the whole canvas, so the hero
+stays distinct. HUD and surrounding controls desaturate too; the timing cue keeps
+its readable gold window. The larger diamond projects above the hero again,
+clamped inside the viewport, and remains still during each freeze. Releasing a
+cue or restarting restores normal colors and lighting.

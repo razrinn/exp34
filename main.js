@@ -274,6 +274,12 @@ function updateAttackTiming() {
   const now = Math.min(performance.now(), timedAttack.startedAt + state.skillHits * ATTACK_BEAT_MS + ATTACK_PROMPT_MS);
   timedAttack = advanceAttack(timedAttack, now);
   const active = state.skillHits;
+  const prompt = document.querySelector('#attack-timing');
+  const bounds = playerFigure.getBoundingClientRect();
+  const arena = document.querySelector('.arena');
+  const anchor = scene?.promptPosition() || { left: bounds.left + bounds.width / 2, top: bounds.top - 16 };
+  prompt.style.left = `${Math.max(110, Math.min(arena.clientWidth - 110, anchor.left))}px`;
+  prompt.style.top = `${Math.max(310, Math.min(arena.clientHeight - 160, anchor.top))}px`;
   document.querySelector('#timing-step').textContent = `${active + 1} / ${timedAttack.keys.length}`;
   for (let index = 0; index < 4; index++) document.querySelector(`#timing-${index}`).hidden = index !== active;
   timedAttack.keys.forEach((code, index) => {
