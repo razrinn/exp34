@@ -63,25 +63,25 @@ export function nextFight(state, upgrade) {
   };
 }
 
-export function attack(state, now = 0) {
-  return strike(state, now, false);
+export function attack(state, now = 0, quality = 1) {
+  return strike(state, now, false, quality);
 }
 
-export function heavyStrike(state, now = 0) {
-  return strike(state, now, true);
+export function heavyStrike(state, now = 0, quality = 1) {
+  return strike(state, now, true, quality);
 }
 
-function strike(state, now, heavy) {
+function strike(state, now, heavy, quality) {
   if (state.phase !== 'player') return state;
   if (heavy && state.energy < HEAVY_STRIKE.cost) return state;
-  const damage = heavy ? state.heavyDamage : state.attackDamage;
+  const damage = Math.round((heavy ? state.heavyDamage : state.attackDamage) * Math.max(0, Math.min(1, quality)));
   const enemyHp = Math.max(0, state.enemyHp - damage);
   const next = {
     ...state,
     enemyHp,
     energy: state.energy + (heavy ? -HEAVY_STRIKE.cost : 1),
     phase: enemyHp === 0 ? state.fight === RUN_LENGTH ? 'complete' : 'victory' : 'enemy',
-    message: enemyHp === 0 ? `Victory! The ${state.enemy.name} falls.` : `You deal ${damage} damage. The ${state.enemy.name} prepares to strike…`,
+    message: enemyHp === 0 ? `Victory! The ${state.enemy.name} falls.` : damage === 0 ? `The ${state.enemy.name} evades your attack.` : `You deal ${damage} damage. The ${state.enemy.name} prepares to strike…`,
   };
   return enemyHp === 0 ? next : beginEnemyTurn(next, now);
 }

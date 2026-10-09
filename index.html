@@ -19,8 +19,9 @@
           <div class="help-panel">
             <h2>Read the rhythm</h2>
             <p>Watch the enemy pull back and swing. Parry just before impact; dodge a little earlier.</p>
-            <p><kbd>Q</kbd> Attack · <kbd>W</kbd> Heavy · <kbd>E</kbd> Heal<br><kbd>Space</kbd> Parry · <kbd>Shift</kbd> Dodge</p>
+            <p><kbd>Q</kbd> Attack · <kbd>W</kbd> Heavy · <kbd>E</kbd> Heal<br><kbd>I</kbd> Parry · <kbd>O</kbd> Dodge</p>
             <p>One defense attempt per hit. Late presses just after impact do not spend the next attempt; early follow-up presses are ignored. A brief flash on the enemy warns before each strike. Yellow attacks can be parried or dodged. Red attacks must be dodged. Parry an entire yellow combo to counter. A dodge blocks damage but forfeits the counter.</p>
+            <p>Attack and Heavy use three timed inputs: I, O, then P. Press when the diamond border turns gold and the outer diamond meets it. All three hits deal full damage; partial hits deal reduced damage; all misses let the enemy evade. You can also tap the diamonds.</p>
             <p>Attacks earn energy. Heavy Strike and Heal spend it and use your turn.</p>
             <p id="attack-detail"></p><p id="heavy-detail"></p><p id="heal-detail"></p>
             <label><input id="practice" type="checkbox"> Practice timing bar</label>
@@ -47,6 +48,14 @@
       </article>
       <div class="battle-status"><p id="message" role="status"></p><div id="timeline" hidden><p id="hit-label"></p><div class="track" aria-hidden="true"><div id="dodge-window"></div><div id="parry-window"></div><div id="marker"></div></div></div></div>
     </section>
+    <div id="attack-timing" hidden aria-label="Attack timing">
+      <p>I → O → P · Strike on gold</p>
+      <div class="timing-diamonds">
+        <button id="timing-i" type="button" aria-label="Timed attack I" aria-keyshortcuts="I"><span>I</span></button>
+        <button id="timing-o" type="button" aria-label="Timed attack O" aria-keyshortcuts="O"><span>O</span></button>
+        <button id="timing-p" type="button" aria-label="Timed attack P" aria-keyshortcuts="P"><span>P</span></button>
+      </div>
+    </div>
     <footer class="controls" aria-label="Combat controls">
       <div class="turn-info"><p id="turn-label">Your turn</p><p id="energy">Energy: 0</p></div>
       <div class="action-row">
@@ -56,8 +65,8 @@
           <button id="heal" type="button" aria-keyshortcuts="E" disabled><kbd>E</kbd><span>Heal</span></button>
         </div>
         <div class="defenses" aria-label="Enemy turn defenses">
-          <button id="parry" type="button" aria-keyshortcuts="Space" disabled><kbd>Space</kbd><span>Parry</span></button>
-          <button id="dodge" type="button" aria-keyshortcuts="Shift" disabled><kbd>Shift</kbd><span>Dodge</span></button>
+          <button id="parry" type="button" aria-keyshortcuts="I" disabled><kbd>I</kbd><span>Parry</span></button>
+          <button id="dodge" type="button" aria-keyshortcuts="O" disabled><kbd>O</kbd><span>Dodge</span></button>
         </div>
       </div>
     </footer>
@@ -67,20 +76,20 @@
         <h2 id="reward-title">Carry the fire.</h2>
         <p class="interlude-note">One battle behind you. Choose what remains.</p>
         <div class="reward-options">
-          <button type="button" data-upgrade="counter" aria-keyshortcuts="1"><span class="reward-sigil" aria-hidden="true">✧</span><kbd>1</kbd><strong>Reprisal</strong><span class="reward-flavor">Their strike. Your answer.</span><span id="counter-gain" class="reward-gain"></span></button>
-          <button type="button" data-upgrade="energy" aria-keyshortcuts="2"><span class="reward-sigil" aria-hidden="true">☼</span><kbd>2</kbd><strong>Resolve</strong><span class="reward-flavor">Begin with a spark.</span><span id="energy-gain" class="reward-gain"></span></button>
-          <button type="button" data-upgrade="heavy" aria-keyshortcuts="3"><span class="reward-sigil" aria-hidden="true">⚔</span><kbd>3</kbd><strong>Ruin</strong><span class="reward-flavor">Make the next blow count.</span><span id="heavy-gain" class="reward-gain"></span></button>
+          <button type="button" data-upgrade="counter" aria-keyshortcuts="Q"><span class="reward-sigil" aria-hidden="true">✧</span><kbd>Q</kbd><strong>Reprisal</strong><span class="reward-flavor">Their strike. Your answer.</span><span id="counter-gain" class="reward-gain"></span></button>
+          <button type="button" data-upgrade="energy" aria-keyshortcuts="W"><span class="reward-sigil" aria-hidden="true">☼</span><kbd>W</kbd><strong>Resolve</strong><span class="reward-flavor">Begin with a spark.</span><span id="energy-gain" class="reward-gain"></span></button>
+          <button type="button" data-upgrade="heavy" aria-keyshortcuts="E"><span class="reward-sigil" aria-hidden="true">⚔</span><kbd>E</kbd><strong>Ruin</strong><span class="reward-flavor">Make the next blow count.</span><span id="heavy-gain" class="reward-gain"></span></button>
         </div>
-        <p class="interlude-foot">Recover up to 10 HP · Choose with 1 / 2 / 3</p>
+        <p class="interlude-foot">Recover up to 10 HP · Choose with Q / W / E</p>
       </div>
     </dialog>
     <dialog id="run-complete" class="interlude" aria-labelledby="result-title">
       <div class="interlude-content">
-        <p class="eyebrow">EXPEDITION XXXIV</p>
+        <p class="eyebrow">exp34</p>
         <div class="result-sigil" aria-hidden="true">✧</div>
         <h2 id="result-title">Dawn breaks.</h2>
         <p id="result-text" class="interlude-note"></p>
-        <button id="result-restart" class="journey-button" type="button">Walk again <span aria-hidden="true">→</span></button>
+        <button id="result-restart" class="journey-button" type="button" aria-keyshortcuts="P"><kbd>P</kbd> Walk again <span aria-hidden="true">→</span></button>
       </div>
     </dialog>
   </main>

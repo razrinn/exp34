@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 46
+## Checkpoint 47
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -27,8 +27,7 @@ All defense windows, damage values, and rhythm patterns are unchanged.
 The normalized clip progress and smooth approach/retreat curves live in `animation.js`.
 
 Attacks remain locked through the enemy's final recovery (300 ms, or 720 ms for a
-counter). Space is reserved for combat rather than activating a focused Attack
-button; dialogs and settings keep their native keyboard behavior. Late defenses
+counter). The six play keys are reserved for combat; dialogs and settings keep their native keyboard behavior. Late defenses
 resolve overdue hits without spending an early attempt on the following strike.
 Input and animation frames share the same hit-resolution feedback, including when
 several hits are overdue. The camera looks diagonally over the hero's shoulder;
@@ -62,9 +61,9 @@ The Sentinel's single strike has a long wind-up; the Duelist's lands sooner.
 Names, symbols, timing patterns, and per-hit damage live in `ENEMIES` in `combat.js`.
 `enemyTurns % patterns.length` selects the next pattern; a new fight resets the cycle.
 The run alternates Sentinel → Duelist → Sentinel, using the same combat rules.
-Press Space or click Parry in the final 180 ms (the gold zone) before each hit.
+Press I or click Parry in the final 180 ms (the gold zone) before each hit.
 Each parry blocks that hit; opening hits deal 3, 3, then 5 damage. Parry the whole combo
-for one automatic 4-damage counter at the end. Press Shift or click Dodge in the final 360 ms (blue or gold) to avoid a hit.
+for one automatic 4-damage counter at the end. Press O or click Dodge in the final 360 ms (blue or gold) to avoid a hit.
 Dodging any hit forfeits the counter for that combo, even if every other hit
 is parried. You get one defense attempt per hit, shared by dodge and parry.
 `hitIndex` tracks the strike; `allParried` remembers whether the combo is perfect.
@@ -130,8 +129,8 @@ If browser storage blocks writes, Help & settings reports that saving is unavail
 The battle stays hidden behind a loading screen until the restored state is rendered,
 so later stages do not briefly flash the first encounter's default UI.
 
-Keyboard controls: Q attacks, W uses Heavy Strike, E heals, Space parries,
-and Shift dodges. Holding a key does not repeat actions. Shortcuts respect
+Keyboard controls: Q attacks, W uses Heavy Strike, E heals, I parries,
+and O dodges. Holding a key does not repeat actions. Shortcuts respect
 turn and energy rules and ignore text/form controls and Ctrl/Alt/Meta chords.
 
 The battle fills the browser viewport; Fullscreen hides browser chrome where supported.
@@ -157,8 +156,7 @@ fog distance adapt to keep both sides visible. Damage and defense timing are unc
 Checkpoint 37 fixes defense at follow-up impact boundaries when frames are stale.
 Both animation and combat frame loops read the live performance clock, so delayed
 RAF timestamps cannot leave the next defense locked behind the previous strike.
-Rewards use 1 / 2 / 3 (counter / starting energy / heavy damage); number-pad keys
-work too. Holding a reward key selects only once.
+Rewards use Q / W / E (counter / starting energy / heavy damage). Holding a reward key selects only once.
 
 Attack effects follow the same impact clock: icy wind arcs for slashes, orange
 fire arcs for chops, violet lightning for thrusts, weapon glow and local light
@@ -236,7 +234,7 @@ Checkpoint 44 keeps yellow/red warnings on the brief chest indicator only,
 removing the warning tint from the enemy body.
 
 Checkpoint 45 turns rewards and run endings into full-screen expedition interludes.
-Reprisal, Resolve, and Ruin preserve the three upgrades and 1/2/3 shortcuts, with
+Reprisal, Resolve, and Ruin preserve the three upgrades and Q/W/E shortcuts, with
 explicit stat changes. Gold victory and crimson defeat treatments share the arena
 backdrop, restrained sigils, and serif titles. Mobile uses compact stacked choices;
 reduced-motion preferences disable the entrance animation.
@@ -244,3 +242,12 @@ reduced-motion preferences disable the entrance animation.
 Checkpoint 46 brings the expedition typography and gold linework into the battle
 HUD: slender health bars, small corner sigils, transparent command strips and key
 hints, and a matching help panel. Combat controls and HUD information stay intact.
+
+Checkpoint 47 standardizes the name as exp34 and puts all play controls on QWE / IOP.
+Q/W/E select Attack/Heavy/Heal or upgrades; I/O parry/dodge; P restarts after a run.
+Attack and Heavy require three I→O→P beats, 900 ms apart, with a 240 ms inclusive
+window around each target. The diamond border turns gold in the window. Each beat
+accepts one attempt; held keys do not repeat. Damage is rounded from the fraction
+of successful beats, and zero successes triggers an enemy evade. Basic energy gain
+and Heavy cost still apply even on a miss. Healing and automatic counters stay direct.
+Restart cancels timing, approach, and recovery. Existing saves remain compatible.

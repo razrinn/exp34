@@ -497,3 +497,17 @@ test('early follow-up inputs stay available and a deliberate dodge after grace s
   assert.equal(dodge(incoming, 1281).defenseResult, 'dodge');
   assert.equal(advanceEnemy(dodge(incoming, 1281), 1600).playerHp, 37);
 });
+
+test('timed attacks scale damage, evade at zero, and still spend the turn and energy', () => {
+  assert.equal(attack(newCombat(), 10, 1).enemyHp, 40);
+  assert.equal(attack(newCombat(), 10, 2 / 3).enemyHp, 43);
+  const missed = attack(newCombat(), 10, 0);
+  assert.equal(missed.enemyHp, 48);
+  assert.equal(missed.phase, 'enemy');
+  assert.equal(missed.energy, 1);
+  assert.match(missed.message, /evades/);
+  const heavy = heavyStrike({ ...newCombat(), energy: 2 }, 10, 1 / 3);
+  assert.equal(heavy.enemyHp, 41);
+  assert.equal(heavy.energy, 0);
+  assert.equal(heavyStrike({ ...newCombat(), energy: 2 }, 10, 0).enemyHp, 48);
+});

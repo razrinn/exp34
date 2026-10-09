@@ -56,11 +56,11 @@ meter::-moz-meter-bar { background: #b6d1ca; }
 #dodge-window { background: #396e87; }
 #parry-window { background: #9c7938; }
 #marker { position: absolute; top: -4px; width: 3px; height: 16px; background: #fff; transform: translateX(-50%); }
-.controls { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 24px); z-index: 2; }
+.controls { width: max-content; position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 24px); z-index: 2; }
 .turn-info { display: flex; align-items: center; justify-content: center; gap: 18px; margin-bottom: 12px; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 1px 6px #000; }
 .turn-info::before, .turn-info::after { content: ""; width: 28px; height: 1px; background: linear-gradient(90deg, transparent, #d1aa7280); }
 .turn-info::after { transform: rotate(180deg); }
-.turn-info p { margin: 0; }
+.turn-info p { margin: 0; white-space: nowrap; }
 #turn-label { color: var(--gold); }
 #energy { color: #b6d1ca; letter-spacing: 1px; }
 .action-row, .actions, .defenses { display: flex; justify-content: center; gap: 16px; }
@@ -125,3 +125,17 @@ dialog::backdrop { background: #080b10aa; backdrop-filter: blur(3px); }
 
 .damage-number { position: absolute; z-index: 2; pointer-events: none; transform: translate(-50%, -50%); font-size: clamp(24px, 3vw, 34px); font-weight: 800; color: #ffe8ac; text-shadow: 0 2px 4px #000, 0 0 12px #000; }
 .damage-number.player { color: #ff8585; }
+
+#attack-timing { position: absolute; z-index: 3; bottom: 118px; left: 50%; transform: translateX(-50%); text-align: center; width: min(360px, calc(100% - 32px)); color: #eee5d6; text-shadow: 0 2px 8px #000; }
+#attack-timing p { margin: 0 0 36px; font: 13px Georgia, serif; letter-spacing: 1px; }
+.timing-diamonds { display: flex; justify-content: center; gap: 44px; }
+.timing-diamonds button { position: relative; width: 52px; height: 52px; flex-shrink: 0; padding: 0; border: 2px solid #8c979a; border-radius: 0; background: #0e171bba; transform: rotate(45deg); opacity: .4; }
+.timing-diamonds button span { display: block; transform: rotate(-45deg); font: 22px Georgia, serif; }
+.timing-diamonds button::after { content: ''; position: absolute; inset: -2px; border: 1px solid #eee5d680; transform: scale(var(--ring-scale, 2.5)); pointer-events: none; opacity: 0; }
+.timing-diamonds button[data-active=true] { opacity: 1; }
+.timing-diamonds button[data-active=true][data-result=pending]::after { opacity: 1; }
+.timing-diamonds button[data-window=true][data-result=pending] { border-color: #ffe2a2; box-shadow: 0 0 24px #d1aa7255; color: #ffe2a2; }
+.timing-diamonds button[data-result=hit] { border-color: #b4e3bf; color: #b4e3bf; opacity: 1; }
+.timing-diamonds button[data-result=miss] { border-color: #cc7d86; color: #cc7d86; opacity: .7; }
+.timing-diamonds button:hover:enabled { background: #0e171bba; }
+@media (max-width: 480px) { .timing-diamonds { gap: 32px; } }

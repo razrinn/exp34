@@ -16,7 +16,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     body: { classList: { remove() {} } },
     querySelector(selector) {
       if (!elements.has(selector)) elements.set(selector, {
-        style: {}, dataset: {}, animations: [], clientWidth: 1280, checked: false, listeners: {}, open: false,
+        style: { setProperty() {} }, dataset: {}, animations: [], clientWidth: 1280, checked: false, listeners: {}, open: false,
         showModal() { this.open = true; },
         close() { this.open = false; },
         animate(frames, options) {
@@ -37,7 +37,14 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
   globalThis.performance = { now: () => now };
   globalThis.setTimeout = (fn, delay) => { timers.set(++timerId, { fn, at: now + delay }); return timerId; };
   globalThis.clearTimeout = id => timers.delete(id);
-  const impact = () => { const [id, timer] = timers.entries().next().value; timers.delete(id); now = timer.at; timer.fn(); };
+  const impact = () => {
+    if (elements.get('#attack-timing')?.hidden === false) {
+      const start = now;
+      for (const [index, code] of ['KeyI', 'KeyO', 'KeyP'].entries()) { now = start + 700 + index * 900; press(code); }
+      const [id, timer] = timers.entries().next().value; timers.delete(id); now = timer.at; timer.fn();
+    }
+    const [id, timer] = timers.entries().next().value; timers.delete(id); now = timer.at; timer.fn();
+  };
   globalThis.requestAnimationFrame = fn => { frames.set(++frameId, fn); return frameId; };
   globalThis.cancelAnimationFrame = id => frames.delete(id);
   const frame = (at, timestamp = at) => { now = at; const callbacks = [...frames.values()]; frames.clear(); for (const fn of callbacks) fn(timestamp); };
@@ -50,14 +57,14 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     assert.equal(elements.get('.defenses').hidden, true);
     for (const overrides of [{ repeat: true }, { ctrlKey: true }, { altKey: true }, { metaKey: true }, { target: { matches: () => true } }]) press('KeyQ', overrides);
     let prevented = false;
-    press('Space', { preventDefault() { prevented = true; } });
+    press('KeyI', { preventDefault() { prevented = true; } });
     assert.equal(prevented, true);
     prevented = false;
     press('Space', { target: { matches: selector => selector.includes('summary') }, preventDefault() { prevented = true; } });
     assert.equal(prevented, false);
     elements.get('#upgrades').open = true;
     press('KeyQ');
-    press('Space', { preventDefault() { prevented = true; } });
+    press('KeyI', { preventDefault() { prevented = true; } });
     assert.equal(prevented, false);
     elements.get('#upgrades').open = false;
     assert.equal(timers.size, 0);
@@ -83,7 +90,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     press('KeyW');
     press('KeyE');
     assert.equal(elements.get('#enemy-hp').textContent, '40 / 48');
-    press('ShiftLeft');
+    press('KeyO');
     assert.equal(elements.get('#dodge').disabled, true);
     assert.equal(elements.get('#parry').disabled, true);
     elements.get('#restart').listeners.click();
@@ -93,7 +100,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     assert.equal(elements.get('#enemy-hp').textContent, '48 / 48');
     press('KeyQ');
     impact();
-    press('Space');
+    press('KeyI');
     assert.equal(elements.get('#parry').disabled, true);
     elements.get('#restart').listeners.click();
     press('KeyQ');
@@ -105,7 +112,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     frame(start + 1300);
     assert.equal(elements.get('#attack-cue').hidden, true);
     now = start + 1501;
-    press('Space');
+    press('KeyI');
     assert.equal(elements.get('#player-hp').textContent, '37 / 40');
     assert.equal(popups.at(-1).textContent, '3');
     assert.ok(popups.at(-1).className.includes('player'));
@@ -113,12 +120,12 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     press('KeyQ');
     assert.equal(timers.size, 0);
     now = start + 2080;
-    press('Space');
+    press('KeyI');
     // A queued RAF timestamp can predate the input; resolve against the live clock.
     frame(start + 2201, start + 2000);
     now = start + 2220;
-    press('Space');
-    press('ShiftLeft');
+    press('KeyI');
+    press('KeyO');
     assert.equal(elements.get('#player-hp').textContent, '37 / 40');
     assert.equal(elements.get('#parry').disabled, false);
     frame(start + 3101);
@@ -133,14 +140,14 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     press('KeyQ');
     assert.equal(timers.size, 1);
     elements.get('#restart').listeners.click();
-    for (const [key, expected] of [['Digit1', 'Counter: 7 damage'], ['Digit2', 'Starting energy: 1'], ['Digit3', 'Counter: 4 damage']]) {
+    for (const [key, expected] of [['KeyQ', 'Counter: 7 damage'], ['KeyW', 'Starting energy: 1'], ['KeyE', 'Counter: 4 damage']]) {
       for (let round = 0; round < 4; round++) {
         press('KeyQ'); impact();
         const comboStart = now;
         const times = [[1500, 2200, 3100], [1800, 2800], [2400]][round % 3];
         for (const time of times) {
           now = comboStart + time - 1;
-          press('Space'); frame(comboStart + time + 1);
+          press('KeyI'); frame(comboStart + time + 1);
         }
         if (round === 3) {
           assert.equal(elements.get('#upgrades').open, false, 'finishing damage appears before rewards');
@@ -158,9 +165,24 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
       assert.match(elements.get('#fight-label').textContent, /Fight 2/);
       assert.equal(elements.get('#enemy-symbol').getAnimations().length, 0, 'new stage clears held death animation');
       assert.ok(elements.get('#build').textContent.includes(expected));
-      if (key === 'Digit3') assert.match(elements.get('#heavy-detail').textContent, /^26 damage/);
+      if (key === 'KeyE') assert.match(elements.get('#heavy-detail').textContent, /^26 damage/);
       elements.get('#restart').listeners.click();
     }
+    press('KeyQ');
+    now += 2700;
+    const [timingId, timingTimer] = timers.entries().next().value;
+    timers.delete(timingId); timingTimer.fn(); impact();
+    assert.equal(elements.get('#enemy-hp').textContent, '48 / 48', 'no timing inputs means an evade');
+    assert.equal(elements.get('#energy').textContent, 'Energy: 1');
+    assert.match(elements.get('#message').textContent, /evades/);
+    elements.get('#restart').listeners.click();
+    press('KeyQ');
+    now += 700; press('KeyI');
+    now += 2000;
+    const [partialId, partialTimer] = timers.entries().next().value;
+    timers.delete(partialId); partialTimer.fn(); impact();
+    assert.equal(elements.get('#enemy-hp').textContent, '45 / 48', 'one success gives one third damage rounded');
+    elements.get('#restart').listeners.click();
   } finally {
     Object.assign(globalThis, previous);
   }

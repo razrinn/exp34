@@ -416,6 +416,7 @@ export async function createScene(canvas) {
         play(target === 'player' ? models[0] : enemy, target === 'enemy' ? 'hit' : kind, hex);
       }
     },
+    evade() { play(enemy, 'dodge', '#94a2be'); },
     die(target, delay = 0) {
       const character = target === 'player' ? models[0] : enemy;
       character.death = { at: performance.now() + delay, origin: null };
