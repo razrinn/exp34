@@ -1,4 +1,4 @@
-import { ATTACK_KEYS, ATTACK_BEAT_MS, ATTACK_WINDOW_MS, attackMarker, attackTiming, advanceAttack, timeAttack } from './attack-timing.js';
+import { ATTACK_KEYS, ATTACK_BEAT_MS, ATTACK_WINDOW_MS, ATTACK_TARGET_MS, ATTACK_PROMPT_MS, attackMarker, attackTiming, advanceAttack, timeAttack } from './attack-timing.js';
 import { newCombat, nextFight, startSkill, landSkillHit, finishSkill, skillDamage, PLAYER_SKILLS, heal, parry, dodge, retaliate, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE, HEAL, RUN_LENGTH } from './combat.js';
 import { createScene } from './scene.js';
 import { enemyPose, attackEffects, DEATH_MS, PLAYER_IMPACT_MS, PLAYER_ACTION_MS } from './animation.js';
@@ -81,6 +81,8 @@ async function playSound(kind) {
 document.querySelector('#test-sound').addEventListener('click', () => playSound('parry'));
 
 function render() {
+  document.querySelector('main').classList.toggle('timing-focus', actionPending === 'timing');
+  scene?.focusPrompt(actionPending === 'timing');
   document.querySelector('#player-hp').textContent = `${state.playerHp} / ${state.playerMaxHp}`;
   document.querySelector('#enemy-name').textContent = state.enemy.name;
   document.querySelector('#enemy-symbol').textContent = state.enemy.symbol;
@@ -225,55 +227,54 @@ function beginPlayerBeat(index) {
   timedAttack.startedAt = performance.now() - index * ATTACK_BEAT_MS;
   actionPending = 'timing';
   render(); updateAttackTiming();
+  actionTimer = setTimeout(() => releasePlayerBeat(index), ATTACK_PROMPT_MS);
+}
+
+function releasePlayerBeat(index) {
+  if (!timedAttack || actionPending !== 'timing') return;
+  clearTimeout(actionTimer);
+  timedAttack = advanceAttack(timedAttack, Math.min(performance.now(), timedAttack.startedAt + state.skillHits * ATTACK_BEAT_MS + ATTACK_PROMPT_MS));
+  const success = timedAttack.results[index] === true;
+  const kind = PLAYER_SKILLS[timedAttack.skill].moves[index];
+  cancelAnimationFrame(timingFrame);
+  actionPending = 'attack';
+  scene?.focusPrompt(false);
+  scene?.startAction(kind, index);
+  render();
   actionTimer = setTimeout(() => {
-    timedAttack = advanceAttack(timedAttack, performance.now());
-    const success = timedAttack.results[index] === true;
-    const kind = PLAYER_SKILLS[timedAttack.skill].moves[index];
-    cancelAnimationFrame(timingFrame);
-    actionPending = 'attack';
-    scene?.startAction(kind);
+    const next = landSkillHit(state, index, success);
+    if (success) feedback(kind === 'heavy' ? 'heavy' : 'attack', enemyFigure);
+    else {
+      if (scene) scene.evade();
+      else enemyFigure.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(40px)' }, { transform: 'translateX(0)' }], { duration: 300 });
+      if (sound.checked) playSound('dodge');
+    }
+    showDamage(state.enemyHp - next.enemyHp, enemyFigure);
+    state = next;
+    if (state.enemyHp === 0) {
+      timedAttack = null; scene?.endPlayerCombo(); die(enemyFigure);
+      actionPending = 'recovery'; saveIfEnded(); render();
+      actionTimer = setTimeout(() => { actionPending = false; render(); }, DEATH_MS + 100);
+      return;
+    }
     render();
     actionTimer = setTimeout(() => {
-      const next = landSkillHit(state, index, success);
-      if (success) feedback(kind === 'heavy' ? 'heavy' : 'attack', enemyFigure);
+      if (index + 1 < timedAttack.keys.length) beginPlayerBeat(index + 1);
       else {
-        if (scene) scene.evade();
-        else enemyFigure.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(40px)' }, { transform: 'translateX(0)' }], { duration: 300 });
-        if (sound.checked) playSound('dodge');
+        timedAttack = null; scene?.endPlayerCombo();
+        state = finishSkill(state, performance.now());
+        actionPending = false; render(); updateEnemy(performance.now());
       }
-      showDamage(state.enemyHp - next.enemyHp, enemyFigure);
-      state = next;
-      if (state.enemyHp === 0) {
-        timedAttack = null; scene?.endPlayerCombo(); die(enemyFigure);
-        actionPending = 'recovery'; saveIfEnded(); render();
-        actionTimer = setTimeout(() => { actionPending = false; render(); }, DEATH_MS + 100);
-        return;
-      }
-      render();
-      actionTimer = setTimeout(() => {
-        if (index + 1 < timedAttack.keys.length) beginPlayerBeat(index + 1);
-        else {
-          timedAttack = null; scene?.endPlayerCombo();
-          state = finishSkill(state, performance.now());
-          actionPending = false; render(); updateEnemy(performance.now());
-        }
-      }, ATTACK_BEAT_MS - 900 - PLAYER_IMPACT_MS);
-    }, PLAYER_IMPACT_MS);
-  }, 900);
+    }, ATTACK_BEAT_MS - ATTACK_PROMPT_MS - PLAYER_IMPACT_MS);
+  }, PLAYER_IMPACT_MS);
 }
 
 function updateAttackTiming() {
   if (!timedAttack || actionPending !== 'timing') return;
-  const now = performance.now();
+  const now = Math.min(performance.now(), timedAttack.startedAt + state.skillHits * ATTACK_BEAT_MS + ATTACK_PROMPT_MS);
   timedAttack = advanceAttack(timedAttack, now);
-  const active = Math.min(timedAttack.keys.length - 1, Math.floor((now - timedAttack.startedAt) / ATTACK_BEAT_MS));
-  const prompt = document.querySelector('#attack-timing');
-  const bounds = playerFigure.getBoundingClientRect();
-  const anchor = scene?.promptPosition() || { left: bounds.left + bounds.width / 2, top: bounds.top - 12 };
-  prompt.style.left = `${Math.max(70, Math.min(document.querySelector('.arena').clientWidth - 70, anchor.left))}px`;
-  prompt.style.top = `${Math.max(150, anchor.top)}px`;
+  const active = state.skillHits;
   document.querySelector('#timing-step').textContent = `${active + 1} / ${timedAttack.keys.length}`;
-  scene?.prepareAction(PLAYER_SKILLS[timedAttack.skill].moves[active], Math.max(0, Math.min(1, (now - timedAttack.startedAt - active * ATTACK_BEAT_MS) / 900)), active);
   for (let index = 0; index < 4; index++) document.querySelector(`#timing-${index}`).hidden = index !== active;
   timedAttack.keys.forEach((code, index) => {
     const cue = document.querySelector(`#timing-${index}`);
@@ -281,7 +282,7 @@ function updateAttackTiming() {
     const elapsed = now - timedAttack.startedAt - index * ATTACK_BEAT_MS;
     cue.dataset.result = timedAttack.results[index] === null ? 'pending' : timedAttack.results[index] ? 'hit' : 'miss';
     cue.dataset.active = String(elapsed >= 0 && elapsed < ATTACK_BEAT_MS);
-    cue.dataset.window = String(Math.abs(elapsed - 700) <= ATTACK_WINDOW_MS / 2);
+    cue.dataset.window = String(Math.abs(elapsed - ATTACK_TARGET_MS) <= ATTACK_WINDOW_MS / 2);
     cue.dataset.key = code;
     cue.ariaLabel = `Timed attack ${code.slice(-1)}: ${cue.dataset.result}`;
     document.querySelector(`#timing-label-${index}`).textContent = code.slice(-1);
@@ -291,12 +292,15 @@ function updateAttackTiming() {
     dot.setAttribute('cx', marker.x);
     dot.setAttribute('cy', marker.y);
   });
+  if (timedAttack.results[active] !== null) { releasePlayerBeat(active); return; }
   timingFrame = requestAnimationFrame(updateAttackTiming);
 }
 
 function tryTiming(code) {
   if (!timedAttack) return;
-  timedAttack = timeAttack(timedAttack, code, performance.now());
+  if (actionPending !== 'timing') return;
+  timedAttack = timeAttack(timedAttack, code, Math.min(performance.now(), timedAttack.startedAt + state.skillHits * ATTACK_BEAT_MS + ATTACK_PROMPT_MS));
+  updateAttackTiming();
 }
 
 ATTACK_KEYS.forEach(code => document.querySelector(`#input-${code.slice(-1).toLowerCase()}`).addEventListener('click', () => tryTiming(code)));

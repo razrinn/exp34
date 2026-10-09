@@ -3,7 +3,17 @@
 [hidden] { display: none !important; }
 body { margin: 0; touch-action: manipulation; }
 #loading { display: none; }
-.loading #loading { min-height: 100dvh; display: grid; place-items: center; color: var(--muted); font-size: 14px; }
+.loading #loading { min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: radial-gradient(ellipse at 50% 45%, #34302a 0, #14191d 40%, #080d12 85%); color: var(--gold); }
+.loading-sigil { display: grid; place-items: center; width: 92px; height: 92px; border: 1px solid #d1aa7266; transform: rotate(45deg); font: 38px Georgia, serif; color: transparent; box-shadow: 0 0 60px #d1aa7212; }
+.loading-sigil::after { content: '34'; position: absolute; transform: rotate(-45deg); color: var(--gold); }
+.loading-title { margin: 48px 0 8px; font: 36px Georgia, serif; letter-spacing: 5px; color: #ece5d8; }
+.loading-title span { color: var(--gold); }
+.loading-caption, .loading-status { font: 10px Georgia, serif; letter-spacing: 3px; text-transform: uppercase; }
+.loading-caption { color: #aaa394; }
+.loading-status { font-size: 9px; color: #a0937e; }
+.loading-line { width: 150px; height: 1px; margin: 35px 0 12px; background: linear-gradient(90deg, transparent, var(--gold), transparent); animation: loading-breathe 1.8s ease-in-out infinite alternate; }
+@keyframes loading-breathe { to { opacity: .25; transform: scaleX(.6); } }
+@media (prefers-reduced-motion: reduce) { .loading-line { animation: none; } }
 .loading main { display: none; }
 button, summary, input { font: inherit; }
 button, summary { cursor: pointer; }
@@ -155,3 +165,10 @@ dialog::backdrop { background: #080b10aa; backdrop-filter: blur(3px); }
 
 .icon-definitions { position: absolute; width: 0; height: 0; overflow: hidden; }
 .command-icon { width: 27px; height: 27px; }
+
+.timing-focus .arena { filter: grayscale(1) brightness(.38); }
+.timing-focus .topbar, .timing-focus .turn-info { opacity: .35; }
+.timing-focus #attack-timing { left: 50%; top: 44%; transform: translate(-50%, -50%); width: 220px; text-shadow: 0 2px 16px #000; }
+.timing-focus .timing-diamonds > div { width: 146px; height: 146px; }
+.timing-focus .timing-marker { r: 5px; filter: drop-shadow(0 0 6px #fff1c4); }
+.timing-focus #attack-timing p { font-size: 14px; letter-spacing: 2px; }

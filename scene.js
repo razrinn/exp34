@@ -185,6 +185,7 @@ export async function createScene(canvas) {
   let counterReaction = null;
   let playerCombo = null;
   let playerRetreat = null;
+  let promptFrozenAt = null;
   let previous = performance.now();
   const black = new THREE.Color(0);
   const damageNumbers = [];
@@ -220,6 +221,12 @@ export async function createScene(canvas) {
   }
   function draw(now) {
     now = performance.now();
+    if (promptFrozenAt !== null) {
+      previous = now;
+      renderer.render(scene, camera);
+      requestAnimationFrame(draw);
+      return;
+    }
     embers.position.y = Math.sin(now / 5000) * .25;
     if (counterReaction && now >= counterReaction.at) {
       play(enemy, 'hit', counterReaction.hex);
@@ -287,7 +294,7 @@ export async function createScene(canvas) {
       if (character === models[0] && playerCombo) {
         const prep = character.preparing;
         const progress = prep?.progress || 0;
-        const approach = playerCombo.index === 0 && prep ? STRIKE_REACH * progress * progress * (3 - 2 * progress) : STRIKE_REACH;
+        const approach = playerCombo.index === 0 && effect ? STRIKE_REACH * Math.min(1, elapsed / 180) : STRIKE_REACH;
         character.group.position.x = -HOME_X + approach;
         character.group.position.z = prep ? (playerCombo.index % 2 ? 1 : -1) * .65 * Math.sin(Math.PI * progress) : motion.side;
         character.group.rotation.y += prep ? (playerCombo.index % 2 ? -.3 : .3) * Math.sin(Math.PI * progress) : 0;
@@ -460,6 +467,19 @@ export async function createScene(canvas) {
       canvas.parentElement.append(node);
       damageNumbers.push({ node, character: target === 'player' ? models[0] : enemy, at: performance.now() + delay });
     },
+    focusPrompt(focused) {
+      if (focused && promptFrozenAt === null) promptFrozenAt = performance.now();
+      else if (!focused && promptFrozenAt !== null) {
+        const paused = performance.now() - promptFrozenAt;
+        for (const character of models) {
+          if (character.effect) character.effect.started += paused;
+          if (character.burst) character.burst.at += paused;
+        }
+        for (const number of damageNumbers) number.at += paused;
+        promptFrozenAt = null;
+        previous = performance.now();
+      }
+    },
     startPlayerCombo() { playerCombo = { index: 0 }; playerRetreat = null; },
     endPlayerCombo() { playerCombo = null; playerRetreat = performance.now(); models[0].preparing = null; },
     prepareAction(kind, progress, index = 0) { models[0].preparing = { kind, progress }; if (playerCombo) playerCombo.index = index; },
@@ -467,7 +487,7 @@ export async function createScene(canvas) {
       numberPosition.copy(models[0].group.position); numberPosition.y += 2.5; numberPosition.project(camera);
       return { left: (numberPosition.x + 1) * canvas.clientWidth / 2, top: (1 - numberPosition.y) * canvas.clientHeight / 2 };
     },
-    startAction(kind) { models[0].preparing = null; play(models[0], kind, '#91c4ce'); },
+    startAction(kind, index = 0) { if (playerCombo) playerCombo.index = index; models[0].preparing = null; play(models[0], kind, '#91c4ce'); },
     enemyImpact(at, finished, style, nextDelay) {
       enemy.burst = { at, style };
       recovery = { at, style, hold: !finished && nextDelay <= 500 ? STRIKE_REACH - 1 : 0, duration: finished ? 300 : ENEMY_STEP_BACK_MS };
@@ -477,7 +497,7 @@ export async function createScene(canvas) {
       damageNumbers.length = 0;
       timing = null;
       recovery = null;
-      counterReaction = null; playerCombo = null; playerRetreat = null;
+      promptFrozenAt = null; counterReaction = null; playerCombo = null; playerRetreat = null;
       for (const character of models) { character.effect = null; character.preparing = null; character.death = null; character.burst = null; character.history = []; character.stroke = null; character.cue.visible = false; idle(character); }
     },
   };

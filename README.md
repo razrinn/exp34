@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 52
+## Checkpoint 53
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -296,3 +296,13 @@ Learning checkpoint: combat now has an explicit `attacking` phase. Starting a
 skill reserves its cost, each contact advances one guarded hit index, and only
 the final recovery hands the turn to the enemy. Animation follows this state;
 it does not independently award damage.
+
+Checkpoint 53 gives each cue a fixed, larger focus position. The arena freezes
+and becomes dark monochrome while the gold marker continues around the diamond.
+The target is now 1200 ms with a 500 ms inclusive window (950–1450 ms). A key
+attempt or timeout immediately resumes the strike; damage still resolves 320 ms
+after release, followed by 480 ms of movement before the next cue. Scene effects
+and damage popups preserve their remaining time while frozen. Restart clears
+focus, and a stalled frame can expire only the current cue. Defense timing and
+critical rules stay unchanged. Loading now uses a gold diamond expedition sigil,
+serif branding, a dark vignette, and a subtle line animation respecting reduced motion.

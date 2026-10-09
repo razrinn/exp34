@@ -17,7 +17,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     body: { classList: { remove() {} } },
     querySelector(selector) {
       if (!elements.has(selector)) elements.set(selector, {
-        setAttribute() {}, style: { setProperty() {} }, dataset: {}, animations: [], clientWidth: 1280, checked: false, listeners: {}, open: false,
+        setAttribute() {}, classList: { toggle(name, enabled) { this[name] = enabled; } }, style: { setProperty() {} }, dataset: {}, animations: [], clientWidth: 1280, checked: false, listeners: {}, open: false,
         showModal() { this.open = true; },
         close() { this.open = false; },
         animate(frames, options) {
@@ -52,15 +52,17 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     assert.equal(elements.get('.timing-controls').hidden, false);
     for (let index = 0; index < count; index++) {
       const beatStart = now;
-      frame(beatStart + 700);
+      assert.equal(elements.get('main').classList['timing-focus'], true);
+      frame(beatStart + 1200);
       assert.equal(elements.get('#timing-step').textContent, `${index + 1} / ${count}`);
       for (let cue = 0; cue < 4; cue++) assert.equal(elements.get(`#timing-${cue}`).hidden, cue !== index);
       const code = elements.get(`#timing-${index}`).dataset.key;
       if (successes.includes(index)) elements.get(`#input-${code.slice(-1).toLowerCase()}`).listeners.click();
       const hp = elements.get('#enemy-hp').textContent;
-      impact();
+      if (!successes.includes(index)) impact();
       assert.equal(elements.get('#enemy-hp').textContent, hp, 'input does not apply damage before contact');
       assert.equal(elements.get('.timing-controls').hidden, true);
+      assert.equal(elements.get('main').classList['timing-focus'], false);
       press('KeyQ'); press('KeyE'); press('KeyP');
       impact();
       if (elements.get('#enemy-hp').textContent.startsWith('0 /')) return;
@@ -123,6 +125,10 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     press('KeyQ'); elements.get('#restart').listeners.click();
     assert.equal(timers.size, 0, 'restart cancels a pending strike');
     assert.equal(elements.get('#attack-timing').hidden, true);
+    press('KeyQ'); frame(now + 9000); impact(); impact();
+    assert.equal(elements.get('#timing-step').textContent, '2 / 2', 'a stalled frame expires only the current cue');
+    assert.equal(elements.get('main').classList['timing-focus'], true);
+    elements.get('#restart').listeners.click();
   } finally {
     Math.random = previousRandom;
     Object.assign(globalThis, previous);
