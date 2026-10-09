@@ -5,7 +5,9 @@
   "scripts": {
     "test": "node --test",
     "balance": "node scripts/balance.mjs",
-    "start": "python3 -m http.server 8034 --bind 127.0.0.1"
+    "start": "python3 -m http.server 8034 --bind 127.0.0.1",
+    "build": "node scripts/build.mjs",
+    "deploy": "npx --yes wrangler@4.149.0 deploy"
   },
   "dependencies": {
     "three": "0.186.1"

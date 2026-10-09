@@ -385,3 +385,16 @@ effects/music toggles and a music volume slider (35% by default). Test sound
 also unlocks music. All audio is synthesized locally, with no downloads, new
 dependencies, or third-party music licensing. Audio settings last for this page
 session. Combat rules and saved runs are unchanged.
+
+## Cloudflare Workers static hosting
+
+Run `npm ci`, then `npm run deploy` after authenticating with
+`npx --yes wrangler@4.149.0 login`. Wrangler runs `npm run build` and uploads
+`dist/` as static assets. There is no Worker script or server runtime.
+The build includes the game, local Three.js modules, character/equipment assets,
+and license credits; tests, source configuration, and other dependencies are
+excluded. The build checks that copied JavaScript imports resolve locally.
+
+The default deployment uses a public workers.dev URL. The current Tailscale
+site is independent. Browser saves belong to each origin, so the new URL starts
+with its own run. Connect a custom domain in Cloudflare after deployment if needed.
