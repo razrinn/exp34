@@ -8,7 +8,7 @@ test('unsupported WebGL returns the playable symbol fallback', async () => {
 });
 
 test('shipped characters contain combat clips, skinning, textures, and weapon slots', () => {
-  const required = ['Idle', '1H_Melee_Attack_Chop', '1H_Melee_Attack_Slice_Horizontal', '1H_Melee_Attack_Stab', 'Dodge_Backward', 'Block', 'Hit_A', 'Use_Item'];
+  const required = ['Idle', '1H_Melee_Attack_Chop', '1H_Melee_Attack_Slice_Horizontal', '1H_Melee_Attack_Stab', 'Dodge_Backward', 'Block', 'Hit_A', 'Use_Item', 'Death_B'];
   for (const name of ['Knight', 'Skeleton_Warrior', 'Skeleton_Rogue', 'Skeleton_Mage']) {
     const data = readFileSync(new URL(`./assets/characters/${name}.glb`, import.meta.url));
     assert.equal(data.toString('ascii', 0, 4), 'glTF');

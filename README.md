@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 42
+## Checkpoint 43
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -227,3 +227,7 @@ at the counter's visual contact. Results wait until the collapse finishes; resta
 and the next fight clear all death state. The symbol fallback falls and fades too.
 Saved victories, defeats, and completion restore a fallen fighter behind the result
 screen. No new character assets or dependencies were needed.
+
+Checkpoint 43 replaces the rigid death tilt with KayKit’s skeletal Death_B clip
+for the hero and every enemy. The full body staggers and collapses over 2.2 seconds,
+then holds the final pose. Results wait for the collapse; stage reset restores idle.

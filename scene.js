@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './node_modules/three/examples/jsm/loaders/GLTFLoader.js';
-import { actionPose, deathPose, attackEffects, playerClipProgress, enemyAttackPose, enemyWindupPose, ENEMY_ATTACKS, PLAYER_IMPACT_MS, HOME_X, STRIKE_REACH, ENEMY_STEP_BACK_MS, retreatDistance } from './animation.js';
+import { actionPose, deathClipProgress, attackEffects, playerClipProgress, enemyAttackPose, enemyWindupPose, ENEMY_ATTACKS, PLAYER_IMPACT_MS, HOME_X, STRIKE_REACH, ENEMY_STEP_BACK_MS, retreatDistance } from './animation.js';
 
 const CLIPS = {
   attack: '1H_Melee_Attack_Slice_Horizontal', heavy: '1H_Melee_Attack_Chop',
@@ -220,7 +220,12 @@ export async function createScene(canvas) {
       if (dying && !character.death.origin) {
         character.death.origin = character.group.position.clone();
         character.death.yaw = character.group.rotation.y;
-        play(character, 'hit', '#ef6868');
+        character.effect = null;
+        character.mixer.stopAllAction();
+        const action = character.actions.Death_B;
+        action.reset().setLoop(THREE.LoopOnce, 1).play();
+        action.clampWhenFinished = true;
+        action.paused = true;
       }
       const effect = character.effect;
       const elapsed = now - (effect?.started || 0);
@@ -230,12 +235,12 @@ export async function createScene(canvas) {
         idle(character);
       }
       const direction = character === models[0] ? 1 : -1;
-      character.group.rotation.order = dying ? 'ZYX' : 'XYZ';
+      character.group.rotation.order = 'XYZ';
       let approach = 0;
       let windup = { lean: 0, twist: 0, lift: 0 };
       if (dying) {
-        const action = character.actions.Hit_A;
-        action.time = action.getClip().duration * Math.min(1, (now - character.death.at) / 300);
+        const action = character.actions.Death_B;
+        action.time = action.getClip().duration * deathClipProgress(now - character.death.at);
         character.mixer.update(0);
       } else if (character === enemy && recovery && now < recovery.at + recovery.duration) {
         const t = Math.max(0, Math.min(1, (now - recovery.at) / recovery.duration));
@@ -260,11 +265,9 @@ export async function createScene(canvas) {
       character.group.rotation.y = (character === models[0] ? Math.PI / 2 : -Math.PI / 2) + windup.twist;
       character.group.rotation.z = (motion.lean + windup.lean) * direction;
       if (dying) {
-        const fallen = deathPose(now - character.death.at);
         character.group.position.copy(character.death.origin);
-        character.group.position.y += fallen.lift * (character === models[0] ? 1 : character === models[3] ? 1.6 : 1.3);
         character.group.rotation.y = character.death.yaw;
-        character.group.rotation.z = fallen.lean * direction;
+        character.group.rotation.z = 0;
       }
       let style = { attack: 'slash', heavy: 'chop', counter: 'thrust' }[character.effect?.kind];
       let charge = style ? attackEffects(PLAYER_IMPACT_MS - elapsed, PLAYER_IMPACT_MS, style).charge : 0;
