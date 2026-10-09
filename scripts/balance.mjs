@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { newCombat, nextFight, startSkill, landSkillHit, finishSkill, PLAYER_SKILLS, skillDamage, heal, parry, dodge, advanceEnemy, HEAL, HEAVY_STRIKE, RUN_LENGTH } from '../combat.js';
+import { newCombat, nextFight, startSkill, landSkillHit, finishSkill, PLAYER_SKILLS, skillDamage, heal, parry, dodge, advanceEnemy, HEAL, MAX_ENERGY, HEAVY_STRIKE, RUN_LENGTH } from '../combat.js';
 
 // These are assumed input success rates, not measurements of player skill.
 const scenarios = [
@@ -48,12 +48,12 @@ for (const scenario of scenarios) {
               : scenario.defense === 'parry' ? parry : dodge;
             if (random() < scenario.success) state = defense(state, impact - 1);
             state = advanceEnemy(state, impact);
-            assert.ok(state.playerHp >= 0 && state.enemyHp >= 0 && state.energy >= 0);
+            assert.ok(state.playerHp >= 0 && state.enemyHp >= 0 && state.energy >= 0 && state.energy <= MAX_ENERGY);
           }
         }
         if (state.fight === RUN_LENGTH) { bossTurns += encounterTurns; bossVisits++; }
         if (state.phase !== 'victory') break;
-        state = nextFight(state, build);
+        state = nextFight(state, build === 'energy' && state.startingEnergy >= MAX_ENERGY ? 'heavy' : build);
       }
       if (state.phase === 'complete') wins++;
       totalTurns += turns;

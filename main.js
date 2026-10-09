@@ -1,5 +1,5 @@
 import { ATTACK_KEYS, ATTACK_BEAT_MS, ATTACK_WINDOW_MS, ATTACK_TARGET_MS, ATTACK_PROMPT_MS, attackMarker, attackTiming, advanceAttack, timeAttack } from './attack-timing.js';
-import { newCombat, nextFight, startSkill, landSkillHit, finishSkill, skillDamage, PLAYER_SKILLS, heal, parry, dodge, retaliate, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE, HEAL, RUN_LENGTH } from './combat.js';
+import { newCombat, nextFight, startSkill, landSkillHit, finishSkill, skillDamage, PLAYER_SKILLS, heal, parry, dodge, retaliate, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE, HEAL, MAX_ENERGY, RUN_LENGTH } from './combat.js';
 import { createScene } from './scene.js';
 import { enemyPose, attackEffects, DEATH_MS, PLAYER_IMPACT_MS, PLAYER_ACTION_MS } from './animation.js';
 import { playCue } from './sound.js';
@@ -113,11 +113,14 @@ function render() {
   document.querySelector('#turn-label').textContent = actionPending === 'timing' ? 'FIND THE RHYTHM' : actionPending === 'attack' ? 'STRIKING' : actionPending ? 'RECOVERING' : state.phase === 'player' ? 'YOUR TURN' : state.phase === 'enemy' ? 'DEFEND' : 'ENCOUNTER ENDED';
   document.querySelector('#attack-detail').textContent = `2 strikes · ${skillDamage(state, 'quick')} damage · +1 energy`;
   attackButton.disabled = !!actionPending || state.phase !== 'player';
-  document.querySelector('#build').textContent = `Parry charge: +${(state.counterDamage - 4) / 3} per parry · Ready: +${state.parryBonus} · Starting energy: ${state.startingEnergy}`;
+  document.querySelector('#build').textContent = `Parry charge: +${(state.counterDamage - 4) / 3} per parry · Ready: +${state.parryBonus} · Starting energy: ${Math.min(MAX_ENERGY, state.startingEnergy)}`;
   document.querySelector('#counter-gain').textContent = `Next attack: +${(state.counterDamage - 4) / 3} → +${(state.counterDamage - 4) / 3 + 1} per parry · up to ${((state.counterDamage - 4) / 3 + 1) * 2} damage`;
-  document.querySelector('#energy-gain').textContent = `Starting energy · ${state.startingEnergy} → ${state.startingEnergy + 1}`;
+  document.querySelector('[data-upgrade="energy"]').disabled = state.startingEnergy >= MAX_ENERGY;
+  document.querySelector('#energy-gain').textContent = state.startingEnergy >= MAX_ENERGY ? 'Starting energy · 3 / 3 · MAX' : `Starting energy · ${state.startingEnergy} → ${state.startingEnergy + 1}`;
   document.querySelector('#heavy-gain').textContent = `All skills: Quickstep +1 · Flurry +6 · Onslaught +6 damage`;
-  document.querySelector('#energy').textContent = `Energy: ${state.energy}`;
+  document.querySelector('#player-energy').max = MAX_ENERGY;
+  document.querySelector('#player-energy').value = state.energy;
+  document.querySelector('#energy').textContent = `${state.energy} / ${MAX_ENERGY}`;
   document.querySelector('#heavy-detail').textContent = `3 strikes · ${skillDamage(state, 'heavy')} damage · 2 energy`;
   heavyButton.disabled = !!actionPending || state.phase !== 'player' || state.energy < HEAVY_STRIKE.cost;
   document.querySelector('#heal-detail').textContent = `${HEAL.amount} HP · ${HEAL.cost} energy`;
@@ -397,7 +400,8 @@ document.querySelector('#fullscreen').addEventListener('click', async () => {
 });
 
 function chooseUpgrade(upgrade) {
-  if (state.phase !== 'victory') return;
+  const next = nextFight(state, upgrade);
+  if (next === state) return;
   cancelAnimationFrame(enemyFrame);
   cancelAnimationFrame(timingFrame);
   timedAttack = null;
@@ -406,7 +410,7 @@ function chooseUpgrade(upgrade) {
   scene?.reset();
   for (const figure of [playerFigure, enemyFigure]) for (const animation of figure.getAnimations?.() || []) animation.cancel();
   for (const number of document.querySelectorAll('.damage-number')) number.remove();
-  state = nextFight(state, upgrade);
+  state = next;
   saveCheckpoint();
   render();
 }

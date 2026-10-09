@@ -29,7 +29,8 @@ export const PARRY_WINDOW_MS = 180;
 export const DODGE_WINDOW_MS = 360;
 export const LATE_INPUT_GRACE_MS = 80;
 export const HEAVY_STRIKE = { cost: 2, damage: 20 };
-export const HEAL = { cost: 2, amount: 12 };
+export const MAX_ENERGY = 3;
+export const HEAL = { cost: 1, amount: 6 };
 export const RECOVERY_HP = 10;
 
 export function newCombat() {
@@ -44,6 +45,7 @@ export function newCombat() {
 
 export function nextFight(state, upgrade) {
   if (state.phase !== 'victory' || state.fight >= RUN_LENGTH || !['counter', 'energy', 'heavy'].includes(upgrade)) return state;
+  if (upgrade === 'energy' && state.startingEnergy >= MAX_ENERGY) return state;
   const enemyMaxHp = state.enemyMaxHp + 12;
   const startingEnergy = state.startingEnergy + (upgrade === 'energy' ? 1 : 0);
   const playerHp = Math.min(state.playerMaxHp, state.playerHp + RECOVERY_HP);
@@ -55,7 +57,7 @@ export function nextFight(state, upgrade) {
     counterDamage: state.counterDamage + (upgrade === 'counter' ? 3 : 0),
     heavyDamage: state.heavyDamage + (upgrade === 'heavy' ? 6 : 0),
     startingEnergy,
-    energy: startingEnergy,
+    energy: Math.min(MAX_ENERGY, startingEnergy),
     enemyMaxHp,
     enemyHp: enemyMaxHp,
     fight: state.fight + 1,
@@ -79,7 +81,7 @@ export function startSkill(state, skill) {
   const definition = PLAYER_SKILLS[skill];
   if (state.phase !== 'player' || !definition || state.energy < definition.cost) return state;
   return { ...state, phase: 'attacking', activeSkill: skill, skillHits: 0, skillPerfect: true, skillBonus: state.parryBonus, parryBonus: 0,
-    energy: state.energy - definition.cost + (skill === 'quick' ? 1 : 0) };
+    energy: Math.min(MAX_ENERGY, state.energy - definition.cost + (skill === 'quick' ? 1 : 0)) };
 }
 
 export function landSkillHit(state, index, success, random = Math.random) {
@@ -88,9 +90,9 @@ export function landSkillHit(state, index, success, random = Math.random) {
   const count = PLAYER_SKILLS[state.activeSkill].strikes;
   if (index >= count) return state;
   const skillPerfect = state.skillPerfect && success;
-  const critical = index === count - 1 && skillPerfect && random() < 0.05;
-  // Earlier strikes already landed; the final contact adds the full combo's bonus.
-  const damage = (success ? Math.round(total * (index + 1) / count) - Math.round(total * index / count) : 0) + (critical ? total : 0);
+  const critical = index === count - 1 && skillPerfect && random() < 0.25;
+  // Earlier strikes already landed; the final contact adds the combo's 50% bonus.
+  const damage = (success ? Math.round(total * (index + 1) / count) - Math.round(total * index / count) : 0) + (critical ? Math.round(total * .5) : 0);
   const enemyHp = Math.max(0, state.enemyHp - damage);
   return { ...state, enemyHp, skillHits: index + 1, skillPerfect, critical,
     phase: enemyHp === 0 ? state.fight === RUN_LENGTH ? 'complete' : 'victory' : 'attacking',
@@ -119,7 +121,7 @@ function strike(state, now, heavy, quality) {
     ...state,
     enemyHp,
     parryBonus: 0,
-    energy: state.energy + (heavy ? -HEAVY_STRIKE.cost : 1),
+    energy: Math.min(MAX_ENERGY, state.energy + (heavy ? -HEAVY_STRIKE.cost : 1)),
     phase: enemyHp === 0 ? state.fight === RUN_LENGTH ? 'complete' : 'victory' : 'enemy',
     message: enemyHp === 0 ? `Victory! The ${state.enemy.name} falls.` : damage === 0 ? `The ${state.enemy.name} evades your attack.` : `You deal ${damage} damage. The ${state.enemy.name} prepares to strike…`,
   };

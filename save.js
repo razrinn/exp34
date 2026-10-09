@@ -1,4 +1,4 @@
-import { newCombat, ENEMIES, BOSS, RUN_LENGTH } from './combat.js';
+import { newCombat, ENEMIES, BOSS, RUN_LENGTH, MAX_ENERGY } from './combat.js';
 
 export const SAVE_KEY = 'exp34-run-v1';
 
@@ -24,7 +24,7 @@ export function loadRun(storage) {
       || (phase === 'complete' && (fight !== RUN_LENGTH || enemyHp !== 0))) return newCombat();
     return {
       ...newCombat(), fight, playerHp, enemyHp, enemyMaxHp,
-      counterDamage, heavyDamage, attackDamage: 8 + (heavyDamage - 20) / 6, startingEnergy, energy: startingEnergy, phase,
+      counterDamage, heavyDamage, attackDamage: 8 + (heavyDamage - 20) / 6, startingEnergy, energy: Math.min(MAX_ENERGY, startingEnergy), phase,
       enemy: fight === RUN_LENGTH ? BOSS : ENEMIES[(fight - 1) % ENEMIES.length],
       message: phase === 'player' ? 'Encounter restored. Your turn.' : 'Encounter result restored.',
     };

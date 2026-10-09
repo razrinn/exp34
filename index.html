@@ -24,8 +24,8 @@
             <p><kbd>Q</kbd> Quickstep · <kbd>W</kbd> Flurry · <kbd>E</kbd> Onslaught<br><kbd>I</kbd> Parry · <kbd>O</kbd> Dodge · <kbd>P</kbd> Heal</p>
             <p>One defense attempt per hit. Late presses just after impact do not spend the next attempt; early follow-up presses are ignored. A brief flash on the enemy warns before each strike. Yellow attacks can be parried or dodged. Red attacks must be dodged. Parry an entire yellow combo to counter. A dodge blocks damage but forfeits the counter.</p>
             <p>Quickstep: 2 strikes, no energy cost (+1 energy). Flurry: 3 strikes, 2 energy. Onslaught: 4 strikes, 3 energy. Each strike has its own random I/O/P prompt and resolves at weapon contact. A missed prompt lets the enemy evade that strike. The hero stays close until the combo ends.</p>
-            <p>Reprisal adds +1 damage per parry per rank to your next attack, capped at +2 per rank. Red dodges preserve the charge; healing preserves it; starting an attack spends it. Ruin adds +1 Quickstep and +6 Flurry/Onslaught damage per rank. Resolve adds +1 starting energy per rank.</p>
-            <p>P heals for 2 energy on your turn. During an attack, P is a timing input. On mobile, tap the matching icon in the bottom row.</p>
+            <p>Reprisal adds +1 damage per parry per rank to your next attack, capped at +2 per rank. Red dodges preserve the charge; healing preserves it; starting an attack spends it. Ruin adds +1 Quickstep and +6 Flurry/Onslaught damage per rank. Resolve adds +1 starting energy per rank, up to 3.</p>
+            <p>Energy caps at 3. P heals 6 HP for 1 energy and spends your turn. Perfect attack cues give a 25% chance of 1.5× combo damage, rounded to the nearest point. During an attack, P is a timing input. On mobile, tap the matching icon in the bottom row.</p>
             <p id="attack-detail"></p><p id="heavy-detail"></p><p id="heal-detail"></p><p id="onslaught-detail"></p>
             <label><input id="practice" type="checkbox"> Practice timing bar</label>
             <label><input id="sound" type="checkbox" checked> Sound cues</label>
@@ -43,6 +43,7 @@
       <div id="attack-cue" role="status" aria-atomic="true" hidden></div>
       <article class="combatant player-side">
         <div class="health-card"><h2>You</h2><label for="player-health">HP <span id="player-hp">40 / 40</span></label><meter id="player-health" min="0" max="40" value="40"></meter></div>
+        <div class="energy-hud"><label for="player-energy">Energy <span id="energy">0 / 3</span></label><meter id="player-energy" min="0" max="3" value="0"></meter></div>
         <div id="player-symbol" class="figure player" aria-hidden="true">◇</div>
       </article>
       <article class="combatant enemy-side">
@@ -61,7 +62,7 @@
       </div>
     </div>
     <footer class="controls" aria-label="Combat controls">
-      <div class="turn-info"><p id="turn-label">Your turn</p><p id="energy">Energy: 0</p></div>
+      <div class="turn-info"><p id="turn-label">Your turn</p></div>
       <div class="action-row">
         <div class="actions" aria-label="Your turn actions">
           <button id="attack" aria-label="Quickstep" type="button" aria-keyshortcuts="Q"><svg class="command-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-q"/></svg><kbd>Q</kbd></button>

@@ -175,3 +175,10 @@ dialog::backdrop { background: #080b10aa; backdrop-filter: blur(3px); }
 .timing-focus .timing-diamonds > div { width: 146px; height: 146px; }
 .timing-focus .timing-marker { r: 5px; filter: drop-shadow(0 0 6px #fff1c4); }
 .timing-focus #attack-timing p { font-size: 14px; letter-spacing: 2px; }
+
+.energy-hud { margin-top: 8px; font: 9px system-ui, sans-serif; color: var(--gold); }
+.energy-hud label { display: flex; justify-content: space-between; margin-bottom: 4px; letter-spacing: 1px; }
+.energy-hud meter { height: 4px; }
+.energy-hud meter::-webkit-meter-optimum-value { background: linear-gradient(90deg, #8a7047, #ffe2a2); }
+.energy-hud meter::-moz-meter-bar { background: var(--gold); }
+.timing-focus .energy-hud { filter: grayscale(1) brightness(.48); }

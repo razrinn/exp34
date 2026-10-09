@@ -164,7 +164,7 @@ test('each enemy cycles through three patterns and only all-yellow combos counte
       assert.equal(state.enemyHp, expectedHp);
       assert.equal(state.phase, 'player');
     }
-    const next = nextFight({ ...state, phase: 'victory', enemyHp: 0 }, 'energy');
+    const next = nextFight({ ...state, phase: 'victory', enemyHp: 0 }, state.startingEnergy < 3 ? 'energy' : 'heavy');
     assert.equal(next.enemyTurns, 0);
     assert.equal(attack(next).patternIndex, 0);
   }
@@ -276,7 +276,7 @@ test('damage increases every two fights while health rises every fight', () => {
     assert.deepEqual(incoming.hits.map(hit => hit.damage), expected[fight]);
     const afterHit = advanceEnemy(incoming, incoming.impactAt);
     assert.equal(afterHit.playerHp, state.playerHp - expected[fight][0]);
-    state = nextFight({ ...state, phase: 'victory', enemyHp: 0 }, 'energy');
+    state = nextFight({ ...state, phase: 'victory', enemyHp: 0 }, state.startingEnergy < 3 ? 'energy' : 'heavy');
   }
   assert.deepEqual(ENEMIES[0].patterns[0].map(hit => hit.damage), [3, 3, 5]);
 });
@@ -288,7 +288,7 @@ test('a full run reaches the final boss, completes, and cannot progress again', 
     assert.equal(state.enemy, fight === RUN_LENGTH ? BOSS : ENEMIES[(fight - 1) % 2]);
     while (state.phase === 'player') state = perfectCombo(attack(state));
     assert.equal(state.phase, fight === RUN_LENGTH ? 'complete' : 'victory');
-    if (fight < RUN_LENGTH) state = nextFight(state, 'energy');
+    if (fight < RUN_LENGTH) state = nextFight(state, state.startingEnergy < 3 ? 'energy' : 'heavy');
   }
   assert.equal(nextFight(state, 'energy'), state);
   assert.equal(attack(state), state);
@@ -357,28 +357,26 @@ test('long variants resolve every hit and a dodge still forfeits the counter', (
 test('healing spends energy and starts the next enemy pattern without dealing damage', () => {
   const initial = { ...newCombat(), playerHp: 20, energy: 3, enemyTurns: 1 };
   const result = heal(initial, 100);
-  assert.equal(result.playerHp, 32);
-  assert.equal(result.energy, 1);
+  assert.equal(result.playerHp, 26);
+  assert.equal(result.energy, 2);
   assert.equal(result.enemyHp, initial.enemyHp);
   assert.equal(result.phase, 'enemy');
   assert.equal(result.patternIndex, 1);
   assert.equal(result.impactAt, 1900);
   assert.equal(result.enemyTurns, 2);
-  assert.equal(advanceEnemy(result, 99999).playerHp, 15);
+  assert.equal(advanceEnemy(result, 99999).playerHp, 9);
 });
 
 test('healing caps at upgraded max health and rejects invalid actions without spending', () => {
   const nearFull = { ...newCombat(), playerHp: 44, playerMaxHp: 46, energy: 2 };
   const result = heal(nearFull);
   assert.equal(result.playerHp, 46);
-  assert.equal(result.energy, 0);
+  assert.equal(result.energy, 1);
   assert.match(result.message, /recover 2 HP/);
   const full = { ...newCombat(), energy: 2 };
   assert.equal(heal(full), full);
-  for (const energy of [0, 1]) {
-    const poor = { ...newCombat(), playerHp: 20, energy };
-    assert.equal(heal(poor), poor);
-  }
+  const poor = { ...newCombat(), playerHp: 20, energy: 0 };
+  assert.equal(heal(poor), poor);
   for (const phase of ['enemy', 'victory', 'defeat', 'complete']) {
     const state = { ...newCombat(), playerHp: 20, energy: 3, phase };
     assert.equal(heal(state), state);
@@ -396,7 +394,7 @@ test('combat uses rewarded damage and Prepared unlocks earlier skills', () => {
   const prepared = nextFight(won, 'energy');
   const afterAttack = perfectCombo(attack(prepared));
   assert.equal(afterAttack.energy, 2);
-  assert.equal(heal({ ...afterAttack, playerHp: 20 }).playerHp, 32);
+  assert.equal(heal({ ...afterAttack, playerHp: 20 }).playerHp, 26);
   const afterSecond = perfectCombo(attack(afterAttack));
   assert.equal(afterSecond.energy, 3);
   assert.equal(heavyStrike(afterSecond).energy, 1);
@@ -541,7 +539,7 @@ import { PLAYER_SKILLS, startSkill, landSkillHit, finishSkill } from './combat.j
 test('2/3/4 strike skills spend energy once and resolve damage at each contact', () => {
   for (const [skill, count, cost, total] of [['quick', 2, 0, 8], ['heavy', 3, 2, 20], ['onslaught', 4, 3, 32]]) {
     let state = startSkill({ ...newCombat(), energy: 3, enemyHp: 100 }, skill);
-    assert.equal(state.energy, 3 - cost + (skill === 'quick' ? 1 : 0));
+    assert.equal(state.energy, Math.min(3, 3 - cost + (skill === 'quick' ? 1 : 0)));
     assert.equal(PLAYER_SKILLS[skill].strikes, count);
     assert.equal(finishSkill(state, 0), state);
     for (let index = 0; index < count; index++) {
@@ -568,16 +566,16 @@ test('missed player strikes evade individually; lethal hits stop the skill; cost
   assert.equal(landSkillHit(lethal, 1, true), lethal);
 });
 
-test('only perfect completed combos roll a 5 percent double-damage critical', () => {
+test('only perfect completed combos roll a 25 percent 1.5x damage critical', () => {
   for (const skill of Object.keys(PLAYER_SKILLS)) {
-    for (const [roll, missed, critical] of [[0.049, -1, true], [0.05, -1, false], [0, 0, false], [0, PLAYER_SKILLS[skill].strikes - 1, false]]) {
+    for (const [roll, missed, critical] of [[0.249, -1, true], [0.25, -1, false], [0, 0, false], [0, PLAYER_SKILLS[skill].strikes - 1, false]]) {
       let state = startSkill({ ...newCombat(), energy: 3, enemyHp: 100 }, skill);
       let rolls = 0;
       const random = () => { rolls++; return roll; };
       for (let index = 0; index < PLAYER_SKILLS[skill].strikes; index++) state = landSkillHit(state, index, index !== missed, random);
       assert.equal(state.critical, critical);
       assert.equal(rolls, missed === -1 ? 1 : 0);
-      if (missed === -1) assert.equal(100 - state.enemyHp, (skill === 'quick' ? 8 : skill === 'heavy' ? 20 : 32) * (critical ? 2 : 1));
+      if (missed === -1) assert.equal(100 - state.enemyHp, (skill === 'quick' ? 8 : skill === 'heavy' ? 20 : 32) * (critical ? 1.5 : 1));
     }
   }
 });
@@ -620,7 +618,7 @@ test('Ruin improves every skill and Reprisal damage participates in criticals', 
   }
   const charged = startSkill({ ...ruin, parryBonus: 3 }, 'quick');
   const final = landSkillHit(landSkillHit(charged, 0, true), 1, true, () => 0);
-  assert.equal(ruin.enemyHp - final.enemyHp, 24);
+  assert.equal(ruin.enemyHp - final.enemyHp, 18);
 });
 
 test('Reprisal stacks by rank and failed defenses or dodges add no charge', () => {
@@ -635,4 +633,30 @@ test('Reprisal stacks by rank and failed defenses or dodges add no charge', () =
     state = perfectCombo(heal({ ...state, energy: 2, playerHp: 20 }));
     assert.equal(state.parryBonus, rank * 2);
   }
+});
+
+test('energy caps at three and capped Resolve cannot spend a reward', () => {
+  const full = { ...newCombat(), energy: 3 };
+  assert.equal(startSkill(full, 'quick').energy, 3);
+  assert.equal(attack(full).energy, 3);
+  assert.equal(startSkill(full, 'heavy').energy, 1);
+  assert.equal(startSkill(full, 'onslaught').energy, 0);
+  assert.equal(heal({ ...newCombat(), playerHp: 20, energy: 1 }).energy, 0);
+  let state = newCombat();
+  for (let rank = 0; rank < 3; rank++) state = nextFight({ ...state, phase: 'victory', enemyHp: 0 }, 'energy');
+  const won = { ...state, phase: 'victory', enemyHp: 0 };
+  assert.equal(nextFight(won, 'energy'), won);
+  const boss = nextFight(won, 'heavy');
+  assert.equal(boss.fight, 5);
+  assert.equal(boss.startingEnergy, 3);
+  assert.equal(boss.energy, 3);
+});
+
+test('1.5x critical rounds odd combo damage once at final contact', () => {
+  const started = startSkill({ ...newCombat(), attackDamage: 9 }, 'quick');
+  const first = landSkillHit(started, 0, true, () => 0);
+  assert.equal(first.enemyHp, 43);
+  assert.equal(first.critical, false);
+  const final = landSkillHit(first, 1, true, () => .249);
+  assert.equal(48 - final.enemyHp, 14);
 });

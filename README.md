@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 56
+## Checkpoint 57
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -345,3 +345,16 @@ runs an 85% attack-cue scenario. At assumed 85% parry success and perfect attack
 cues, simulated completion is 61.2% Reprisal, 58.8% Resolve, and 70.6% Ruin;
 with 85% attack cues it is 55%, 41.4%, and 58%. These are comparisons under a
 fixed action policy, not measured player win rates or proof of equal balance.
+
+Checkpoint 57 changes perfect-combo criticals to a 25% chance of 1.5x total
+damage. The final strike adds the rounded 50% bonus; any missed cue still prevents
+a critical. Energy is now a thin gold meter below the player's HP with a 0–3
+count, replacing the footer text. All energy gains and encounter starts cap at 3.
+Resolve stops at three upgrades, shows MAX, and rejects the capped keyboard
+choice without spending a reward. Older four-Resolve saves retain their
+progression but restore with three usable energy. Healing now costs one energy,
+restores six HP (capped by max HP), and still spends the turn.
+
+The simulation keeps its Resolve-focused build valid by choosing Ruin for its
+last reward once Resolve is capped. Its win rates remain assumed-input scenarios,
+not measured player performance.

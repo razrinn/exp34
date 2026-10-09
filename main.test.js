@@ -90,7 +90,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     assert.equal(timers.size, 0, 'unaffordable skills and full-health heal do nothing');
     runSkill('KeyQ', 2);
     assert.equal(elements.get('#enemy-hp').textContent, '40 / 48');
-    assert.equal(elements.get('#energy').textContent, 'Energy: 1');
+    assert.equal(elements.get('#energy').textContent, '1 / 3');
     press('KeyP'); press('KeyE');
     assert.equal(timers.size, 0, 'heal and attacks cannot interrupt enemy turn');
     defend(ENEMIES[0].patterns[0]);
@@ -99,7 +99,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     defend(ENEMIES[0].patterns[1]);
     runSkill('KeyW', 3);
     assert.equal(elements.get('#enemy-hp').textContent, '8 / 48');
-    assert.equal(elements.get('#energy').textContent, 'Energy: 0');
+    assert.equal(elements.get('#energy').textContent, '0 / 3');
     defend(ENEMIES[0].patterns[2]);
     runSkill('KeyQ', 2);
     assert.equal(elements.get('#upgrades').open, false, 'lethal contact waits for collapse');
@@ -111,17 +111,19 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     for (let turn = 0; turn < 3; turn++) {
       runSkill('KeyQ', 2, []); defend(ENEMIES[0].patterns[turn]);
     }
-    assert.equal(elements.get('#energy').textContent, 'Energy: 3');
+    assert.equal(elements.get('#energy').textContent, '3 / 3');
+    assert.equal(elements.get('#player-energy').value, 3);
+    assert.equal(elements.get('#player-energy').max, 3);
     runSkill('KeyE', 4);
     assert.equal(elements.get('#enemy-hp').textContent, '4 / 48');
-    assert.equal(elements.get('#energy').textContent, 'Energy: 0');
+    assert.equal(elements.get('#energy').textContent, '0 / 3');
     elements.get('#restart').listeners.click();
     runSkill('KeyQ', 2, []); defend(ENEMIES[0].patterns[0], true);
     assert.equal(elements.get('#player-hp').textContent, '35 / 40');
     runSkill('KeyQ', 2, []); defend(ENEMIES[0].patterns[1]);
     press('KeyP');
     assert.equal(elements.get('#player-hp').textContent, '40 / 40');
-    assert.equal(elements.get('#energy').textContent, 'Energy: 0');
+    assert.equal(elements.get('#energy').textContent, '1 / 3');
     assert.equal(elements.get('.actions').hidden, true, 'P heal spends the turn');
     elements.get('#restart').listeners.click();
     press('KeyQ'); elements.get('#restart').listeners.click();

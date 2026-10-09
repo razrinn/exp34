@@ -85,3 +85,15 @@ test('restart removes only this game save and storage failures keep the game pla
   assert.equal(saveRun(newCombat(), blocked), false);
   assert.equal(clearRun(blocked), false);
 });
+
+test('old four-energy builds restore at the new cap without losing progression', () => {
+  const storage = memoryStorage();
+  storage.setItem(SAVE_KEY, JSON.stringify({ version: 1, fight: 5, playerHp: 40, enemyHp: 96,
+    counterDamage: 4, heavyDamage: 20, startingEnergy: 4, phase: 'player' }));
+  const loaded = loadRun(storage);
+  assert.equal(loaded.fight, 5);
+  assert.equal(loaded.startingEnergy, 4);
+  assert.equal(loaded.energy, 3);
+  saveRun(loaded, storage);
+  assert.equal(loadRun(storage).fight, 5);
+});
