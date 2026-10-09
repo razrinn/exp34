@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createSceneClock } from './scene-clock.js';
 import { GLTFLoader } from './node_modules/three/examples/jsm/loaders/GLTFLoader.js';
 import { actionPose, deathClipProgress, attackEffects, playerClipProgress, enemyAttackPose, enemyWindupPose, ENEMY_ATTACKS, PLAYER_IMPACT_MS, HOME_X, STRIKE_REACH, ENEMY_STEP_BACK_MS, retreatDistance } from './animation.js';
 
@@ -215,8 +216,8 @@ export async function createScene(canvas) {
   let counterReaction = null;
   let playerCombo = null;
   let playerRetreat = null;
-  let promptFrozenAt = null;
-  let previous = performance.now();
+  const clock = createSceneClock();
+  let previous = clock.now();
   const black = new THREE.Color(0);
   const damageNumbers = [];
   const numberPosition = new THREE.Vector3();
@@ -236,7 +237,7 @@ export async function createScene(canvas) {
       const legs = character.actions.Heavy_Legs;
       legs.reset().setLoop(THREE.LoopOnce, 1).play(); legs.paused = true;
     }
-    character.effect = { kind, started: performance.now(), color: new THREE.Color(hex) };
+    character.effect = { kind, started: clock.now(), color: new THREE.Color(hex) };
   }
   function sampleClip(character, clip, progress) {
     const action = character.actions[clip];
@@ -250,13 +251,7 @@ export async function createScene(canvas) {
     character.mixer.update(0);
   }
   function draw(now) {
-    now = performance.now();
-    if (promptFrozenAt !== null) {
-      previous = now;
-      renderer.render(scene, camera);
-      requestAnimationFrame(draw);
-      return;
-    }
+    now = clock.now();
     embers.position.y = Math.sin(now / 5000) * .25;
     if (counterReaction && now >= counterReaction.at) {
       play(enemy, 'hit', counterReaction.hex);
@@ -473,22 +468,22 @@ export async function createScene(canvas) {
         enemy.group.visible = true;
         enemy.vfx.visible = true;
       }
-      timing = nextTiming;
+      timing = nextTiming && { ...nextTiming, impactAt: clock.now() + nextTiming.impactAt - performance.now() };
     },
     feedback(kind, target, hex) {
       if (kind === 'counter') {
         play(models[0], kind, '#91c4ce');
-        counterReaction = { at: performance.now() + PLAYER_IMPACT_MS, hex };
+        counterReaction = { at: clock.now() + PLAYER_IMPACT_MS, hex };
       } else {
-        if (kind === 'parry') models[0].burst = { at: performance.now(), style: 'thrust' };
-        if (kind === 'attack' || kind === 'heavy') models[0].burst = { at: performance.now(), style: kind === 'heavy' ? 'chop' : 'slash' };
+        if (kind === 'parry') models[0].burst = { at: clock.now(), style: 'thrust' };
+        if (kind === 'attack' || kind === 'heavy') models[0].burst = { at: clock.now(), style: kind === 'heavy' ? 'chop' : 'slash' };
         play(target === 'player' ? models[0] : enemy, target === 'enemy' ? 'hit' : kind, hex);
       }
     },
     evade() { play(enemy, 'dodge', '#94a2be'); },
     die(target, delay = 0) {
       const character = target === 'player' ? models[0] : enemy;
-      character.death = { at: performance.now() + delay, origin: null };
+      character.death = { at: clock.now() + delay, origin: null };
     },
     damage(amount, target, delay = 0) {
       const node = document.createElement('span');
@@ -496,25 +491,15 @@ export async function createScene(canvas) {
       node.textContent = String(amount); node.setAttribute('role', 'status');
       node.ariaLabel = `${amount} damage to ${target === 'player' ? 'you' : 'the enemy'}`; node.hidden = true;
       canvas.parentElement.append(node);
-      damageNumbers.push({ node, character: target === 'player' ? models[0] : enemy, at: performance.now() + delay });
+      damageNumbers.push({ node, character: target === 'player' ? models[0] : enemy, at: clock.now() + delay });
     },
     focusPrompt(focused) {
       focus.value = focused ? 1 : 0;
       scene.background = focused ? focusSky : colorSky;
-      if (focused && promptFrozenAt === null) promptFrozenAt = performance.now();
-      else if (!focused && promptFrozenAt !== null) {
-        const paused = performance.now() - promptFrozenAt;
-        for (const character of models) {
-          if (character.effect) character.effect.started += paused;
-          if (character.burst) character.burst.at += paused;
-        }
-        for (const number of damageNumbers) number.at += paused;
-        promptFrozenAt = null;
-        previous = performance.now();
-      }
+      clock.focus(focused);
     },
     startPlayerCombo() { playerCombo = { index: 0 }; playerRetreat = null; },
-    endPlayerCombo() { playerCombo = null; playerRetreat = performance.now(); models[0].preparing = null; },
+    endPlayerCombo() { playerCombo = null; playerRetreat = clock.now(); models[0].preparing = null; },
     prepareAction(kind, progress, index = 0) { models[0].preparing = { kind, progress }; if (playerCombo) playerCombo.index = index; },
     promptPosition() {
       numberPosition.copy(models[0].group.position); numberPosition.y += 2.5; numberPosition.project(camera);
@@ -522,6 +507,7 @@ export async function createScene(canvas) {
     },
     startAction(kind, index = 0) { if (playerCombo) playerCombo.index = index; models[0].preparing = null; play(models[0], kind, '#91c4ce'); },
     enemyImpact(at, finished, style, nextDelay) {
+      at = clock.now() + at - performance.now();
       enemy.burst = { at, style };
       recovery = { at, style, hold: !finished && nextDelay <= 500 ? STRIKE_REACH - 1 : 0, duration: finished ? 300 : ENEMY_STEP_BACK_MS };
     },
@@ -531,7 +517,7 @@ export async function createScene(canvas) {
       timing = null;
       recovery = null;
       focus.value = 0; scene.background = colorSky;
-      promptFrozenAt = null; counterReaction = null; playerCombo = null; playerRetreat = null;
+      clock.focus(false); previous = clock.now(); counterReaction = null; playerCombo = null; playerRetreat = null;
       for (const character of models) { character.effect = null; character.preparing = null; character.death = null; character.burst = null; character.history = []; character.stroke = null; character.cue.visible = false; idle(character); }
     },
   };

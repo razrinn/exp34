@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 54
+## Checkpoint 55
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -314,3 +314,10 @@ stays distinct. HUD and surrounding controls desaturate too; the timing cue keep
 its readable gold window. The larger diamond projects above the hero again,
 clamped inside the viewport, and remains still during each freeze. Releasing a
 cue or restarting restores normal colors and lighting.
+
+Checkpoint 55 replaces the cue freeze with 15% scene speed. A separate visual
+clock advances animations, particles, and damage popups slowly during focus,
+then continues at full speed without jumping. Enemy impact timestamps are
+translated into that clock so defense cues remain aligned after an attack.
+The diamond keeps its real-time 500 ms input window and follows above the hero;
+the monochrome surroundings and gold hero glow stay. Restart restores full speed.
