@@ -63,6 +63,43 @@ export function nextFight(state, upgrade) {
   };
 }
 
+export const PLAYER_SKILLS = {
+  quick: { strikes: 2, cost: 0, moves: ['attack', 'counter'] },
+  heavy: { strikes: 3, cost: 2, moves: ['attack', 'counter', 'heavy'] },
+  onslaught: { strikes: 4, cost: 3, moves: ['attack', 'heavy', 'counter', 'heavy'] },
+};
+
+export function skillDamage(state, skill) {
+  return skill === 'quick' ? state.attackDamage : state.heavyDamage + (skill === 'onslaught' ? 12 : 0);
+}
+
+export function startSkill(state, skill) {
+  const definition = PLAYER_SKILLS[skill];
+  if (state.phase !== 'player' || !definition || state.energy < definition.cost) return state;
+  return { ...state, phase: 'attacking', activeSkill: skill, skillHits: 0, skillPerfect: true,
+    energy: state.energy - definition.cost + (skill === 'quick' ? 1 : 0) };
+}
+
+export function landSkillHit(state, index, success, random = Math.random) {
+  if (state.phase !== 'attacking' || index !== state.skillHits) return state;
+  const total = skillDamage(state, state.activeSkill);
+  const count = PLAYER_SKILLS[state.activeSkill].strikes;
+  if (index >= count) return state;
+  const skillPerfect = state.skillPerfect && success;
+  const critical = index === count - 1 && skillPerfect && random() < 0.05;
+  // Earlier strikes already landed; the final contact adds the full combo's bonus.
+  const damage = (success ? Math.round(total * (index + 1) / count) - Math.round(total * index / count) : 0) + (critical ? total : 0);
+  const enemyHp = Math.max(0, state.enemyHp - damage);
+  return { ...state, enemyHp, skillHits: index + 1, skillPerfect, critical,
+    phase: enemyHp === 0 ? state.fight === RUN_LENGTH ? 'complete' : 'victory' : 'attacking',
+    message: critical ? 'Critical combo!' : success ? `Strike ${index + 1} lands.` : `The ${state.enemy.name} evades strike ${index + 1}.` };
+}
+
+export function finishSkill(state, now) {
+  if (state.phase !== 'attacking' || state.skillHits !== PLAYER_SKILLS[state.activeSkill].strikes) return state;
+  return beginEnemyTurn({ ...state, message: 'Your combo ends. Prepare to defend.' }, now);
+}
+
 export function attack(state, now = 0, quality = 1) {
   return strike(state, now, false, quality);
 }

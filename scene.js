@@ -183,6 +183,8 @@ export async function createScene(canvas) {
   let timing = null;
   let recovery = null;
   let counterReaction = null;
+  let playerCombo = null;
+  let playerRetreat = null;
   let previous = performance.now();
   const black = new THREE.Color(0);
   const damageNumbers = [];
@@ -253,7 +255,8 @@ export async function createScene(canvas) {
         action.time = action.getClip().duration * deathClipProgress(now - character.death.at);
         character.mixer.update(0);
       } else if (character === models[0] && character.preparing) {
-        sampleClip(character, 'Jump_Start', .5 * Math.sin(Math.PI * character.preparing.progress));
+        const prep = character.preparing;
+        sampleClip(character, prep.kind === 'heavy' ? 'Jump_Start' : CLIPS[prep.kind], (prep.kind === 'heavy' ? .5 : .1) * Math.sin(Math.PI * prep.progress));
       } else if (character === enemy && recovery && now < recovery.at + recovery.duration) {
         const t = Math.max(0, Math.min(1, (now - recovery.at) / recovery.duration));
         const contact = ENEMY_ATTACKS[recovery.style].contact;
@@ -281,6 +284,17 @@ export async function createScene(canvas) {
       character.group.position.z = motion.side * direction;
       character.group.rotation.y = (character === models[0] ? Math.PI / 2 : -Math.PI / 2) + windup.twist;
       character.group.rotation.z = (motion.lean + windup.lean) * direction;
+      if (character === models[0] && playerCombo) {
+        const prep = character.preparing;
+        const progress = prep?.progress || 0;
+        const approach = playerCombo.index === 0 && prep ? STRIKE_REACH * progress * progress * (3 - 2 * progress) : STRIKE_REACH;
+        character.group.position.x = -HOME_X + approach;
+        character.group.position.z = prep ? (playerCombo.index % 2 ? 1 : -1) * .65 * Math.sin(Math.PI * progress) : motion.side;
+        character.group.rotation.y += prep ? (playerCombo.index % 2 ? -.3 : .3) * Math.sin(Math.PI * progress) : 0;
+      } else if (character === models[0] && playerRetreat) {
+        character.group.position.x = -HOME_X + retreatDistance(now - playerRetreat, 350);
+        if (now - playerRetreat >= 350) playerRetreat = null;
+      }
       if (dying) {
         character.group.position.copy(character.death.origin);
         character.group.rotation.y = character.death.yaw;
@@ -446,7 +460,9 @@ export async function createScene(canvas) {
       canvas.parentElement.append(node);
       damageNumbers.push({ node, character: target === 'player' ? models[0] : enemy, at: performance.now() + delay });
     },
-    prepareAction(kind, progress) { models[0].preparing = { kind, progress }; },
+    startPlayerCombo() { playerCombo = { index: 0 }; playerRetreat = null; },
+    endPlayerCombo() { playerCombo = null; playerRetreat = performance.now(); models[0].preparing = null; },
+    prepareAction(kind, progress, index = 0) { models[0].preparing = { kind, progress }; if (playerCombo) playerCombo.index = index; },
     promptPosition() {
       numberPosition.copy(models[0].group.position); numberPosition.y += 2.5; numberPosition.project(camera);
       return { left: (numberPosition.x + 1) * canvas.clientWidth / 2, top: (1 - numberPosition.y) * canvas.clientHeight / 2 };
@@ -461,7 +477,7 @@ export async function createScene(canvas) {
       damageNumbers.length = 0;
       timing = null;
       recovery = null;
-      counterReaction = null;
+      counterReaction = null; playerCombo = null; playerRetreat = null;
       for (const character of models) { character.effect = null; character.preparing = null; character.death = null; character.burst = null; character.history = []; character.stroke = null; character.cue.visible = false; idle(character); }
     },
   };

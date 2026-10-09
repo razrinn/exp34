@@ -1,7 +1,7 @@
 :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #11191f; color: #e5e8e7; --muted: #a8b4b8; --line: #ffffff25; --gold: #d1aa72; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body { margin: 0; }
+body { margin: 0; touch-action: manipulation; }
 #loading { display: none; }
 .loading #loading { min-height: 100dvh; display: grid; place-items: center; color: var(--muted); font-size: 14px; }
 .loading main { display: none; }
@@ -63,8 +63,8 @@ meter::-moz-meter-bar { background: #b6d1ca; }
 .turn-info p { margin: 0; white-space: nowrap; }
 #turn-label { color: var(--gold); }
 #energy { color: #b6d1ca; letter-spacing: 1px; }
-.action-row, .actions, .defenses, .timing-controls { display: flex; justify-content: center; gap: 16px; }
-.action-row button { position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 64px; min-height: 52px; padding: 10px 16px; border: 0; border-bottom: 1px solid #d1aa7260; border-radius: 0; background: linear-gradient(180deg, #11191f00, #11191fa8); font: 18px Georgia, serif; color: #eee5d6; text-shadow: 0 1px 6px #000; }
+.action-row, .actions, .defenses, .timing-controls { display: flex; justify-content: center; gap: 12px; }
+.action-row button { position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 56px; min-height: 52px; padding: 10px 16px; border: 0; border-bottom: 1px solid #d1aa7260; border-radius: 0; background: linear-gradient(180deg, #11191f00, #11191fa8); font: 18px Georgia, serif; color: #eee5d6; text-shadow: 0 1px 6px #000; }
 .action-row button:hover:enabled, .action-row button:focus-visible { background: linear-gradient(180deg, #d1aa7200, #d1aa7225); border-color: #e4c48f; color: #f8ddb3; }
 .action-row kbd { position: absolute; right: 3px; bottom: 3px; min-width: 14px; padding: 1px; border: 1px solid #d1aa7255; color: #e4c48f; font-size: 9px; text-align: center; }
 kbd { display: inline-block; font: 10px system-ui, sans-serif; color: var(--muted); }

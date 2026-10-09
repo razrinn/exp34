@@ -1,5 +1,5 @@
-import { ATTACK_KEYS, ATTACK_BEAT_MS, ATTACK_WINDOW_MS, ATTACK_TIMING_MS, attackMarker, attackTiming, advanceAttack, timeAttack, attackQuality } from './attack-timing.js';
-import { newCombat, nextFight, attack, heavyStrike, heal, parry, dodge, retaliate, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE, HEAL, RUN_LENGTH } from './combat.js';
+import { ATTACK_KEYS, ATTACK_BEAT_MS, ATTACK_WINDOW_MS, attackMarker, attackTiming, advanceAttack, timeAttack } from './attack-timing.js';
+import { newCombat, nextFight, startSkill, landSkillHit, finishSkill, skillDamage, PLAYER_SKILLS, heal, parry, dodge, retaliate, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE, HEAL, RUN_LENGTH } from './combat.js';
 import { createScene } from './scene.js';
 import { enemyPose, attackEffects, DEATH_MS, PLAYER_IMPACT_MS, PLAYER_ACTION_MS } from './animation.js';
 import { playCue } from './sound.js';
@@ -20,6 +20,7 @@ let timedAttack = null;
 let timingFrame;
 const attackButton = document.querySelector('#attack');
 const heavyButton = document.querySelector('#heavy');
+const onslaughtButton = document.querySelector('#onslaught');
 const healButton = document.querySelector('#heal');
 const parryButton = document.querySelector('#parry');
 const dodgeButton = document.querySelector('#dodge');
@@ -107,21 +108,25 @@ function render() {
     if (!result.open) result.showModal();
   } else if (result.open) result.close();
   document.querySelector('#turn-label').textContent = actionPending === 'timing' ? 'FIND THE RHYTHM' : actionPending === 'attack' ? 'STRIKING' : actionPending ? 'RECOVERING' : state.phase === 'player' ? 'YOUR TURN' : state.phase === 'enemy' ? 'DEFEND' : 'ENCOUNTER ENDED';
-  document.querySelector('#attack-detail').textContent = `${state.attackDamage} damage · +1 energy`;
+  document.querySelector('#attack-detail').textContent = `2 strikes · ${state.attackDamage} damage · +1 energy`;
   attackButton.disabled = !!actionPending || state.phase !== 'player';
   document.querySelector('#build').textContent = `Counter: ${state.counterDamage} damage · Starting energy: ${state.startingEnergy}`;
   document.querySelector('#counter-gain').textContent = `Counter · ${state.counterDamage} → ${state.counterDamage + 3} damage`;
   document.querySelector('#energy-gain').textContent = `Starting energy · ${state.startingEnergy} → ${state.startingEnergy + 1}`;
   document.querySelector('#heavy-gain').textContent = `Heavy strike · ${state.heavyDamage} → ${state.heavyDamage + 6} damage`;
   document.querySelector('#energy').textContent = `Energy: ${state.energy}`;
-  document.querySelector('#heavy-detail').textContent = `${state.heavyDamage} damage · ${HEAVY_STRIKE.cost} energy`;
+  document.querySelector('#heavy-detail').textContent = `3 strikes · ${state.heavyDamage} damage · 2 energy`;
   heavyButton.disabled = !!actionPending || state.phase !== 'player' || state.energy < HEAVY_STRIKE.cost;
   document.querySelector('#heal-detail').textContent = `${HEAL.amount} HP · ${HEAL.cost} energy`;
+  document.querySelector('#onslaught-detail').textContent = `4 strikes · ${skillDamage(state, 'onslaught')} damage · 3 energy`;
+  onslaughtButton.title = document.querySelector('#onslaught-detail').textContent;
+  onslaughtButton.disabled = !!actionPending || state.phase !== 'player' || state.energy < 3;
   healButton.disabled = !!actionPending || state.phase !== 'player' || state.energy < HEAL.cost || state.playerHp === state.playerMaxHp;
   document.querySelector('.actions').hidden = state.phase === 'enemy' || actionPending === 'timing';
   document.querySelector('#attack-timing').hidden = actionPending !== 'timing';
   document.querySelector('.timing-controls').hidden = actionPending !== 'timing';
-  document.querySelector('.defenses').hidden = state.phase !== 'enemy';
+  document.querySelector('.defenses').hidden = actionPending === 'timing' || ['victory', 'defeat', 'complete'].includes(state.phase);
+  parryButton.hidden = dodgeButton.hidden = state.phase !== 'enemy';
   attackButton.title = document.querySelector('#attack-detail').textContent;
   heavyButton.title = document.querySelector('#heavy-detail').textContent;
   healButton.title = document.querySelector('#heal-detail').textContent;
@@ -204,37 +209,72 @@ function updateEnemy(now) {
   enemyFrame = requestAnimationFrame(updateEnemy);
 }
 
-function tryAction(action) {
-  if (actionPending || state.phase !== 'player' || action(state, performance.now()) === state) return;
-  if (action === heal) { commitAction(action); return; }
+function tryAction(skill) {
+  if (actionPending || state.phase !== 'player') return;
+  if (skill === heal) { commitHeal(); return; }
+  const next = startSkill(state, skill);
+  if (next === state) return;
+  state = next;
+  const definition = PLAYER_SKILLS[skill];
+  timedAttack = { ...attackTiming(performance.now(), definition.strikes), skill };
+  scene?.startPlayerCombo();
+  beginPlayerBeat(0);
+}
+
+function beginPlayerBeat(index) {
+  timedAttack.startedAt = performance.now() - index * ATTACK_BEAT_MS;
   actionPending = 'timing';
-  timedAttack = { ...attackTiming(performance.now()), kind: action === heavyStrike ? 'heavy' : 'attack' };
-  render();
-  updateAttackTiming();
+  render(); updateAttackTiming();
   actionTimer = setTimeout(() => {
     timedAttack = advanceAttack(timedAttack, performance.now());
-    const quality = attackQuality(timedAttack);
-    timedAttack = null;
+    const success = timedAttack.results[index] === true;
+    const kind = PLAYER_SKILLS[timedAttack.skill].moves[index];
     cancelAnimationFrame(timingFrame);
     actionPending = 'attack';
-    scene?.startAction(action === heavyStrike ? 'heavy' : 'attack');
+    scene?.startAction(kind);
     render();
-    actionTimer = setTimeout(() => { actionPending = false; commitAction(action, quality); }, PLAYER_IMPACT_MS);
-  }, ATTACK_TIMING_MS);
+    actionTimer = setTimeout(() => {
+      const next = landSkillHit(state, index, success);
+      if (success) feedback(kind === 'heavy' ? 'heavy' : 'attack', enemyFigure);
+      else {
+        if (scene) scene.evade();
+        else enemyFigure.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(40px)' }, { transform: 'translateX(0)' }], { duration: 300 });
+        if (sound.checked) playSound('dodge');
+      }
+      showDamage(state.enemyHp - next.enemyHp, enemyFigure);
+      state = next;
+      if (state.enemyHp === 0) {
+        timedAttack = null; scene?.endPlayerCombo(); die(enemyFigure);
+        actionPending = 'recovery'; saveIfEnded(); render();
+        actionTimer = setTimeout(() => { actionPending = false; render(); }, DEATH_MS + 100);
+        return;
+      }
+      render();
+      actionTimer = setTimeout(() => {
+        if (index + 1 < timedAttack.keys.length) beginPlayerBeat(index + 1);
+        else {
+          timedAttack = null; scene?.endPlayerCombo();
+          state = finishSkill(state, performance.now());
+          actionPending = false; render(); updateEnemy(performance.now());
+        }
+      }, ATTACK_BEAT_MS - 900 - PLAYER_IMPACT_MS);
+    }, PLAYER_IMPACT_MS);
+  }, 900);
 }
 
 function updateAttackTiming() {
-  if (!timedAttack) return;
+  if (!timedAttack || actionPending !== 'timing') return;
   const now = performance.now();
   timedAttack = advanceAttack(timedAttack, now);
-  const active = Math.min(2, Math.floor((now - timedAttack.startedAt) / ATTACK_BEAT_MS));
+  const active = Math.min(timedAttack.keys.length - 1, Math.floor((now - timedAttack.startedAt) / ATTACK_BEAT_MS));
   const prompt = document.querySelector('#attack-timing');
   const bounds = playerFigure.getBoundingClientRect();
   const anchor = scene?.promptPosition() || { left: bounds.left + bounds.width / 2, top: bounds.top - 12 };
   prompt.style.left = `${Math.max(70, Math.min(document.querySelector('.arena').clientWidth - 70, anchor.left))}px`;
   prompt.style.top = `${Math.max(150, anchor.top)}px`;
-  document.querySelector('#timing-step').textContent = `${active + 1} / 3`;
-  scene?.prepareAction(timedAttack.kind, Math.max(0, Math.min(1, (now - timedAttack.startedAt - active * ATTACK_BEAT_MS) / ATTACK_BEAT_MS)));
+  document.querySelector('#timing-step').textContent = `${active + 1} / ${timedAttack.keys.length}`;
+  scene?.prepareAction(PLAYER_SKILLS[timedAttack.skill].moves[active], Math.max(0, Math.min(1, (now - timedAttack.startedAt - active * ATTACK_BEAT_MS) / 900)), active);
+  for (let index = 0; index < 4; index++) document.querySelector(`#timing-${index}`).hidden = index !== active;
   timedAttack.keys.forEach((code, index) => {
     const cue = document.querySelector(`#timing-${index}`);
     cue.hidden = index !== active;
@@ -261,33 +301,17 @@ function tryTiming(code) {
 
 ATTACK_KEYS.forEach(code => document.querySelector(`#input-${code.slice(-1).toLowerCase()}`).addEventListener('click', () => tryTiming(code)));
 
-function commitAction(action, quality = 1) {
-  const next = action(state, performance.now(), quality);
+function commitHeal() {
+  const next = heal(state, performance.now());
   if (next === state) return;
-  if (quality === 0) {
-    if (scene) scene.evade();
-    else enemyFigure.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(40px)' }, { transform: 'translateX(0)' }], { duration: 300 });
-    if (sound.checked) playSound('dodge');
-  }
-  else feedback(action === heal ? 'heal' : action === heavyStrike ? 'heavy' : 'attack', action === heal ? playerFigure : enemyFigure);
-  showDamage(state.enemyHp - next.enemyHp, enemyFigure);
-  if (['victory', 'complete'].includes(next.phase)) {
-    actionPending = 'recovery';
-    die(enemyFigure);
-    actionTimer = setTimeout(() => { actionPending = false; render(); }, DEATH_MS + 100);
-  }
-  state = next;
-  saveIfEnded();
-  render();
-  if (state.phase === 'enemy') {
-    marker.style.left = '0%';
-    updateEnemy(performance.now());
-  }
+  feedback('heal', playerFigure); state = next; render(); updateEnemy(performance.now());
 }
 
-attackButton.addEventListener('click', () => tryAction(attack));
-heavyButton.addEventListener('click', () => tryAction(heavyStrike));
+attackButton.addEventListener('click', () => tryAction('quick'));
+heavyButton.addEventListener('click', () => tryAction('heavy'));
+onslaughtButton.addEventListener('click', () => tryAction('onslaught'));
 healButton.addEventListener('click', () => tryAction(heal));
+
 practice.addEventListener('change', render);
 
 function tryDefense(action) {
@@ -316,7 +340,7 @@ document.addEventListener('keydown', (event) => {
     }
     return;
   }
-  const actions = { KeyQ: attack, KeyW: heavyStrike, KeyE: heal };
+  const actions = { KeyQ: 'quick', KeyW: 'heavy', KeyE: 'onslaught' };
   const defense = ATTACK_KEYS.includes(event.code);
   if (!actions[event.code] && !defense) return;
   // Reserve the six play keys even outside their turn.
@@ -324,7 +348,8 @@ document.addEventListener('keydown', (event) => {
   if (event.repeat) return;
   if (actionPending === 'timing') { if (defense) tryTiming(event.code); return; }
   if (defense) {
-    if (state.phase === 'enemy' && event.code !== 'KeyP') tryDefense(event.code === 'KeyI' ? parry : dodge);
+    if (event.code === 'KeyP') tryAction(heal);
+    else if (state.phase === 'enemy') tryDefense(event.code === 'KeyI' ? parry : dodge);
   } else tryAction(actions[event.code]);
 
 });

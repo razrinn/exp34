@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 51
+## Checkpoint 52
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -278,3 +278,21 @@ buttons and timing cues use shared SVG icons with small corner hotkeys and
 accessible labels. Enemy base damage is multiplied by 1.5 and rounded up before
 stage scaling. The opening combo now deals 5/5/8; a fully missed boss combo kills
 from full health. Defense windows and offensive damage stay unchanged.
+
+Checkpoint 52 makes Q/W/E into Quickstep (2 strikes, free, +1 energy), Flurry
+(3 strikes, 2 energy), and Onslaught (4 strikes, 3 energy). I/O defend; P heals
+on your turn and remains a randomized timing input during attacks. Each strike
+gets one floating diamond cue, then its own contact, damage, or enemy evade.
+Full base damage totals are 8/20/32; missed strikes lose their share. Only a
+perfect completed combo rolls a 5% critical: its final contact adds another full
+combo's damage, for 2x total. Energy is spent once when the skill starts.
+The hero approaches once, alternates slash/thrust/jump movements while staying
+close, then retreats after the last strike. Beats are 1700 ms apart; the existing
+240 ms timing window stays centered at 700 ms. Unused prompt slots are hidden,
+including when switching skill lengths. Touch manipulation disables double-tap
+zoom while preserving pinch zoom. Added the exp34 diamond favicon.
+
+Learning checkpoint: combat now has an explicit `attacking` phase. Starting a
+skill reserves its cost, each contact advances one guarded hit index, and only
+the final recovery hands the turn to the enemy. Animation follows this state;
+it does not independently award damage.

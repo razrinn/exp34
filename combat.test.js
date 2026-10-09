@@ -533,3 +533,48 @@ test('enemy misses are punishing: opening hits are stronger and a full boss comb
   assert.equal(advanceEnemy(boss, 99999).phase, 'defeat');
   assert.equal(perfectCombo(boss).playerHp, 40);
 });
+
+import { PLAYER_SKILLS, startSkill, landSkillHit, finishSkill } from './combat.js';
+test('2/3/4 strike skills spend energy once and resolve damage at each contact', () => {
+  for (const [skill, count, cost, total] of [['quick', 2, 0, 8], ['heavy', 3, 2, 20], ['onslaught', 4, 3, 32]]) {
+    let state = startSkill({ ...newCombat(), energy: 3, enemyHp: 100 }, skill);
+    assert.equal(state.energy, 3 - cost + (skill === 'quick' ? 1 : 0));
+    assert.equal(PLAYER_SKILLS[skill].strikes, count);
+    assert.equal(finishSkill(state, 0), state);
+    for (let index = 0; index < count; index++) {
+      state = landSkillHit(state, index, true, () => 0.5);
+      assert.equal(state.phase, 'attacking');
+      assert.equal(landSkillHit(state, index, true), state, 'duplicate contact rejected');
+      assert.equal(heal(state), state);
+    }
+    assert.equal(state.enemyHp, 100 - total);
+    state = finishSkill(state, 1000);
+    assert.equal(state.phase, 'enemy');
+    assert.equal(state.comboStartedAt, 1000);
+  }
+});
+test('missed player strikes evade individually; lethal hits stop the skill; costs are guarded', () => {
+  let state = startSkill(newCombat(), 'quick');
+  state = landSkillHit(state, 0, false);
+  assert.equal(state.enemyHp, 48);
+  state = landSkillHit(state, 1, true);
+  assert.equal(state.enemyHp, 44);
+  assert.equal(startSkill(newCombat(), 'onslaught').phase, 'player');
+  const lethal = landSkillHit(startSkill({ ...newCombat(), enemyHp: 3 }, 'quick'), 0, true);
+  assert.equal(lethal.phase, 'victory');
+  assert.equal(landSkillHit(lethal, 1, true), lethal);
+});
+
+test('only perfect completed combos roll a 5 percent double-damage critical', () => {
+  for (const skill of Object.keys(PLAYER_SKILLS)) {
+    for (const [roll, missed, critical] of [[0.049, -1, true], [0.05, -1, false], [0, 0, false], [0, PLAYER_SKILLS[skill].strikes - 1, false]]) {
+      let state = startSkill({ ...newCombat(), energy: 3, enemyHp: 100 }, skill);
+      let rolls = 0;
+      const random = () => { rolls++; return roll; };
+      for (let index = 0; index < PLAYER_SKILLS[skill].strikes; index++) state = landSkillHit(state, index, index !== missed, random);
+      assert.equal(state.critical, critical);
+      assert.equal(rolls, missed === -1 ? 1 : 0);
+      if (missed === -1) assert.equal(100 - state.enemyHp, (skill === 'quick' ? 8 : skill === 'heavy' ? 20 : 32) * (critical ? 2 : 1));
+    }
+  }
+});

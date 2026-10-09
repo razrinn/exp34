@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { newCombat, nextFight, attack, heavyStrike, heal, parry, dodge, advanceEnemy, HEAL, HEAVY_STRIKE, RUN_LENGTH } from '../combat.js';
+import { newCombat, nextFight, startSkill, landSkillHit, finishSkill, PLAYER_SKILLS, heal, parry, dodge, advanceEnemy, HEAL, HEAVY_STRIKE, RUN_LENGTH } from '../combat.js';
 
 // These are assumed input success rates, not measurements of player skill.
 const scenarios = [
@@ -29,11 +29,16 @@ for (const scenario of scenarios) {
       while (state.phase === 'player') {
         let encounterTurns = 0;
         while (state.phase === 'player') {
-          const action = state.enemyHp <= state.attackDamage ? attack
-            : state.energy >= HEAVY_STRIKE.cost && state.enemyHp <= state.heavyDamage ? heavyStrike
+          const action = state.enemyHp <= state.attackDamage ? 'quick'
+            : state.energy >= HEAVY_STRIKE.cost && state.enemyHp <= state.heavyDamage ? 'heavy'
             : state.playerHp <= state.playerMaxHp - HEAL.amount && state.energy >= HEAL.cost ? heal
-            : state.energy >= HEAVY_STRIKE.cost ? heavyStrike : attack;
-          state = action(state);
+            : state.energy >= 3 ? 'onslaught' : state.energy >= HEAVY_STRIKE.cost ? 'heavy' : 'quick';
+          if (action === heal) state = heal(state);
+          else {
+            state = startSkill(state, action);
+            for (let index = 0; index < PLAYER_SKILLS[action].strikes; index++) state = landSkillHit(state, index, true, random);
+            state = finishSkill(state, 0);
+          }
           turns++; encounterTurns++;
           assert.ok(turns < 200, 'Run must not stall');
           while (state.phase === 'enemy') {

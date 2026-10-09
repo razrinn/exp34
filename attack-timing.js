@@ -1,10 +1,10 @@
 export const ATTACK_KEYS = ['KeyI', 'KeyO', 'KeyP'];
-export const ATTACK_BEAT_MS = 900;
+export const ATTACK_BEAT_MS = 1700;
 export const ATTACK_WINDOW_MS = 240;
-export const ATTACK_TIMING_MS = ATTACK_BEAT_MS * ATTACK_KEYS.length;
 
-export function attackTiming(now, random = Math.random) {
-  return { startedAt: now, keys: ATTACK_KEYS.map(() => ATTACK_KEYS[Math.floor(random() * ATTACK_KEYS.length)]), results: ATTACK_KEYS.map(() => null) };
+
+export function attackTiming(now, count = 3, random = Math.random) {
+  return { startedAt: now, keys: Array.from({ length: count }, () => ATTACK_KEYS[Math.floor(random() * ATTACK_KEYS.length)]), results: Array(count).fill(null) };
 }
 
 export function advanceAttack(timing, now) {
@@ -15,7 +15,7 @@ export function advanceAttack(timing, now) {
 export function timeAttack(timing, code, now) {
   timing = advanceAttack(timing, now);
   const index = Math.floor((now - timing.startedAt) / ATTACK_BEAT_MS);
-  if (index < 0 || index >= ATTACK_KEYS.length || timing.results[index] !== null) return timing;
+  if (index < 0 || index >= timing.keys.length || timing.results[index] !== null) return timing;
   const target = timing.startedAt + index * ATTACK_BEAT_MS + 700;
   const results = [...timing.results];
   results[index] = code === timing.keys[index] && Math.abs(now - target) <= ATTACK_WINDOW_MS / 2;
@@ -23,7 +23,7 @@ export function timeAttack(timing, code, now) {
 }
 
 export function attackQuality(timing) {
-  return timing.results.filter(result => result === true).length / ATTACK_KEYS.length;
+  return timing.results.filter(result => result === true).length / timing.keys.length;
 }
 
 export function attackMarker(elapsed) {
