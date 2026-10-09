@@ -3,7 +3,7 @@ import { newCombat, nextFight, attack, heavyStrike, heal, parry, dodge, advanceE
 
 // These are assumed input success rates, not measurements of player skill.
 const scenarios = [
-  { name: 'Perfect parry', defense: 'parry', success: 1 },
+  { name: 'Perfect parry + red dodge', defense: 'parry', success: 1 },
   { name: 'Perfect dodge', defense: 'dodge', success: 1 },
   { name: 'Parry 85%', defense: 'parry', success: 0.85 },
   { name: 'Dodge 95%', defense: 'dodge', success: 0.95 },
@@ -38,7 +38,7 @@ for (const scenario of scenarios) {
           assert.ok(turns < 200, 'Run must not stall');
           while (state.phase === 'enemy') {
             const impact = state.impactAt;
-            const defense = scenario.defense === 'mixed' ? random() < 0.5 ? parry : dodge
+            const defense = state.hits[state.hitIndex].parryable === false ? dodge : scenario.defense === 'mixed' ? random() < 0.5 ? parry : dodge
               : scenario.defense === 'parry' ? parry : dodge;
             if (random() < scenario.success) state = defense(state, impact - 1);
             state = advanceEnemy(state, impact);

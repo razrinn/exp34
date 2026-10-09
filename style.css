@@ -77,3 +77,6 @@ dialog p { color: var(--muted); font-size: 14px; line-height: 1.6; }
   .controls { bottom: 20px; }
   .action-row button { padding-inline: 12px; }
 }
+
+#attack-cue { position: absolute; left: 74%; top: 160px; transform: translate(-50%, -100%); z-index: 1; padding: 5px 9px; border: 1px solid currentColor; border-radius: 4px; background: #0c111ddd; font-size: 10px; font-weight: 600; letter-spacing: .7px; white-space: nowrap; pointer-events: none; color: #ffd469; }
+#attack-cue[data-type=red] { color: #ff6868; }

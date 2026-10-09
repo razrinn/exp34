@@ -12,7 +12,7 @@ export const ENEMIES = [
     patterns: [
       [{ time: 1200, damage: 3 }, { time: 1600, damage: 3 }, { time: 2800, damage: 5 }],
       [{ time: 1600, damage: 5 }, { time: 2000, damage: 6 }],
-      [{ time: 1300, damage: 9 }],
+      [{ time: 1300, damage: 9, parryable: false }],
     ],
   },
 ];
@@ -21,8 +21,8 @@ export const BOSS = {
   name: 'Warden', symbol: '♛', attackStyles: ['chop', 'slash', 'thrust'],
   patterns: [
     [{ time: 1400, damage: 4 }, { time: 2100, damage: 4 }, { time: 2800, damage: 4 }, { time: 3600, damage: 8 }],
-    [{ time: 1200, damage: 4 }, { time: 1600, damage: 4 }, { time: 2700, damage: 4 }, { time: 3800, damage: 8 }],
-    [{ time: 1900, damage: 4 }, { time: 2300, damage: 4 }, { time: 2700, damage: 4 }, { time: 3400, damage: 8 }],
+    [{ time: 1200, damage: 4 }, { time: 1600, damage: 4 }, { time: 2700, damage: 4 }, { time: 3800, damage: 8, parryable: false }],
+    [{ time: 1900, damage: 4 }, { time: 2300, damage: 4 }, { time: 2700, damage: 4 }, { time: 3400, damage: 8, parryable: false }],
   ],
 };
 export const PARRY_WINDOW_MS = 180;
@@ -132,18 +132,19 @@ function defend(state, now, action) {
   const window = action === 'parry' ? PARRY_WINDOW_MS : DODGE_WINDOW_MS;
   // A late press for the previous hit must not spend the next hit's attempt.
   if (late && remaining > window) return state;
-  const success = remaining >= 0 && remaining <= window;
+  const cannotParry = action === 'parry' && state.hits[state.hitIndex].parryable === false;
+  const success = !cannotParry && remaining >= 0 && remaining <= window;
   return {
     ...state,
-    defenseResult: success ? action : 'miss',
-    message: success ? action === 'parry' ? 'Parry ready!' : 'Dodge ready!'
+    defenseResult: cannotParry ? 'unparryable' : success ? action : 'miss',
+    message: cannotParry ? 'Cannot parry red attacks. Attempt spent.' : success ? action === 'parry' ? 'Parry ready!' : 'Dodge ready!'
       : remaining > 0 ? 'Too early! Brace for impact.' : 'Too late!',
   };
 }
 
 export function retaliate(state) {
   if (state.phase !== 'enemy') return state;
-  const parried = state.defenseResult === 'parry';
+  const parried = state.defenseResult === 'parry' && state.hits[state.hitIndex].parryable !== false;
   const blocked = parried || state.defenseResult === 'dodge';
   const damage = state.hits[state.hitIndex].damage;
   const playerHp = Math.max(0, state.playerHp - (blocked ? 0 : damage));

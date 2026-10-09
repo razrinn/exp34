@@ -41,7 +41,7 @@ test('enemy arrives at the same contact pose for slow and fast strikes', () => {
     assert.deepEqual(enemyAttackPose(duration, duration, 0), { x: 0, clip: 0 });
     assert.deepEqual(enemyAttackPose(0, duration, 0), { x: STRIKE_REACH, clip: .65 });
     assert.deepEqual(enemyAttackPose(-100, duration, 0), enemyAttackPose(0, duration, 0));
-    assert.equal(enemyAttackPose(duration, duration, 1).x, 0);
+    assert.equal(enemyAttackPose(duration, duration, 1).x, duration <= 500 ? STRIKE_REACH - 1 : 0);
   }
 });
 
@@ -76,11 +76,13 @@ test('delayed thrust holds its drawn-back pose until the final swing', () => {
 });
 
 
-test('fighters keep their distance and recover before every subsequent approach', () => {
+test('fast follow-ups step back briefly while slower strikes retreat fully', () => {
   assert.ok(2 * HOME_X > STRIKE_REACH);
   for (const duration of [400, 700, 1500]) {
-    assert.equal(enemyAttackPose(duration, duration, 1).x, 0);
-    assert.equal(enemyAttackPose(duration - ENEMY_STEP_BACK_MS, duration, 1).x, 0);
+    assert.equal(enemyAttackPose(duration, duration, 1).x, duration <= 500 ? STRIKE_REACH - 1 : 0);
+    const hold = duration <= 500 ? STRIKE_REACH - 1 : 0;
+    assert.equal(enemyAttackPose(duration - ENEMY_STEP_BACK_MS, duration, 1).x, hold);
+    assert.equal(retreatDistance(ENEMY_STEP_BACK_MS, ENEMY_STEP_BACK_MS, hold), hold);
     assert.equal(retreatDistance(0, ENEMY_STEP_BACK_MS), STRIKE_REACH);
     assert.equal(retreatDistance(ENEMY_STEP_BACK_MS, ENEMY_STEP_BACK_MS), 0);
     assert.equal(retreatDistance(300, ENEMY_STEP_BACK_MS), 0);

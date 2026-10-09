@@ -6,7 +6,7 @@ function perfectCombo(state) {
   if (state.phase !== 'enemy') return state;
   for (const offset of state.hits) {
     const impact = state.comboStartedAt + offset.time;
-    state = advanceEnemy(parry(state, impact), impact);
+    state = advanceEnemy((offset.parryable === false ? dodge : parry)(state, impact), impact);
   }
   return state;
 }
@@ -143,22 +143,24 @@ test('enemies alternate and the Duelist uses its own rhythm', () => {
   assert.equal(third.enemy, ENEMIES[0]);
 });
 
-test('each enemy cycles through three distinct patterns and all support perfect counters', () => {
+test('each enemy cycles through three patterns and only all-yellow combos counter', () => {
   for (const enemy of ENEMIES) {
     assert.equal(enemy.patterns.length, 3);
     assert.deepEqual(enemy.patterns.map(pattern => pattern.length), [3, 2, 1]);
     assert.equal(new Set(enemy.patterns.map(pattern => JSON.stringify(pattern))).size, 3);
     let state = { ...newCombat(), enemy, enemyHp: 100, enemyMaxHp: 100 };
+    let expectedHp = 100;
     for (let turn = 0; turn < 4; turn++) {
       state = attack(state, turn * 10000);
+      expectedHp -= 8 + (state.hits.some(hit => hit.parryable === false) ? 0 : 4);
       assert.equal(state.patternIndex, turn % 3);
       assert.deepEqual(state.hits, enemy.patterns[turn % 3]);
       assert.equal(state.impactAt, turn * 10000 + state.hits[0].time);
       for (const impact of state.hits) {
-        state = advanceEnemy(parry(state, state.comboStartedAt + impact.time), state.comboStartedAt + impact.time);
+        state = advanceEnemy((impact.parryable === false ? dodge : parry)(state, state.comboStartedAt + impact.time), state.comboStartedAt + impact.time);
       }
       assert.equal(state.playerHp, 40);
-      assert.equal(state.enemyHp, 100 - (turn + 1) * 12);
+      assert.equal(state.enemyHp, expectedHp);
       assert.equal(state.phase, 'player');
     }
     const next = nextFight({ ...state, phase: 'victory', enemyHp: 0 }, 'energy');
@@ -302,7 +304,7 @@ test('all ways of landing the final blow complete the run', () => {
   assert.equal(nextFight(forgedVictory, 'heavy'), forgedVictory);
 });
 
-test('all three boss patterns require four parries and deal stronger damage', () => {
+test('boss patterns include red finishers and require four timed defenses', () => {
   assert.equal(BOSS.patterns.length, 3);
   assert.equal(new Set(BOSS.patterns.map(pattern => JSON.stringify(pattern))).size, 3);
   for (let patternIndex = 0; patternIndex < 3; patternIndex++) {
@@ -311,8 +313,8 @@ test('all three boss patterns require four parries and deal stronger damage', ()
     assert.deepEqual(incoming.hits.map(hit => hit.damage), [6, 6, 6, 10]);
     let state = incoming;
     for (let hit = 0; hit < 4; hit++) {
-      state = advanceEnemy(parry(state, state.impactAt), state.impactAt);
-      assert.equal(state.enemyHp, hit < 3 ? 40 : 36);
+      state = advanceEnemy((state.hits[hit].parryable === false ? dodge : parry)(state, state.impactAt), state.impactAt);
+      assert.equal(state.enemyHp, hit < 3 || patternIndex > 0 ? 40 : 36);
       assert.equal(state.phase, hit < 3 ? 'enemy' : 'player');
       assert.equal(state.playerHp, 40);
     }
@@ -439,5 +441,31 @@ test('stale frames preserve a defense exactly on every fast-combo impact', () =>
     state = advanceEnemy(state, 2800);
     assert.equal(state.playerHp, 40);
     assert.equal(state.phase, 'player');
+  }
+});
+
+
+test('red hits reject parries, accept timed dodges, and never award a counter', () => {
+  for (const enemy of [ENEMIES[1], BOSS]) {
+    const incoming = attack({ ...newCombat(), enemy, enemyTurns: 2 });
+    let beforeRed = incoming;
+    while (beforeRed.hits[beforeRed.hitIndex].parryable !== false) {
+      beforeRed = advanceEnemy(parry(beforeRed, beforeRed.impactAt), beforeRed.impactAt);
+    }
+    const redDamage = beforeRed.hits[beforeRed.hitIndex].damage;
+    const failed = parry(beforeRed, beforeRed.impactAt - 1);
+    assert.equal(failed.defenseResult, 'unparryable');
+    assert.match(failed.message, /Cannot parry/);
+    assert.equal(dodge(failed, failed.impactAt), failed);
+    assert.equal(advanceEnemy(failed, failed.impactAt).playerHp, 40 - redDamage);
+    for (const remaining of [0, DODGE_WINDOW_MS]) {
+      const avoided = advanceEnemy(dodge(beforeRed, beforeRed.impactAt - remaining), beforeRed.impactAt);
+      assert.equal(avoided.playerHp, 40);
+      assert.equal(avoided.enemyHp, 40);
+      assert.equal(avoided.allParried, false);
+    }
+    const forgedParry = advanceEnemy({ ...beforeRed, defenseResult: 'parry' }, beforeRed.impactAt);
+    assert.equal(forgedParry.playerHp, 40 - redDamage);
+    assert.equal(forgedParry.enemyHp, 40);
   }
 });

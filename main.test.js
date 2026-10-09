@@ -14,7 +14,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     body: { classList: { remove() {} } },
     querySelector(selector) {
       if (!elements.has(selector)) elements.set(selector, {
-        style: {}, checked: false, listeners: {}, open: false,
+        style: {}, dataset: {}, checked: false, listeners: {}, open: false,
         showModal() { this.open = true; },
         close() { this.open = false; },
         animate() {},
@@ -66,6 +66,8 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     assert.equal(elements.get('#energy').textContent, 'Energy: 1');
     assert.equal(elements.get('.actions').hidden, true);
     assert.equal(elements.get('.defenses').hidden, false);
+    assert.equal(elements.get('#attack-cue').hidden, false);
+    assert.equal(elements.get('#attack-cue').dataset.type, 'yellow');
     press('KeyQ');
     press('KeyW');
     press('KeyE');
@@ -102,6 +104,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     frame(start + 3101);
     assert.equal(elements.get('#player-hp').textContent, '32 / 40');
     assert.equal(elements.get('#turn-label').textContent, 'RECOVERING');
+    assert.equal(elements.get('#attack-cue').hidden, true);
     assert.equal(elements.get('#attack').disabled, true);
     press('KeyQ');
     assert.equal(timers.size, 1);

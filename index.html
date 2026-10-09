@@ -20,7 +20,7 @@
             <h2>Read the rhythm</h2>
             <p>Watch the enemy pull back and swing. Parry just before impact; dodge a little earlier.</p>
             <p><kbd>Q</kbd> Attack · <kbd>W</kbd> Heavy · <kbd>E</kbd> Heal<br><kbd>Space</kbd> Parry · <kbd>Shift</kbd> Dodge</p>
-            <p>One defense attempt per hit. Parry the entire combo to counter. A dodge blocks damage but forfeits the counter.</p>
+            <p>One defense attempt per hit. Yellow attacks can be parried or dodged. Red attacks must be dodged. Parry an entire yellow combo to counter. A dodge blocks damage but forfeits the counter.</p>
             <p>Attacks earn energy. Heavy Strike and Heal spend it and use your turn.</p>
             <p id="attack-detail"></p><p id="heavy-detail"></p><p id="heal-detail"></p>
             <label><input id="practice" type="checkbox"> Practice timing bar</label>
@@ -36,6 +36,7 @@
     </header>
     <section class="arena" aria-label="Battle scene">
       <canvas id="battle-canvas" aria-hidden="true"></canvas>
+      <div id="attack-cue" role="status" aria-atomic="true" hidden></div>
       <article class="combatant player-side">
         <div class="health-card"><h2>You</h2><label for="player-health">HP <span id="player-hp">40 / 40</span></label><meter id="player-health" min="0" max="40" value="40"></meter></div>
         <div id="player-symbol" class="figure player" aria-hidden="true">◇</div>

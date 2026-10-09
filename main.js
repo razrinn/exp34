@@ -26,6 +26,7 @@ const enemyFigure = document.querySelector('#enemy-symbol');
 const practice = document.querySelector('#practice');
 const rewards = document.querySelector('#upgrades');
 const result = document.querySelector('#run-complete');
+const attackCue = document.querySelector('#attack-cue');
 const playerFigure = document.querySelector('#player-symbol');
 const sound = document.querySelector('#sound');
 
@@ -95,6 +96,14 @@ function render() {
   healButton.title = document.querySelector('#heal-detail').textContent;
   parryButton.disabled = state.phase !== 'enemy' || state.defenseResult !== null;
   dodgeButton.disabled = parryButton.disabled;
+  attackCue.hidden = state.phase !== 'enemy';
+  if (state.phase === 'enemy') {
+    const red = state.hits[state.hitIndex].parryable === false;
+    attackCue.textContent = red ? '✕ DODGE ONLY' : '◇ PARRY / DODGE';
+    attackCue.dataset.type = red ? 'red' : 'yellow';
+    document.querySelector('#parry-window').hidden = red;
+    parryButton.title = red ? 'Unparryable. Dodge with Shift.' : 'Parry with Space.';
+  }
   timeline.hidden = state.phase !== 'enemy' || !practice.checked;
   if (state.phase !== 'enemy') {
     enemyFigure.style.transform = '';
@@ -117,7 +126,7 @@ function resolveEnemy(now, beforeInput = false) {
   let changed = false;
   while (state.phase === 'enemy' && (beforeInput ? now > state.impactAt : now >= state.impactAt)) {
     const next = retaliate(state);
-    scene?.enemyImpact(state.impactAt, next.phase !== 'enemy', state.enemy.attackStyles[state.patternIndex]);
+    scene?.enemyImpact(state.impactAt, next.phase !== 'enemy', state.enemy.attackStyles[state.patternIndex], next.phase === 'enemy' ? next.impactAt - state.impactAt : null);
     feedback(state.defenseResult === 'parry' ? 'parry' : state.defenseResult === 'dodge' ? 'dodge' : 'hit', playerFigure);
     const countered = next.enemyHp < state.enemyHp;
     if (countered) feedback('counter', enemyFigure);

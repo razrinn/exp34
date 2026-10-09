@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './node_modules/three/examples/jsm/loaders/GLTFLoader.js';
-import { actionPose, playerClipProgress, enemyAttackPose, ENEMY_ATTACKS, PLAYER_IMPACT_MS, HOME_X, ENEMY_STEP_BACK_MS, retreatDistance } from './animation.js';
+import { actionPose, playerClipProgress, enemyAttackPose, ENEMY_ATTACKS, PLAYER_IMPACT_MS, HOME_X, STRIKE_REACH, ENEMY_STEP_BACK_MS, retreatDistance } from './animation.js';
 
 const CLIPS = {
   attack: '1H_Melee_Attack_Slice_Horizontal', heavy: '1H_Melee_Attack_Chop',
@@ -117,18 +117,19 @@ export async function createScene(canvas) {
     const mixer = new THREE.AnimationMixer(model);
     const actions = Object.fromEntries(gltf.animations.map(clip => [clip.name, mixer.clipAction(clip)]));
     actions.Idle.play();
-    const vfx = new THREE.Group();
-    const wind = new THREE.Mesh(new THREE.RingGeometry(.75, 1.05, 40, 1, 0, Math.PI * 1.35), new THREE.MeshBasicMaterial({ color: '#a9edff', side: THREE.DoubleSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-    const fire = new THREE.Mesh(new THREE.RingGeometry(.65, 1.12, 40, 1, 0, Math.PI * 1.6), wind.material.clone());
-    fire.material.color.set('#ff8e42'); fire.rotation.y = Math.PI / 2;
-    wind.rotation.x = Math.PI / 2;
-    const boltPoints = [];
-    for (let j = 0; j < 15; j++) boltPoints.push(new THREE.Vector3(-1 + j / 7, j === 0 || j === 14 ? 0 : (j % 2 ? .14 : -.14), (j % 3 - 1) * .08));
-    const bolt = new THREE.Line(new THREE.BufferGeometry().setFromPoints(boltPoints), new THREE.LineBasicMaterial({ color: '#b7a1ff', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-    const flash = new THREE.PointLight('#a9edff', 0, 5);
-    vfx.add(wind, fire, bolt, flash); vfx.visible = index < 2;
-    wind.visible = fire.visible = bolt.visible = false; scene.add(vfx);
-    return { group, model, mixer, actions, effect: null, attacking: false, vfx, wind, fire, bolt, flash, burst: null };
+    const trailGeometry = new THREE.BufferGeometry();
+    trailGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(48), 3));
+    trailGeometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(48), 3));
+    const indices = [];
+    for (let i = 0; i < 7; i++) { const j = i * 2; indices.push(j, j + 1, j + 2, j + 1, j + 3, j + 2); }
+    trailGeometry.setIndex(indices); trailGeometry.setDrawRange(0, 0);
+    const trail = new THREE.Mesh(trailGeometry, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, transparent: true, opacity: .4, depthWrite: false, blending: THREE.AdditiveBlending }));
+    trail.frustumCulled = false;
+    const sparks = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(72), 3)), new THREE.LineBasicMaterial({ color: '#ffdf9c', transparent: true, opacity: 0, depthWrite: false }));
+    sparks.frustumCulled = false;
+    const vfx = new THREE.Group(); vfx.add(trail, sparks); vfx.visible = index < 2; scene.add(vfx);
+    return { group, model, mixer, actions, effect: null, attacking: false, vfx, trail, sparks, history: [], burst: null };
+
   });
   // Skeleton models use the same hand attachment slots as the knight.
   let weapons;
@@ -143,6 +144,15 @@ export async function createScene(canvas) {
     weapon.traverse(node => { if (node.isMesh) node.castShadow = true; });
     models[i].model.getObjectByName(THREE.PropertyBinding.sanitizeNodeName('handslot.r')).add(weapon);
   }
+  for (const [index, character] of models.entries()) {
+    character.weapon = character.model.getObjectByName(index === 0 ? '1H_Sword' : index === 3 ? 'Skeleton_Staff' : 'Skeleton_Blade');
+    character.weapon.geometry.computeBoundingBox();
+    const length = character.weapon.geometry.boundingBox.max.y;
+    character.tip = new THREE.Vector3(0, length, 0);
+    character.base = new THREE.Vector3(0, length * .45, 0);
+  }
+  const cue = document.querySelector('#attack-cue');
+  const cuePosition = new THREE.Vector3();
   let enemy = models[1];
   let timing = null;
   let recovery = null;
@@ -198,7 +208,7 @@ export async function createScene(canvas) {
         const t = Math.max(0, Math.min(1, (now - recovery.at) / recovery.duration));
         const contact = ENEMY_ATTACKS[recovery.style].contact;
         sampleStrike(character, recovery.style, contact + (1 - contact) * t);
-        approach = retreatDistance(now - recovery.at, recovery.duration);
+        approach = retreatDistance(now - recovery.at, recovery.duration, recovery.hold);
       } else if (character === enemy && timing && !character.effect) {
         const strike = enemyAttackPose(timing.impactAt - now, timing.duration, timing.hitIndex, timing.style);
         sampleStrike(character, timing.style, strike.clip);
@@ -225,23 +235,57 @@ export async function createScene(canvas) {
         style = character.burst.style;
         strength = Math.max(strength, 1 - Math.max(0, now - character.burst.at) / 220);
       }
-      const color = style === 'chop' ? '#ff8e42' : style === 'thrust' ? '#b7a1ff' : '#a9edff';
-      character.vfx.position.set(character.group.position.x + direction * .9, 1.7, 0);
-      character.vfx.scale.setScalar(.75 + strength * .6);
-      character.wind.visible = style === 'slash' && strength > 0;
-      character.fire.visible = style === 'chop' && strength > 0;
-      character.bolt.visible = style === 'thrust' && strength > 0;
-      for (const mesh of [character.wind, character.fire, character.bolt]) mesh.material.opacity = strength * .75;
-      character.wind.rotation.z = now / 140;
-      character.fire.rotation.x = now / 190;
-      character.flash.color.set(color); character.flash.intensity = strength * 3;
+      const color = new THREE.Color(style === 'chop' ? '#ffc078' : style === 'thrust' ? '#c8ddff' : '#d8f2ff');
+      character.group.updateMatrixWorld(true);
+      const tip = character.weapon.localToWorld(character.tip.clone());
+      const base = character.weapon.localToWorld(character.base.clone());
+      const stroke = character === enemy ? timing?.impactAt : character.effect?.started;
+      if (character.stroke !== stroke || strength <= 0 || now - (character.history.at(-1)?.at || 0) > 100) character.history = [];
+      character.stroke = stroke;
+      if (strength > 0) character.history.push({ tip, base, at: now });
+      character.history = character.history.filter(point => now - point.at < 100).slice(-8);
+      const positions = character.trail.geometry.attributes.position;
+      const colors = character.trail.geometry.attributes.color;
+      character.history.forEach((point, i) => {
+        positions.setXYZ(i * 2, point.base.x, point.base.y, point.base.z);
+        positions.setXYZ(i * 2 + 1, point.tip.x, point.tip.y, point.tip.z);
+        const fade = Math.max(0, 1 - (now - point.at) / 100);
+        for (const vertex of [i * 2, i * 2 + 1]) colors.setXYZ(vertex, color.r * fade, color.g * fade, color.b * fade);
+      });
+      positions.needsUpdate = colors.needsUpdate = true;
+      character.trail.geometry.setDrawRange(0, Math.max(0, character.history.length - 1) * 6);
+      const burst = character.burst;
+      const age = burst ? Math.max(0, now - burst.at) : 160;
+      character.sparks.material.opacity = age < 160 ? .8 * (1 - age / 160) : 0;
+      if (burst && age < 160) {
+        burst.point ||= tip.clone();
+        character.sparks.material.color.copy(color);
+        const particles = character.sparks.geometry.attributes.position;
+        for (let i = 0; i < 12; i++) {
+          const angle = i * Math.PI * 2 / 12;
+          const radius = .04 + age / 400;
+          const dx = Math.cos(angle), dy = Math.sin(angle), dz = (i % 3 - 1) * .45;
+          for (let end = 0; end < 2; end++) {
+            const r = radius + end * .08;
+            particles.setXYZ(i * 2 + end, burst.point.x + dx * r, burst.point.y + dy * r - age * age / 120000, burst.point.z + dz * r);
+          }
+        }
+        particles.needsUpdate = true;
+      }
+
       character.model.traverse(node => {
         if (node.isMesh && node.material.emissive) {
           const weapon = /Sword|Blade|Staff/i.test(node.name) || /Skeleton_(Blade|Staff)/i.test(node.parent?.name || '');
-          node.material.emissive.copy(weapon && strength > 0 ? character.flash.color : character.effect ? character.effect.color : black);
-          node.material.emissiveIntensity = weapon ? strength * 1.5 : character.effect ? .3 : 0;
+          node.material.emissive.copy(weapon && strength > 0 ? color : character.effect ? character.effect.color : black);
+          node.material.emissiveIntensity = weapon ? strength * .5 : character.effect ? .12 : 0;
         }
       });
+    }
+    if (timing && cue) {
+      cuePosition.set(enemy.group.position.x, enemy === models[3] ? 4.6 : 3.9, 0).project(camera);
+      const margin = cue.offsetWidth / 2 + 12;
+      cue.style.left = `${Math.max(margin, Math.min(canvas.clientWidth - margin, (cuePosition.x + 1) * canvas.clientWidth / 2))}px`;
+      cue.style.top = `${Math.max(120, (1 - cuePosition.y) * canvas.clientHeight / 2)}px`;
     }
     renderer.render(scene, camera);
     requestAnimationFrame(draw);
@@ -291,12 +335,15 @@ export async function createScene(canvas) {
       }
     },
     startAction(kind) { play(models[0], kind, '#91c4ce'); },
-    enemyImpact(at, finished, style) { enemy.burst = { at, style }; recovery = { at, finished, style, duration: finished ? 300 : ENEMY_STEP_BACK_MS }; },
+    enemyImpact(at, finished, style, nextDelay) {
+      enemy.burst = { at, style };
+      recovery = { at, style, hold: !finished && nextDelay <= 500 ? STRIKE_REACH - 1 : 0, duration: finished ? 300 : ENEMY_STEP_BACK_MS };
+    },
     reset() {
       timing = null;
       recovery = null;
       counterReaction = null;
-      for (const character of models) { character.effect = null; character.burst = null; idle(character); }
+      for (const character of models) { character.effect = null; character.burst = null; character.history = []; character.stroke = null; idle(character); }
     },
   };
 }

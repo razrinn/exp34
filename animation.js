@@ -15,8 +15,8 @@ export const STRIKE_REACH = 4;
 export const ENEMY_STEP_BACK_MS = 160;
 const smooth = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
 
-export function retreatDistance(elapsed, duration) {
-  return STRIKE_REACH * (1 - smooth(elapsed / duration));
+export function retreatDistance(elapsed, duration, end = 0) {
+  return end + (STRIKE_REACH - end) * (1 - smooth(elapsed / duration));
 }
 
 export function actionPose(kind, elapsed) {
@@ -69,8 +69,9 @@ export function enemyAttackPose(remaining, duration, hitIndex, style = 'chop') {
     ? attack.windup * smooth((duration - remaining) / prepare)
     : attack.windup + (attack.contact - attack.windup) * smooth(1 - remaining / swing);
   const approachMs = Math.min(400, hitIndex > 0 ? Math.max(1, duration - ENEMY_STEP_BACK_MS) : duration);
+  const start = hitIndex > 0 && duration <= 500 ? STRIKE_REACH - 1 : 0;
   return {
-    x: STRIKE_REACH * smooth(1 - remaining / approachMs),
+    x: start + (STRIKE_REACH - start) * smooth(1 - remaining / approachMs),
     clip: Math.max(0, Math.min(attack.contact, progress)),
   };
 }

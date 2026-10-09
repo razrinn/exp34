@@ -34,3 +34,14 @@ planner. Average boss turns include failed boss attempts.
 
 Run `npm run balance` to reproduce current results. Real playtesting still needs
 to confirm animation readability, sound timing, difficulty, and mixed builds.
+
+
+## Checkpoint 38: dodge-only strikes
+
+The figures above are historical. The current simulation dodges red strikes in
+all scenarios and uses the configured defense style on yellow strikes. The
+configured success probability applies to both. Every build still clears with
+perfect defense, and no defense still loses the first encounter. At 85% successful
+parries on yellow and dodges on red, wins are 88.6% (Counter), 89.4% (Prepared),
+and 93.4% (Heavy hitter), across 500 seeded runs each. Red finishers reduce counter
+opportunities; no damage, health, or reward values changed in this checkpoint.

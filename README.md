@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 37
+## Checkpoint 38
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -22,7 +22,7 @@ Damage, energy, sound, and enemy hit reactions resolve at contact, and the enemy
 combo clock starts then. Repeated inputs during the approach are ignored; restart
 cancels pending damage. Counter damage is awarded by the final parry; its visual follow-through finishes
 before another attack is allowed. Enemy motion and clip time use `impactAt - performance.now()`: the enemy
-arrives at the contact pose at zero, then returns to its side after every hit.
+arrives at the contact pose at zero. Slow follow-ups retreat fully; rapid hits use a short step-back.
 All defense windows, damage values, and rhythm patterns are unchanged.
 The normalized clip progress and smooth approach/retreat curves live in `animation.js`.
 
@@ -149,8 +149,8 @@ and shorten dodge-focused fights. See `BALANCE.md` for the comparison.
 The arena now fills the viewport beneath a minimal overlay HUD. Only the active
 turn's controls are visible: Attack/Heavy/Heal or Parry/Dodge. Damage and energy
 costs live in settings and button tooltips. Characters start six world units apart,
-close four units for contact, then return home; every enemy strike retreats before
-the next approach, including the 400 ms follow-ups. The portrait camera angle and
+close four units for contact, then return home after the combo. Rapid follow-ups
+use a short step-back while longer pauses allow a full retreat. The portrait camera angle and
 fog distance adapt to keep both sides visible. Damage and defense timing are unchanged.
 
 
@@ -166,3 +166,19 @@ bursts. Hero Attack / Heavy / Counter use those same three effect families.
 The arena includes distant mountains, ruined columns, drifting embers, and a
 painted eclipse sky that keeps its proportions on portrait screens. These are
 procedural Three.js geometry and a canvas texture, with no additional downloads.
+
+
+Checkpoint 38 adds per-hit defense rules. Yellow cues mean parry or dodge;
+red cues mean dodge only. A parry attempt on red takes the hit and uses that
+hit's one defense attempt. The Duelist's third variant is red, and the Warden's
+second and third variants finish red. The first encounter stays all-yellow.
+A combo that includes a dodge gives no counter. Text and distinct symbols accompany
+the cue colors; the practice bar hides its parry zone for red strikes.
+
+Weapon effects now sample the actual blade's tip and base to draw a short,
+fading trail. Floating rings and rotating lightning have been removed. Brief
+sparks appear at contact, with restrained weapon glow and no colored face lights.
+For follow-ups at most 500 ms apart, the enemy steps back one unit and attacks
+again instead of rushing four units home and back. Longer pauses and completed
+combos still retreat fully. The cue follows the enemy above its head on both
+wide and portrait screens. Damage, timing windows, and existing saves are unchanged.
