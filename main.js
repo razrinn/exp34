@@ -1,4 +1,4 @@
-import { ATTACK_KEYS, ATTACK_BEAT_MS, ATTACK_WINDOW_MS, ATTACK_TIMING_MS, attackTiming, advanceAttack, timeAttack, attackQuality } from './attack-timing.js';
+import { ATTACK_KEYS, ATTACK_BEAT_MS, ATTACK_WINDOW_MS, ATTACK_TIMING_MS, attackMarker, attackTiming, advanceAttack, timeAttack, attackQuality } from './attack-timing.js';
 import { newCombat, nextFight, attack, heavyStrike, heal, parry, dodge, retaliate, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE, HEAL, RUN_LENGTH } from './combat.js';
 import { createScene } from './scene.js';
 import { enemyPose, attackEffects, DEATH_MS, PLAYER_IMPACT_MS, PLAYER_ACTION_MS } from './animation.js';
@@ -224,13 +224,20 @@ function updateAttackTiming() {
   if (!timedAttack) return;
   const now = performance.now();
   timedAttack = advanceAttack(timedAttack, now);
-  ATTACK_KEYS.forEach((code, index) => {
-    const button = document.querySelector(`#timing-${code.slice(-1).toLowerCase()}`);
+  timedAttack.keys.forEach((code, index) => {
+    const button = document.querySelector(`#timing-${index}`);
     const elapsed = now - timedAttack.startedAt - index * ATTACK_BEAT_MS;
     button.dataset.result = timedAttack.results[index] === null ? 'pending' : timedAttack.results[index] ? 'hit' : 'miss';
     button.dataset.active = String(elapsed >= 0 && elapsed < ATTACK_BEAT_MS);
     button.dataset.window = String(Math.abs(elapsed - 700) <= ATTACK_WINDOW_MS / 2);
-    button.style.setProperty('--ring-scale', String(Math.max(1, Math.min(2.5, 1 + (700 - elapsed) / 700))));
+    button.dataset.key = code;
+    button.ariaLabel = `Timed attack ${code.slice(-1)}: ${button.dataset.result}`;
+    button.setAttribute('aria-keyshortcuts', code.slice(-1));
+    document.querySelector(`#timing-label-${index}`).textContent = code.slice(-1);
+    const marker = attackMarker(elapsed);
+    const dot = document.querySelector(`#timing-marker-${index}`);
+    dot.setAttribute('cx', marker.x);
+    dot.setAttribute('cy', marker.y);
   });
   timingFrame = requestAnimationFrame(updateAttackTiming);
 }
@@ -240,7 +247,9 @@ function tryTiming(code) {
   timedAttack = timeAttack(timedAttack, code, performance.now());
 }
 
-for (const code of ATTACK_KEYS) document.querySelector(`#timing-${code.slice(-1).toLowerCase()}`).addEventListener('click', () => tryTiming(code));
+ATTACK_KEYS.forEach((_, index) => document.querySelector(`#timing-${index}`).addEventListener('click', () => {
+  if (timedAttack) tryTiming(timedAttack.keys[index]);
+}));
 
 function commitAction(action, quality = 1) {
   const next = action(state, performance.now(), quality);

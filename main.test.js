@@ -16,7 +16,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     body: { classList: { remove() {} } },
     querySelector(selector) {
       if (!elements.has(selector)) elements.set(selector, {
-        style: { setProperty() {} }, dataset: {}, animations: [], clientWidth: 1280, checked: false, listeners: {}, open: false,
+        setAttribute() {}, style: { setProperty() {} }, dataset: {}, animations: [], clientWidth: 1280, checked: false, listeners: {}, open: false,
         showModal() { this.open = true; },
         close() { this.open = false; },
         animate(frames, options) {
@@ -40,7 +40,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
   const impact = () => {
     if (elements.get('#attack-timing')?.hidden === false) {
       const start = now;
-      for (const [index, code] of ['KeyI', 'KeyO', 'KeyP'].entries()) { now = start + 700 + index * 900; press(code); }
+      for (let index = 0; index < 3; index++) { now = start + 700 + index * 900; press(elements.get(`#timing-${index}`).dataset.key); }
       const [id, timer] = timers.entries().next().value; timers.delete(id); now = timer.at; timer.fn();
     }
     const [id, timer] = timers.entries().next().value; timers.delete(id); now = timer.at; timer.fn();
@@ -177,7 +177,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     assert.match(elements.get('#message').textContent, /evades/);
     elements.get('#restart').listeners.click();
     press('KeyQ');
-    now += 700; press('KeyI');
+    now += 700; press(elements.get('#timing-0').dataset.key);
     now += 2000;
     const [partialId, partialTimer] = timers.entries().next().value;
     timers.delete(partialId); partialTimer.fn(); impact();

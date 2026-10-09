@@ -21,7 +21,7 @@
             <p>Watch the enemy pull back and swing. Parry just before impact; dodge a little earlier.</p>
             <p><kbd>Q</kbd> Attack · <kbd>W</kbd> Heavy · <kbd>E</kbd> Heal<br><kbd>I</kbd> Parry · <kbd>O</kbd> Dodge</p>
             <p>One defense attempt per hit. Late presses just after impact do not spend the next attempt; early follow-up presses are ignored. A brief flash on the enemy warns before each strike. Yellow attacks can be parried or dodged. Red attacks must be dodged. Parry an entire yellow combo to counter. A dodge blocks damage but forfeits the counter.</p>
-            <p>Attack and Heavy use three timed inputs: I, O, then P. Press when the diamond border turns gold and the outer diamond meets it. All three hits deal full damage; partial hits deal reduced damage; all misses let the enemy evade. You can also tap the diamonds.</p>
+            <p>Attack and Heavy use three randomized I/O/P prompts. The marker starts at the top and travels clockwise around the diamond. Press the shown key when it enters the gold segment on the upper-left edge. All three hits deal full damage; partial hits deal reduced damage; all misses let the enemy evade. You can also tap the diamonds.</p>
             <p>Attacks earn energy. Heavy Strike and Heal spend it and use your turn.</p>
             <p id="attack-detail"></p><p id="heavy-detail"></p><p id="heal-detail"></p>
             <label><input id="practice" type="checkbox"> Practice timing bar</label>
@@ -49,11 +49,11 @@
       <div class="battle-status"><p id="message" role="status"></p><div id="timeline" hidden><p id="hit-label"></p><div class="track" aria-hidden="true"><div id="dodge-window"></div><div id="parry-window"></div><div id="marker"></div></div></div></div>
     </section>
     <div id="attack-timing" hidden aria-label="Attack timing">
-      <p>I → O → P · Strike on gold</p>
+      <p>Read the key · Strike on gold</p>
       <div class="timing-diamonds">
-        <button id="timing-i" type="button" aria-label="Timed attack I" aria-keyshortcuts="I"><span>I</span></button>
-        <button id="timing-o" type="button" aria-label="Timed attack O" aria-keyshortcuts="O"><span>O</span></button>
-        <button id="timing-p" type="button" aria-label="Timed attack P" aria-keyshortcuts="P"><span>P</span></button>
+        <button id="timing-0" type="button" aria-label="Timed attack prompt 1"><svg viewBox="0 0 100 100" aria-hidden="true"><path class="timing-outline" d="M50 6 L94 50 L50 94 L6 50 Z"/><path class="timing-window" d="M6 50 L50 6"/><circle id="timing-marker-0" class="timing-marker" cx="50" cy="6" r="4"/></svg><span id="timing-label-0"></span></button>
+        <button id="timing-1" type="button" aria-label="Timed attack prompt 2"><svg viewBox="0 0 100 100" aria-hidden="true"><path class="timing-outline" d="M50 6 L94 50 L50 94 L6 50 Z"/><path class="timing-window" d="M6 50 L50 6"/><circle id="timing-marker-1" class="timing-marker" cx="50" cy="6" r="4"/></svg><span id="timing-label-1"></span></button>
+        <button id="timing-2" type="button" aria-label="Timed attack prompt 3"><svg viewBox="0 0 100 100" aria-hidden="true"><path class="timing-outline" d="M50 6 L94 50 L50 94 L6 50 Z"/><path class="timing-window" d="M6 50 L50 6"/><circle id="timing-marker-2" class="timing-marker" cx="50" cy="6" r="4"/></svg><span id="timing-label-2"></span></button>
       </div>
     </div>
     <footer class="controls" aria-label="Combat controls">

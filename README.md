@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 47
+## Checkpoint 48
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -245,9 +245,14 @@ hints, and a matching help panel. Combat controls and HUD information stay intac
 
 Checkpoint 47 standardizes the name as exp34 and puts all play controls on QWE / IOP.
 Q/W/E select Attack/Heavy/Heal or upgrades; I/O parry/dodge; P restarts after a run.
-Attack and Heavy require three I→O→P beats, 900 ms apart, with a 240 ms inclusive
-window around each target. The diamond border turns gold in the window. Each beat
+Attack and Heavy require three randomized I/O/P beats, 900 ms apart, with a 240 ms inclusive
+window around each target. The marker travels clockwise from the top; the gold upper-left edge is the timing window. Each beat
 accepts one attempt; held keys do not repeat. Damage is rounded from the fraction
 of successful beats, and zero successes triggers an enemy evade. Basic energy gain
 and Heavy cost still apply even on a miss. Healing and automatic counters stay direct.
 Restart cancels timing, approach, and recovery. Existing saves remain compatible.
+
+Checkpoint 48 replaces shrinking diamonds with a clockwise perimeter marker and
+a gold timing segment only on the upper-left edge. The full edge matches the same
+240 ms input window; the other three edges cover the lead-in. Each of the three
+prompts independently chooses I, O, or P. Repeated keys are allowed.
