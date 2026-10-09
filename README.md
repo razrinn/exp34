@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 45
+## Checkpoint 46
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -240,3 +240,7 @@ Reprisal, Resolve, and Ruin preserve the three upgrades and 1/2/3 shortcuts, wit
 explicit stat changes. Gold victory and crimson defeat treatments share the arena
 backdrop, restrained sigils, and serif titles. Mobile uses compact stacked choices;
 reduced-motion preferences disable the entrance animation.
+
+Checkpoint 46 brings the expedition typography and gold linework into the battle
+HUD: slender health bars, small corner sigils, transparent command strips and key
+hints, and a matching help panel. Combat controls and HUD information stay intact.
