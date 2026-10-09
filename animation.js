@@ -23,28 +23,32 @@ export function actionPose(kind, elapsed) {
   const duration = ['attack', 'heavy', 'counter'].includes(kind) ? PLAYER_ACTION_MS : 300;
   const t = Math.max(0, Math.min(1, elapsed / duration));
   const pulse = Math.sin(Math.PI * t);
-  const pose = { x: 0, lift: 0, lean: 0, sword: 0, active: elapsed < duration };
+  const pose = { x: 0, lift: 0, lean: 0, sword: 0, side: 0, active: elapsed < duration };
   if (['attack', 'heavy', 'counter'].includes(kind)) {
     pose.x = elapsed <= PLAYER_IMPACT_MS
-      ? STRIKE_REACH * smooth(elapsed / (kind === 'counter' ? PLAYER_IMPACT_MS : 180))
+      ? STRIKE_REACH * smooth((elapsed - 60) / (kind === 'counter' ? 100 : 120))
       : retreatDistance(elapsed - PLAYER_IMPACT_MS, PLAYER_ACTION_MS - PLAYER_IMPACT_MS);
-    pose.lean = -pulse * .12;
+    pose.lean = -pulse * .24;
+    pose.side = elapsed <= PLAYER_IMPACT_MS
+      ? (kind === 'counter' ? .9 : -.65) * Math.sin(Math.PI * elapsed / PLAYER_IMPACT_MS)
+      : .5 * Math.sin(Math.PI * (elapsed - PLAYER_IMPACT_MS) / (PLAYER_ACTION_MS - PLAYER_IMPACT_MS));
     pose.sword = -pulse * (kind === 'heavy' ? 2.2 : 1.7);
     if (kind === 'heavy') {
       pose.lift = elapsed <= PLAYER_IMPACT_MS
-        ? .75 * Math.sin(Math.PI * elapsed / 500)
-        : .75 * Math.sin(Math.PI * PLAYER_IMPACT_MS / 500) * (1 - smooth((elapsed - PLAYER_IMPACT_MS) / 180));
+        ? 1.8 * Math.sin(Math.PI * elapsed / PLAYER_IMPACT_MS)
+        : .12 * Math.sin(Math.PI * Math.min(1, (elapsed - PLAYER_IMPACT_MS) / 180));
     } else if (kind === 'attack') {
       pose.lift = -.15 * Math.sin(Math.PI * Math.min(1, elapsed / 500));
-      pose.lean = -pulse * .22;
+      pose.lean = -pulse * .35;
     }
   } else if (kind === 'dodge') {
-    pose.x = -pulse * .65;
-    pose.lean = pulse * .3;
+    pose.x = -pulse * 1.1;
+    pose.side = pulse * 1.3;
+    pose.lean = pulse * .45;
   } else if (kind === 'parry') {
     pose.sword = -pulse * .85;
   } else if (kind === 'hit') {
-    pose.x = -pulse * .2;
+    pose.x = -pulse * .4;
     pose.lean = pulse * .18;
   } else if (kind === 'heal') {
     pose.lift = pulse * .12;
@@ -76,7 +80,7 @@ export function enemyAttackPose(remaining, duration, hitIndex, style = 'chop') {
   const progress = remaining > swing
     ? attack.windup * smooth((duration - remaining) / prepare)
     : attack.windup + (attack.contact - attack.windup) * smooth(1 - remaining / swing);
-  const approachMs = Math.min(400, hitIndex > 0 ? Math.max(1, duration - ENEMY_STEP_BACK_MS) : duration);
+  const approachMs = Math.min(220, hitIndex > 0 ? Math.max(1, duration - ENEMY_STEP_BACK_MS) : duration);
   const start = hitIndex > 0 && duration <= 500 ? STRIKE_REACH - 1 : 0;
   return {
     x: start + (STRIKE_REACH - start) * smooth(1 - remaining / approachMs),

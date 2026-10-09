@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 50
+## Checkpoint 51
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -270,3 +270,11 @@ of combos. Base combo damage totals stay unchanged (Sentinel/Duelist 11/11/9,
 Warden 20); existing per-hit stage scaling still applies. Only all-parry yellow
 combos counter. Mobile attack timing uses separate fixed I/O/P buttons at the
 bottom, so players must tap the displayed key; the floating diamond is a cue.
+
+Checkpoint 51 exaggerates the battle movement: Heavy leaps 1.8 world units and
+slams down at contact, hero lunges reach contact position faster, enemy rushes
+shorten to 220 ms, and actions/dodges step laterally before returning home. Combat
+buttons and timing cues use shared SVG icons with small corner hotkeys and
+accessible labels. Enemy base damage is multiplied by 1.5 and rounded up before
+stage scaling. The opening combo now deals 5/5/8; a fully missed boss combo kills
+from full health. Defense windows and offensive damage stay unchanged.

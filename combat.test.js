@@ -16,12 +16,12 @@ test('misses resolve individually and the turn ends after the final hit', () => 
   assert.equal(attack(state), state);
   assert.equal(advanceEnemy(state, 1599), state);
   state = advanceEnemy(state, 1600);
-  assert.equal(state.playerHp, 37);
+  assert.equal(state.playerHp, 35);
   assert.equal(state.hitIndex, 1);
   assert.equal(state.impactAt, 2300);
   assert.equal(state.phase, 'enemy');
   state = advanceEnemy(state, 3200);
-  assert.equal(state.playerHp, 29);
+  assert.equal(state.playerHp, 22);
   assert.equal(state.enemyHp, 40);
   assert.equal(state.phase, 'player');
 });
@@ -43,7 +43,7 @@ test('missing a middle hit prevents a counter even with a final parry', () => {
   state = advanceEnemy(parry(state, 1500), 1500);
   state = advanceEnemy(state, 2200);
   state = advanceEnemy(parry(state, 3100), 3100);
-  assert.equal(state.playerHp, 37);
+  assert.equal(state.playerHp, 35);
   assert.equal(state.enemyHp, 40);
   assert.equal(state.allParried, false);
   assert.equal(state.phase, 'player');
@@ -58,7 +58,7 @@ test('timing boundaries work; early attempts cannot be retried on the same hit',
   assert.equal(early.defenseResult, 'miss');
   assert.equal(parry(early, incoming.impactAt), early);
   const late = parry(incoming, incoming.impactAt + 1);
-  assert.equal(late.playerHp, 37);
+  assert.equal(late.playerHp, 35);
   assert.equal(late.hitIndex, 1);
   assert.equal(late.defenseResult, null);
 });
@@ -154,7 +154,7 @@ test('each enemy cycles through three patterns and only all-yellow combos counte
       state = attack(state, turn * 10000);
       expectedHp -= 8 + (state.hits.some(hit => hit.parryable === false) ? 0 : 4);
       assert.equal(state.patternIndex, turn % 3);
-      assert.deepEqual(state.hits, enemy.patterns[turn % 3]);
+      assert.deepEqual(state.hits, enemy.patterns[turn % 3].map(hit => ({ ...hit, damage: Math.ceil(hit.damage * 1.5) })));
       assert.equal(state.impactAt, turn * 10000 + state.hits[0].time);
       for (const impact of state.hits) {
         state = advanceEnemy((impact.parryable === false ? dodge : parry)(state, state.comboStartedAt + impact.time), state.comboStartedAt + impact.time);
@@ -195,9 +195,9 @@ test('dodge has a wider inclusive window and shares the one-attempt limit', () =
   assert.equal(early.defenseResult, 'miss');
   assert.equal(parry(early, state.impactAt), early);
   assert.equal(dodge(early, state.impactAt), early);
-  assert.equal(advanceEnemy(early, state.impactAt).playerHp, 37);
+  assert.equal(advanceEnemy(early, state.impactAt).playerHp, 35);
   const late = dodge(state, state.impactAt + 1);
-  assert.equal(late.playerHp, 37);
+  assert.equal(late.playerHp, 35);
   assert.equal(late.defenseResult, null);
   const idle = newCombat();
   assert.equal(dodge(idle, 0), idle);
@@ -268,7 +268,7 @@ test('each hit applies its own damage, including the stronger finisher', () => {
 
 test('damage increases every two fights while health rises every fight', () => {
   let state = newCombat();
-  const expected = [[3, 3, 5], [3, 2, 2, 1, 3], [4, 4, 6], [4, 3, 3, 2, 4], [4, 4, 5, 5, 5, 9]];
+  const expected = [[5, 5, 8], [5, 3, 3, 2, 5], [6, 6, 9], [6, 4, 4, 3, 6], [5, 5, 7, 7, 7, 13]];
   for (let fight = 0; fight < expected.length; fight++) {
     assert.equal(state.enemyMaxHp, 48 + fight * 12);
     const incoming = attack(state);
@@ -317,7 +317,7 @@ test('boss has long mixed combos, including middle red hits, and counters only a
       assert.equal(state.playerHp, 40);
     }
     assert.equal(state.enemyHp, patternIndex === 0 ? 36 : 40);
-    assert.equal(advanceEnemy(incoming, 99999).playerHp, 40 - incoming.hits.reduce((sum, hit) => sum + hit.damage, 0));
+    assert.equal(advanceEnemy(incoming, 99999).playerHp, Math.max(0, 40 - incoming.hits.reduce((sum, hit) => sum + hit.damage, 0)));
     let dodged = incoming;
     while (dodged.phase === 'enemy') dodged = advanceEnemy(dodge(dodged, dodged.impactAt), dodged.impactAt);
     assert.equal(dodged.enemyHp, 40);
@@ -331,7 +331,7 @@ test('ignoring defense loses the opening fight before basic attacks can win', ()
   }
   assert.equal(state.phase, 'defeat');
   assert.equal(state.playerHp, 0);
-  assert.equal(state.enemyHp, 16);
+  assert.equal(state.enemyHp, 24);
 });
 
 test('long variants resolve every hit and a dodge still forfeits the counter', () => {
@@ -339,7 +339,7 @@ test('long variants resolve every hit and a dodge still forfeits the counter', (
     for (let variant = 0; variant < 3; variant++) {
       const incoming = attack({ ...newCombat(), enemy, enemyTurns: variant });
       const missed = advanceEnemy(incoming, 99999);
-      assert.equal(missed.playerHp, variant === 2 ? 31 : 29);
+      assert.equal(missed.playerHp, 40 - incoming.hits.reduce((sum, hit) => sum + hit.damage, 0));
       assert.equal(missed.hitIndex, incoming.hits.length);
       assert.equal(missed.phase, 'player');
       let avoided = incoming;
@@ -363,7 +363,7 @@ test('healing spends energy and starts the next enemy pattern without dealing da
   assert.equal(result.patternIndex, 1);
   assert.equal(result.impactAt, 1900);
   assert.equal(result.enemyTurns, 2);
-  assert.equal(advanceEnemy(result, 99999).playerHp, 21);
+  assert.equal(advanceEnemy(result, 99999).playerHp, 15);
 });
 
 test('healing caps at upgraded max health and rejects invalid actions without spending', () => {
@@ -419,9 +419,9 @@ test('defense can catch up stale frames and defend the current strike in its win
   for (const defense of [parry, dodge]) {
     const state = defense(attack(newCombat()), 2200 - 1);
     assert.equal(state.hitIndex, 1);
-    assert.equal(state.playerHp, 37);
+    assert.equal(state.playerHp, 35);
     assert.equal(state.defenseResult, defense === parry ? 'parry' : 'dodge');
-    assert.equal(advanceEnemy(state, 2200).playerHp, 37);
+    assert.equal(advanceEnemy(state, 2200).playerHp, 35);
   }
 });
 
@@ -475,14 +475,14 @@ test('late presses never spend the fast follow-up attempt, before or after its f
         if (frameResolved) state = advanceEnemy(state, 1200);
         state = defense(state, 1200 + delay);
         assert.equal(state.hitIndex, 1);
-        assert.equal(state.playerHp, 37);
+        assert.equal(state.playerHp, 35);
         assert.equal(state.defenseResult, null);
         state = defense(state, 1480);
         assert.equal(state.defenseResult, defense === parry ? 'parry' : 'dodge');
         state = advanceEnemy(state, 1600);
-        assert.equal(state.playerHp, 37);
+        assert.equal(state.playerHp, 35);
         state = defense(state, 2680);
-        assert.equal(advanceEnemy(state, 2800).playerHp, 37);
+        assert.equal(advanceEnemy(state, 2800).playerHp, 35);
       }
     }
   }
@@ -492,7 +492,7 @@ test('early follow-up inputs stay available and a deliberate dodge after grace s
   const incoming = advanceEnemy(attack({ ...newCombat(), enemy: ENEMIES[1] }), 1200);
   assert.equal(parry(incoming, 1350).defenseResult, null);
   assert.equal(dodge(incoming, 1281).defenseResult, 'dodge');
-  assert.equal(advanceEnemy(dodge(incoming, 1281), 1600).playerHp, 37);
+  assert.equal(advanceEnemy(dodge(incoming, 1281), 1600).playerHp, 35);
 });
 
 test('timed attacks scale damage, evade at zero, and still spend the turn and energy', () => {
@@ -523,4 +523,13 @@ test('enemy sequences cap at six, vary per-hit style and rhythm, and mix red str
   }
   assert.deepEqual(ENEMIES.map(enemy => enemy.patterns.map(pattern => pattern.reduce((sum, hit) => sum + hit.damage, 0))), [[11, 11, 9], [11, 11, 9]]);
   assert.deepEqual(BOSS.patterns.map(pattern => pattern.reduce((sum, hit) => sum + hit.damage, 0)), [20, 20, 20]);
+});
+
+test('enemy misses are punishing: opening hits are stronger and a full boss combo is lethal', () => {
+  const opening = attack(newCombat());
+  assert.deepEqual(opening.hits.map(hit => hit.damage), [5, 5, 8]);
+  assert.equal(advanceEnemy(opening, 99999).playerHp, 22);
+  const boss = attack({ ...newCombat(), fight: 5, enemy: BOSS });
+  assert.equal(advanceEnemy(boss, 99999).phase, 'defeat');
+  assert.equal(perfectCombo(boss).playerHp, 40);
 });

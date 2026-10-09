@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './node_modules/three/examples/jsm/loaders/GLTFLoader.js';
-import { actionPose, deathClipProgress, attackEffects, playerClipProgress, enemyAttackPose, enemyWindupPose, ENEMY_ATTACKS, PLAYER_IMPACT_MS, PLAYER_ACTION_MS, HOME_X, STRIKE_REACH, ENEMY_STEP_BACK_MS, retreatDistance } from './animation.js';
+import { actionPose, deathClipProgress, attackEffects, playerClipProgress, enemyAttackPose, enemyWindupPose, ENEMY_ATTACKS, PLAYER_IMPACT_MS, HOME_X, STRIKE_REACH, ENEMY_STEP_BACK_MS, retreatDistance } from './animation.js';
 
 const CLIPS = {
   attack: '1H_Melee_Attack_Slice_Horizontal', heavy: 'Heavy_Upper',
@@ -269,7 +269,7 @@ export async function createScene(canvas) {
         action.time = action.getClip().duration * playerClipProgress(character.effect.kind, now - character.effect.started);
         if (character.effect.kind === 'heavy') {
           const legs = character.actions.Heavy_Legs;
-          legs.time = legs.getClip().duration * Math.min(1, (now - character.effect.started) / PLAYER_ACTION_MS);
+          legs.time = legs.getClip().duration * Math.min(1, (now - character.effect.started) / PLAYER_IMPACT_MS);
         }
         character.mixer.update(0);
       } else {
@@ -278,6 +278,7 @@ export async function createScene(canvas) {
       }
       character.group.position.x = direction * (-HOME_X + motion.x + approach);
       character.group.position.y = motion.lift + windup.lift;
+      character.group.position.z = motion.side * direction;
       character.group.rotation.y = (character === models[0] ? Math.PI / 2 : -Math.PI / 2) + windup.twist;
       character.group.rotation.z = (motion.lean + windup.lean) * direction;
       if (dying) {

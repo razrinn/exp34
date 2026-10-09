@@ -100,7 +100,7 @@ export function heal(state, now = 0) {
 function beginEnemyTurn(state, now) {
   const patternIndex = state.enemyTurns % state.enemy.patterns.length;
   const hits = state.enemy.patterns[patternIndex].map(hit => ({
-    ...hit, damage: hit.damage + Math.floor((state.fight - 1) / 2),
+    ...hit, damage: Math.ceil(hit.damage * 1.5) + Math.floor((state.fight - 1) / 2),
   }));
   return {
     ...state,

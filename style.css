@@ -64,9 +64,9 @@ meter::-moz-meter-bar { background: #b6d1ca; }
 #turn-label { color: var(--gold); }
 #energy { color: #b6d1ca; letter-spacing: 1px; }
 .action-row, .actions, .defenses, .timing-controls { display: flex; justify-content: center; gap: 16px; }
-.action-row button { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; padding: 10px 16px; border: 0; border-bottom: 1px solid #d1aa7260; border-radius: 0; background: linear-gradient(180deg, #11191f00, #11191fa8); font: 18px Georgia, serif; color: #eee5d6; text-shadow: 0 1px 6px #000; }
+.action-row button { position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 64px; min-height: 52px; padding: 10px 16px; border: 0; border-bottom: 1px solid #d1aa7260; border-radius: 0; background: linear-gradient(180deg, #11191f00, #11191fa8); font: 18px Georgia, serif; color: #eee5d6; text-shadow: 0 1px 6px #000; }
 .action-row button:hover:enabled, .action-row button:focus-visible { background: linear-gradient(180deg, #d1aa7200, #d1aa7225); border-color: #e4c48f; color: #f8ddb3; }
-.action-row kbd { min-width: 22px; padding: 5px; border: 1px solid #d1aa7255; color: #e4c48f; font-size: 9px; text-align: center; }
+.action-row kbd { position: absolute; right: 3px; bottom: 3px; min-width: 14px; padding: 1px; border: 1px solid #d1aa7255; color: #e4c48f; font-size: 9px; text-align: center; }
 kbd { display: inline-block; font: 10px system-ui, sans-serif; color: var(--muted); }
 .help-panel kbd { padding: 2px 4px; border: 1px solid var(--line); border-radius: 3px; }
 dialog.interlude { width: 100vw; max-width: none; height: 100dvh; max-height: none; margin: 0; padding: 40px 24px; border: 0; border-radius: 0; color: #eee5d6; background: radial-gradient(ellipse at 50% 25%, #c3924826, transparent 55%), linear-gradient(180deg, #0b141bbb, #090e16f5); overflow-y: auto; }
@@ -130,7 +130,7 @@ dialog::backdrop { background: #080b10aa; backdrop-filter: blur(3px); }
 #attack-timing p { margin: 0 0 8px; font: 11px Georgia, serif; letter-spacing: .5px; }
 .timing-diamonds { display: flex; justify-content: center; gap: 18px; }
 .timing-diamonds > div { position: relative; width: 84px; height: 84px; flex-shrink: 0; padding: 0; border: 0; border-radius: 0; background: transparent; opacity: .4; }
-.timing-diamonds > div span { position: absolute; inset: 0; display: grid; place-items: center; font: 22px Georgia, serif; }
+.timing-diamonds > div span { position: absolute; right: 4px; bottom: 6px; font: 9px system-ui, sans-serif; color: var(--gold); }
 .timing-diamonds svg { display: block; width: 100%; height: 100%; overflow: visible; fill: #0e171bba; }
 .timing-outline { stroke: #8c979a; stroke-width: 1; }
 .timing-window { fill: none; stroke: #ffe2a2; stroke-width: 4; }
@@ -152,3 +152,6 @@ dialog::backdrop { background: #080b10aa; backdrop-filter: blur(3px); }
 }
 
 .timing-controls button { min-width: 70px; font-size: 22px; min-height: 52px; touch-action: manipulation; user-select: none; }
+
+.icon-definitions { position: absolute; width: 0; height: 0; overflow: hidden; }
+.command-icon { width: 27px; height: 27px; }

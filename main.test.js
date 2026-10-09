@@ -116,8 +116,8 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     assert.equal(elements.get('#attack-cue').hidden, true);
     now = start + 1501;
     press('KeyI');
-    assert.equal(elements.get('#player-hp').textContent, '37 / 40');
-    assert.equal(popups.at(-1).textContent, '3');
+    assert.equal(elements.get('#player-hp').textContent, '35 / 40');
+    assert.equal(popups.at(-1).textContent, '5');
     assert.ok(popups.at(-1).className.includes('player'));
     assert.equal(elements.get('#parry').disabled, false);
     press('KeyQ');
@@ -129,10 +129,10 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     now = start + 2220;
     press('KeyI');
     press('KeyO');
-    assert.equal(elements.get('#player-hp').textContent, '37 / 40');
+    assert.equal(elements.get('#player-hp').textContent, '35 / 40');
     assert.equal(elements.get('#parry').disabled, false);
     frame(start + 3101);
-    assert.equal(elements.get('#player-hp').textContent, '32 / 40');
+    assert.equal(elements.get('#player-hp').textContent, '27 / 40');
     assert.equal(elements.get('#turn-label').textContent, 'RECOVERING');
     assert.equal(elements.get('#attack-cue').hidden, true);
     assert.equal(elements.get('#attack').disabled, true);

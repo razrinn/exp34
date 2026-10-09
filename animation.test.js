@@ -18,7 +18,7 @@ test('player actions move and return to rest without changing combat timing', ()
     assert.ok([middle.x, middle.lift, middle.lean, middle.sword].some(v => Math.abs(v) > .01));
     const finished = actionPose(kind, 720);
     assert.equal(finished.active, false);
-    for (const key of ['x', 'lift', 'lean', 'sword']) assert.ok(Math.abs(finished[key]) < 1e-10);
+    for (const key of ['x', 'lift', 'lean', 'sword', 'side']) assert.ok(Math.abs(finished[key]) < 1e-10);
   }
   assert.ok(actionPose('attack', 150).x > 0);
   assert.ok(actionPose('dodge', 150).x < 0);
@@ -135,9 +135,19 @@ test('death clip advances once and holds its final skeletal pose', () => {
 test('basic slash stays low while Heavy jumps and lands before recovery ends', () => {
   assert.ok(actionPose('attack', 160).lift < 0);
   assert.ok(actionPose('heavy', 160).lift > .5);
-  assert.ok(actionPose('heavy', PLAYER_IMPACT_MS).lift > .5);
-  assert.equal(actionPose('heavy', 500).lift, 0);
-  assert.equal(actionPose('heavy', PLAYER_ACTION_MS).lift, 0);
+  assert.ok(Math.abs(actionPose('heavy', PLAYER_IMPACT_MS).lift) < 1e-10);
+  assert.ok(Math.abs(actionPose('heavy', 500).lift) < 1e-10);
+  assert.ok(Math.abs(actionPose('heavy', PLAYER_ACTION_MS).lift) < 1e-10);
   assert.equal(actionPose('attack', PLAYER_IMPACT_MS).x, STRIKE_REACH);
   assert.equal(actionPose('heavy', PLAYER_IMPACT_MS).x, STRIKE_REACH);
+});
+
+test('exaggerated actions jump high, lunge quickly, move sideways, and return to center', () => {
+  assert.equal(actionPose('heavy', 160).lift, 1.8);
+  assert.equal(actionPose('attack', 180).x, STRIKE_REACH);
+  assert.ok(Math.abs(actionPose('attack', 160).side) > .6);
+  assert.ok(actionPose('dodge', 150).side > 1);
+  for (const kind of ['attack', 'heavy', 'counter', 'dodge']) {
+    assert.ok(Math.abs(actionPose(kind, PLAYER_ACTION_MS).side) < 1e-10);
+  }
 });

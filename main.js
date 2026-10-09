@@ -245,6 +245,7 @@ function updateAttackTiming() {
     cue.dataset.key = code;
     cue.ariaLabel = `Timed attack ${code.slice(-1)}: ${cue.dataset.result}`;
     document.querySelector(`#timing-label-${index}`).textContent = code.slice(-1);
+    document.querySelector(`#timing-icon-${index}`).setAttribute('href', `#icon-${code.slice(-1).toLowerCase()}`);
     const marker = attackMarker(elapsed);
     const dot = document.querySelector(`#timing-marker-${index}`);
     dot.setAttribute('cx', marker.x);
