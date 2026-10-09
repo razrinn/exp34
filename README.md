@@ -406,3 +406,12 @@ workers.dev URL starts a separate save.
 Run `npm run deploy -- --dry-run` to validate without uploading. The cf beta is
 pinned in devDependencies for reproducible installs. `cf` is also installed
 globally on this machine.
+
+## Deployments from GitHub
+
+The private repository is https://github.com/razrinn/exp34. Cloudflare Workers
+Builds watches `main`: each push runs `npm ci && npm test`, then
+`npm run deploy` to publish the static game at https://exp34.rzrn.dev.
+Builds use Node.js 24.16.0 and the pinned local `cf` CLI. Other branches
+do not deploy. Manage the connection and inspect build logs in the exp34
+Worker's Settings → Builds in Cloudflare.
