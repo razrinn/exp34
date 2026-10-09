@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 58
+## Checkpoint 59
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -374,3 +374,14 @@ improves from 52.6/44.6/43.6% to 69.6/66.6/60% for Reprisal/Resolve/Ruin.
 Perfect parry runs now average 17.4–19 turns versus 22.9–30.5 for perfect dodge.
 These fixed-policy comparisons describe the new offensive payoff; they do not
 make equal claims about real players' parry and dodge success rates.
+
+Checkpoint 59 replaces single-tone effects with layered weapon impacts, low-end
+heavy hits, metallic parry rings, counter accents, airy dodges, and rising heal
+chimes. An original 82 BPM minor-key soundtrack combines sustained chords,
+a plucked melody, bass, and restrained percussion. Both use the browser audio
+clock; music starts on the first click/tap or keypress, loops independently of
+combat timing, and pauses while the tab is hidden. Help & settings has separate
+effects/music toggles and a music volume slider (35% by default). Test sound
+also unlocks music. All audio is synthesized locally, with no downloads, new
+dependencies, or third-party music licensing. Audio settings last for this page
+session. Combat rules and saved runs are unchanged.

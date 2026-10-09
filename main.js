@@ -2,7 +2,7 @@ import { ATTACK_KEYS, ATTACK_BEAT_MS, ATTACK_WINDOW_MS, ATTACK_TARGET_MS, ATTACK
 import { newCombat, nextFight, startSkill, landSkillHit, finishSkill, skillDamage, PLAYER_SKILLS, parryCharge, COUNTER_DAMAGE, heal, parry, dodge, retaliate, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE, HEAL, MAX_ENERGY, RUN_LENGTH } from './combat.js';
 import { createScene } from './scene.js';
 import { enemyPose, attackEffects, DEATH_MS, PLAYER_IMPACT_MS, PLAYER_ACTION_MS } from './animation.js';
-import { playCue } from './sound.js';
+import { playCue, setMusic, setMusicVolume } from './sound.js';
 import { loadRun, saveRun, clearRun } from './save.js';
 
 let scene;
@@ -33,6 +33,20 @@ const result = document.querySelector('#run-complete');
 const attackCue = document.querySelector('#attack-cue');
 const playerFigure = document.querySelector('#player-symbol');
 const sound = document.querySelector('#sound');
+const music = document.querySelector('#music');
+let audioStarted = false;
+async function updateMusic() {
+  const played = await setMusic(audioStarted && music.checked && !document.hidden);
+  if (!played) document.querySelector('#sound-status').textContent = 'Music could not start. Try Test sound.';
+}
+function startAudio() {
+  audioStarted = true;
+  updateMusic();
+}
+document.addEventListener('pointerdown', startAudio, { once: true });
+document.addEventListener('visibilitychange', updateMusic);
+music.addEventListener('change', () => { audioStarted = true; updateMusic(); });
+document.querySelector('#music-volume').addEventListener('input', event => setMusicVolume(event.target.value));
 
 function saveCheckpoint() {
   document.querySelector('#save-status').textContent = saveRun(state)
@@ -78,7 +92,7 @@ async function playSound(kind) {
     ? '' : 'Audio could not start. Check browser sound permissions and try Test sound.';
 }
 
-document.querySelector('#test-sound').addEventListener('click', () => playSound('parry'));
+document.querySelector('#test-sound').addEventListener('click', () => { startAudio(); playSound('parry'); });
 
 function render() {
   document.querySelector('main').classList.toggle('timing-focus', actionPending === 'timing');
@@ -343,6 +357,7 @@ function tryDefense(action) {
 parryButton.addEventListener('click', () => tryDefense(parry));
 dodgeButton.addEventListener('click', () => tryDefense(dodge));
 document.addEventListener('keydown', (event) => {
+  if (!audioStarted) startAudio();
   if (event.ctrlKey || event.altKey || event.metaKey) return;
   if (event.target.matches('input, textarea, select, [contenteditable]')) return;
   if (result.open) {
