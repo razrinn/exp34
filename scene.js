@@ -347,8 +347,8 @@ export async function createScene(canvas) {
       character.model.traverse(node => {
         if (node.isMesh && node.material.emissive) {
           const weapon = /Sword|Blade|Staff/i.test(node.name) || /Skeleton_(Blade|Staff)/i.test(node.parent?.name || '');
-          node.material.emissive.copy(character.cue.visible ? character.cue.material.color : weapon && (strength > 0 || charge > 0) ? color : character.effect ? character.effect.color : black);
-          node.material.emissiveIntensity = dying ? Math.max(0, 1 - (now - character.death.at) / 180) * .12 : character.cue.visible ? .25 : weapon ? strength * .7 + charge * .9 : character.effect ? .12 : 0;
+          node.material.emissive.copy(weapon && (strength > 0 || charge > 0) ? color : character.effect ? character.effect.color : black);
+          node.material.emissiveIntensity = dying ? Math.max(0, 1 - (now - character.death.at) / 180) * .12 : weapon ? strength * .7 + charge * .9 : character.effect ? .12 : 0;
         }
       });
     }
