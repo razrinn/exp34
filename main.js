@@ -120,6 +120,7 @@ function render() {
   healButton.disabled = !!actionPending || state.phase !== 'player' || state.energy < HEAL.cost || state.playerHp === state.playerMaxHp;
   document.querySelector('.actions').hidden = state.phase === 'enemy' || actionPending === 'timing';
   document.querySelector('#attack-timing').hidden = actionPending !== 'timing';
+  document.querySelector('.timing-controls').hidden = actionPending !== 'timing';
   document.querySelector('.defenses').hidden = state.phase !== 'enemy';
   attackButton.title = document.querySelector('#attack-detail').textContent;
   heavyButton.title = document.querySelector('#heavy-detail').textContent;
@@ -141,7 +142,7 @@ function render() {
     scene?.render(state.enemy.name);
   }
   if (state.phase === 'enemy') {
-    scene?.render(state.enemy.name, { impactAt: state.impactAt, duration: hitDuration(), hitIndex: state.hitIndex, style: state.enemy.attackStyles[state.patternIndex], parryable: state.hits[state.hitIndex].parryable !== false });
+    scene?.render(state.enemy.name, { impactAt: state.impactAt, duration: hitDuration(), hitIndex: state.hitIndex, style: hitStyle(), parryable: state.hits[state.hitIndex].parryable !== false });
     document.querySelector('#dodge-window').style.width = `${DODGE_WINDOW_MS / hitDuration() * 100}%`;
     document.querySelector('#parry-window').style.width = `${PARRY_WINDOW_MS / hitDuration() * 100}%`;
     document.querySelector('#hit-label').textContent = `Combo ${state.patternIndex + 1} · Strike ${state.hitIndex + 1} / ${state.hits.length} · ${state.hits[state.hitIndex].damage} damage`;
@@ -159,6 +160,8 @@ function renderCue(now) {
   }
 }
 
+function hitStyle() { return state.hits[state.hitIndex].style || state.enemy.attackStyles[state.patternIndex]; }
+
 function hitDuration() {
   const previous = state.hitIndex === 0 ? 0 : state.hits[state.hitIndex - 1].time;
   return state.hits[state.hitIndex].time - previous;
@@ -168,7 +171,7 @@ function resolveEnemy(now, beforeInput = false) {
   let changed = false;
   while (state.phase === 'enemy' && (beforeInput ? now > state.impactAt : now >= state.impactAt)) {
     const next = retaliate(state);
-    scene?.enemyImpact(state.impactAt, next.phase !== 'enemy', state.enemy.attackStyles[state.patternIndex], next.phase === 'enemy' ? next.impactAt - state.impactAt : null);
+    scene?.enemyImpact(state.impactAt, next.phase !== 'enemy', hitStyle(), next.phase === 'enemy' ? next.impactAt - state.impactAt : null);
     feedback(state.defenseResult === 'parry' ? 'parry' : state.defenseResult === 'dodge' ? 'dodge' : 'hit', playerFigure);
     showDamage(state.playerHp - next.playerHp, playerFigure);
     const countered = next.enemyHp < state.enemyHp;
@@ -233,15 +236,14 @@ function updateAttackTiming() {
   document.querySelector('#timing-step').textContent = `${active + 1} / 3`;
   scene?.prepareAction(timedAttack.kind, Math.max(0, Math.min(1, (now - timedAttack.startedAt - active * ATTACK_BEAT_MS) / ATTACK_BEAT_MS)));
   timedAttack.keys.forEach((code, index) => {
-    const button = document.querySelector(`#timing-${index}`);
-    button.hidden = index !== active;
+    const cue = document.querySelector(`#timing-${index}`);
+    cue.hidden = index !== active;
     const elapsed = now - timedAttack.startedAt - index * ATTACK_BEAT_MS;
-    button.dataset.result = timedAttack.results[index] === null ? 'pending' : timedAttack.results[index] ? 'hit' : 'miss';
-    button.dataset.active = String(elapsed >= 0 && elapsed < ATTACK_BEAT_MS);
-    button.dataset.window = String(Math.abs(elapsed - 700) <= ATTACK_WINDOW_MS / 2);
-    button.dataset.key = code;
-    button.ariaLabel = `Timed attack ${code.slice(-1)}: ${button.dataset.result}`;
-    button.setAttribute('aria-keyshortcuts', code.slice(-1));
+    cue.dataset.result = timedAttack.results[index] === null ? 'pending' : timedAttack.results[index] ? 'hit' : 'miss';
+    cue.dataset.active = String(elapsed >= 0 && elapsed < ATTACK_BEAT_MS);
+    cue.dataset.window = String(Math.abs(elapsed - 700) <= ATTACK_WINDOW_MS / 2);
+    cue.dataset.key = code;
+    cue.ariaLabel = `Timed attack ${code.slice(-1)}: ${cue.dataset.result}`;
     document.querySelector(`#timing-label-${index}`).textContent = code.slice(-1);
     const marker = attackMarker(elapsed);
     const dot = document.querySelector(`#timing-marker-${index}`);
@@ -256,9 +258,7 @@ function tryTiming(code) {
   timedAttack = timeAttack(timedAttack, code, performance.now());
 }
 
-ATTACK_KEYS.forEach((_, index) => document.querySelector(`#timing-${index}`).addEventListener('click', () => {
-  if (timedAttack) tryTiming(timedAttack.keys[index]);
-}));
+ATTACK_KEYS.forEach(code => document.querySelector(`#input-${code.slice(-1).toLowerCase()}`).addEventListener('click', () => tryTiming(code)));
 
 function commitAction(action, quality = 1) {
   const next = action(state, performance.now(), quality);

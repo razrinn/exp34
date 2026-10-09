@@ -1,3 +1,4 @@
+import { ENEMIES } from './combat.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -74,6 +75,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     press('KeyQ');
     assert.equal(elements.get('#enemy-hp').textContent, '48 / 48');
     assert.equal(elements.get('#attack').disabled, true);
+    assert.equal(elements.get('.timing-controls').hidden, false);
     press('KeyQ');
     assert.equal(timers.size, 1);
     impact();
@@ -84,6 +86,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     assert.equal(elements.get('#energy').textContent, 'Energy: 1');
     assert.equal(elements.get('.actions').hidden, true);
     assert.equal(elements.get('.defenses').hidden, false);
+    assert.equal(elements.get('.timing-controls').hidden, true);
     assert.equal(elements.get('#attack-cue').hidden, true);
     assert.equal(elements.get('#attack-cue').dataset.type, 'yellow');
     press('KeyQ');
@@ -144,7 +147,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
       for (let round = 0; round < 4; round++) {
         press('KeyQ'); impact();
         const comboStart = now;
-        const times = [[1500, 2200, 3100], [1800, 2800], [2400]][round % 3];
+        const times = ENEMIES[0].patterns[round % 3].map(hit => hit.time);
         for (const time of times) {
           now = comboStart + time - 1;
           press('KeyI'); frame(comboStart + time + 1);
@@ -177,7 +180,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     assert.match(elements.get('#message').textContent, /evades/);
     elements.get('#restart').listeners.click();
     press('KeyQ');
-    now += 700; press(elements.get('#timing-0').dataset.key);
+    now += 700; elements.get(`#input-${elements.get('#timing-0').dataset.key.slice(-1).toLowerCase()}`).listeners.click();
     now += 2000;
     const [partialId, partialTimer] = timers.entries().next().value;
     timers.delete(partialId); partialTimer.fn(); impact();

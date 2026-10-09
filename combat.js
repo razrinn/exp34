@@ -2,17 +2,17 @@ export const ENEMIES = [
   {
     name: 'Sentinel', symbol: '♜', attackStyles: ['slash', 'chop', 'thrust'],
     patterns: [
-      [{ time: 1500, damage: 3 }, { time: 2200, damage: 3 }, { time: 3100, damage: 5 }],
-      [{ time: 1800, damage: 5 }, { time: 2800, damage: 6 }],
-      [{ time: 2400, damage: 9 }],
+      [{ time: 1500, damage: 3, style: 'slash' }, { time: 2200, damage: 3, style: 'chop' }, { time: 3100, damage: 5, style: 'thrust' }],
+      [{ time: 1800, damage: 2, style: 'chop' }, { time: 2250, damage: 2, style: 'slash' }, { time: 3300, damage: 3, style: 'thrust' }, { time: 3900, damage: 4, style: 'chop' }],
+      [{ time: 2400, damage: 1, style: 'thrust' }, { time: 2800, damage: 1, style: 'slash' }, { time: 3250, damage: 2, style: 'slash' }, { time: 4500, damage: 2, style: 'chop' }, { time: 5100, damage: 3, style: 'thrust' }],
     ],
   },
   {
     name: 'Duelist', symbol: '⚔', attackStyles: ['slash', 'chop', 'thrust'],
     patterns: [
-      [{ time: 1200, damage: 3 }, { time: 1600, damage: 3 }, { time: 2800, damage: 5 }],
-      [{ time: 1600, damage: 5 }, { time: 2000, damage: 6 }],
-      [{ time: 1300, damage: 9, parryable: false }],
+      [{ time: 1200, damage: 3, style: 'slash' }, { time: 1600, damage: 2, style: 'slash' }, { time: 2800, damage: 2, style: 'chop' }, { time: 3200, damage: 1, style: 'thrust', parryable: false }, { time: 4400, damage: 3, style: 'slash' }],
+      [{ time: 1600, damage: 3, style: 'chop' }, { time: 2000, damage: 2, style: 'thrust', parryable: false }, { time: 3100, damage: 3, style: 'slash' }, { time: 3600, damage: 3, style: 'chop' }],
+      [{ time: 1300, damage: 1, style: 'thrust' }, { time: 1900, damage: 1, style: 'slash' }, { time: 2300, damage: 2, style: 'thrust', parryable: false }, { time: 3400, damage: 1, style: 'chop' }, { time: 3850, damage: 1, style: 'slash' }, { time: 4900, damage: 3, style: 'thrust' }],
     ],
   },
 ];
@@ -20,9 +20,9 @@ export const RUN_LENGTH = 5;
 export const BOSS = {
   name: 'Warden', symbol: '♛', attackStyles: ['chop', 'slash', 'thrust'],
   patterns: [
-    [{ time: 1400, damage: 4 }, { time: 2100, damage: 4 }, { time: 2800, damage: 4 }, { time: 3600, damage: 8 }],
-    [{ time: 1200, damage: 4 }, { time: 1600, damage: 4 }, { time: 2700, damage: 4 }, { time: 3800, damage: 8, parryable: false }],
-    [{ time: 1900, damage: 4 }, { time: 2300, damage: 4 }, { time: 2700, damage: 4 }, { time: 3400, damage: 8, parryable: false }],
+    [{ time: 1400, damage: 2, style: 'chop' }, { time: 1800, damage: 2, style: 'slash' }, { time: 2700, damage: 3, style: 'thrust' }, { time: 3150, damage: 3, style: 'slash' }, { time: 4200, damage: 3, style: 'chop' }, { time: 5000, damage: 7, style: 'chop' }],
+    [{ time: 1200, damage: 3, style: 'slash' }, { time: 1600, damage: 3, style: 'thrust', parryable: false }, { time: 2500, damage: 3, style: 'chop' }, { time: 2900, damage: 4, style: 'slash' }, { time: 4300, damage: 7, style: 'chop' }],
+    [{ time: 1900, damage: 2, style: 'thrust' }, { time: 2300, damage: 3, style: 'thrust', parryable: false }, { time: 2700, damage: 2, style: 'slash' }, { time: 3900, damage: 3, style: 'chop' }, { time: 4350, damage: 3, style: 'thrust', parryable: false }, { time: 5500, damage: 7, style: 'chop' }],
   ],
 };
 export const PARRY_WINDOW_MS = 180;
