@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 41
+## Checkpoint 42
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -218,3 +218,12 @@ weapon overhead early, and thrust pulls back into a forward stance. Each prepare
 quickly and holds until its existing swing, then releases the extra body pose at
 contact. No attack-name labels were added. Impact deadlines, defense windows,
 damage, and progression are unchanged.
+
+
+Checkpoint 42 adds a simple death collapse for the knight and all three enemies.
+The existing hurt clip leads into a short fall toward the arena, then the fighter
+holds the fallen pose instead of returning to idle. Counter kills start the fall
+at the counter's visual contact. Results wait until the collapse finishes; restart
+and the next fight clear all death state. The symbol fallback falls and fades too.
+Saved victories, defeats, and completion restore a fallen fighter behind the result
+screen. No new character assets or dependencies were needed.

@@ -95,3 +95,9 @@ export function enemyWindupPose(remaining, duration, style) {
   const pose = poses[style];
   return { lean: pose.lean * amount, twist: pose.twist * amount, lift: pose.lift * amount };
 }
+
+export const DEATH_MS = 900;
+export function deathPose(elapsed) {
+  const fall = smooth((elapsed - 100) / 650);
+  return { lean: -(Math.PI / 2 - .05) * fall, lift: .4 * fall };
+}

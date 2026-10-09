@@ -121,3 +121,13 @@ test('three wind-ups prepare early, hold distinct stances, and release at contac
     assert.equal(enemyAttackPose(900, 1500, 0, style).clip, ENEMY_ATTACKS[style].windup);
   }
 });
+
+
+import { deathPose, DEATH_MS } from './animation.js';
+test('death falls smoothly and holds its final pose instead of returning to idle', () => {
+  assert.equal(Math.abs(deathPose(0).lean), 0);
+  assert.ok(deathPose(500).lean < deathPose(200).lean);
+  assert.ok(deathPose(DEATH_MS).lift > 0);
+  assert.ok(Math.abs(deathPose(DEATH_MS).lean) > 1.4);
+  assert.deepEqual(deathPose(DEATH_MS + 10000), deathPose(DEATH_MS));
+});

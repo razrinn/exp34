@@ -1,6 +1,6 @@
 import { newCombat, nextFight, attack, heavyStrike, heal, parry, dodge, retaliate, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE, HEAL, RUN_LENGTH } from './combat.js';
 import { createScene } from './scene.js';
-import { enemyPose, attackEffects, PLAYER_IMPACT_MS, PLAYER_ACTION_MS } from './animation.js';
+import { enemyPose, attackEffects, DEATH_MS, PLAYER_IMPACT_MS, PLAYER_ACTION_MS } from './animation.js';
 import { playCue } from './sound.js';
 import { loadRun, saveRun, clearRun } from './save.js';
 
@@ -61,6 +61,11 @@ function showDamage(amount, target, delay = 0) {
   number.style.top = `${bounds.top + bounds.height / 2}px`;
   document.querySelector('.arena').append(number);
   number.animate([{ opacity: 1, transform: 'translate(-50%, -50%)' }, { opacity: 0, transform: 'translate(-50%, calc(-50% - 50px))' }], { duration: 700 }).onfinish = () => number.remove();
+}
+
+function die(target, delay = 0) {
+  if (scene) { scene.die(target === playerFigure ? 'player' : 'enemy', delay); return; }
+  target.animate([{ transform: 'rotate(0deg)', opacity: 1 }, { transform: 'rotate(85deg)', opacity: .45 }], { duration: DEATH_MS, delay, fill: 'forwards' });
 }
 
 async function playSound(kind) {
@@ -163,11 +168,13 @@ function resolveEnemy(now, beforeInput = false) {
     const countered = next.enemyHp < state.enemyHp;
     if (countered) showDamage(state.enemyHp - next.enemyHp, enemyFigure, PLAYER_IMPACT_MS);
     if (countered) feedback('counter', enemyFigure);
+    if (next.playerHp === 0) die(playerFigure);
+    if (next.enemyHp === 0) die(enemyFigure, PLAYER_IMPACT_MS);
     if (next.phase !== 'enemy') {
       actionPending = 'recovery';
       const duration = next.phase === 'player'
         ? countered ? PLAYER_ACTION_MS : 300
-        : countered ? PLAYER_IMPACT_MS + 700 : 700;
+        : (countered ? PLAYER_IMPACT_MS : 0) + DEATH_MS + 100;
       actionTimer = setTimeout(() => { actionPending = false; render(); }, duration);
     }
     state = next;
@@ -207,7 +214,8 @@ function commitAction(action) {
   showDamage(state.enemyHp - next.enemyHp, enemyFigure);
   if (['victory', 'complete'].includes(next.phase)) {
     actionPending = 'recovery';
-    actionTimer = setTimeout(() => { actionPending = false; render(); }, 700);
+    die(enemyFigure);
+    actionTimer = setTimeout(() => { actionPending = false; render(); }, DEATH_MS + 100);
   }
   state = next;
   saveIfEnded();
@@ -263,6 +271,7 @@ function restartRun() {
   clearTimeout(actionTimer);
   actionPending = false;
   scene?.reset();
+  for (const figure of [playerFigure, enemyFigure]) for (const animation of figure.getAnimations?.() || []) animation.cancel();
   for (const number of document.querySelectorAll('.damage-number')) number.remove();
   state = newCombat();
   document.querySelector('#save-status').textContent = clearRun()
@@ -290,6 +299,7 @@ function chooseUpgrade(upgrade) {
   clearTimeout(actionTimer);
   actionPending = false;
   scene?.reset();
+  for (const figure of [playerFigure, enemyFigure]) for (const animation of figure.getAnimations?.() || []) animation.cancel();
   for (const number of document.querySelectorAll('.damage-number')) number.remove();
   state = nextFight(state, upgrade);
   saveCheckpoint();
@@ -301,5 +311,7 @@ for (const button of document.querySelectorAll('[data-upgrade]')) {
 }
 
 render();
+if (state.playerHp === 0) die(playerFigure);
+if (state.enemyHp === 0) die(enemyFigure);
 document.body.classList.remove('loading');
 document.querySelector('#loading').remove();

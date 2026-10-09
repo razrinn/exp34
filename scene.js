@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './node_modules/three/examples/jsm/loaders/GLTFLoader.js';
-import { actionPose, attackEffects, playerClipProgress, enemyAttackPose, enemyWindupPose, ENEMY_ATTACKS, PLAYER_IMPACT_MS, HOME_X, STRIKE_REACH, ENEMY_STEP_BACK_MS, retreatDistance } from './animation.js';
+import { actionPose, deathPose, attackEffects, playerClipProgress, enemyAttackPose, enemyWindupPose, ENEMY_ATTACKS, PLAYER_IMPACT_MS, HOME_X, STRIKE_REACH, ENEMY_STEP_BACK_MS, retreatDistance } from './animation.js';
 
 const CLIPS = {
   attack: '1H_Melee_Attack_Slice_Horizontal', heavy: '1H_Melee_Attack_Chop',
@@ -149,7 +149,7 @@ export async function createScene(canvas) {
     const shockwave = new THREE.Mesh(new THREE.RingGeometry(.85, 1, 48), new THREE.MeshBasicMaterial({ color: '#ffbf78', transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }));
     shockwave.rotation.x = -Math.PI / 2;
     const vfx = new THREE.Group(); vfx.add(trail, sparks, chargeGlow, chargeParticles, shockwave); vfx.visible = index < 2; scene.add(vfx);
-    return { group, model, mixer, actions, effect: null, attacking: false, vfx, trail, sparks, chargeGlow, chargeParticles, shockwave, cue, history: [], burst: null };
+    return { group, model, mixer, actions, effect: null, death: null, attacking: false, vfx, trail, sparks, chargeGlow, chargeParticles, shockwave, cue, history: [], burst: null };
 
   });
   // Skeleton models use the same hand attachment slots as the knight.
@@ -216,22 +216,33 @@ export async function createScene(canvas) {
     const delta = Math.min(.1, Math.max(0, (now - previous) / 1000));
     previous = now;
     for (const character of [models[0], enemy]) {
+      const dying = character.death && now >= character.death.at;
+      if (dying && !character.death.origin) {
+        character.death.origin = character.group.position.clone();
+        character.death.yaw = character.group.rotation.y;
+        play(character, 'hit', '#ef6868');
+      }
       const effect = character.effect;
       const elapsed = now - (effect?.started || 0);
       const motion = actionPose(effect?.kind, elapsed);
-      if (effect && !motion.active) {
+      if (effect && !motion.active && !dying) {
         character.effect = null;
         idle(character);
       }
       const direction = character === models[0] ? 1 : -1;
+      character.group.rotation.order = dying ? 'ZYX' : 'XYZ';
       let approach = 0;
       let windup = { lean: 0, twist: 0, lift: 0 };
-      if (character === enemy && recovery && now < recovery.at + recovery.duration) {
+      if (dying) {
+        const action = character.actions.Hit_A;
+        action.time = action.getClip().duration * Math.min(1, (now - character.death.at) / 300);
+        character.mixer.update(0);
+      } else if (character === enemy && recovery && now < recovery.at + recovery.duration) {
         const t = Math.max(0, Math.min(1, (now - recovery.at) / recovery.duration));
         const contact = ENEMY_ATTACKS[recovery.style].contact;
         sampleStrike(character, recovery.style, contact + (1 - contact) * t);
         approach = retreatDistance(now - recovery.at, recovery.duration, recovery.hold);
-      } else if (character === enemy && timing && !character.effect) {
+      } else if (character === enemy && timing && !character.effect && !dying) {
         const strike = enemyAttackPose(timing.impactAt - now, timing.duration, timing.hitIndex, timing.style);
         sampleStrike(character, timing.style, strike.clip);
         approach = strike.x;
@@ -248,11 +259,18 @@ export async function createScene(canvas) {
       character.group.position.y = motion.lift + windup.lift;
       character.group.rotation.y = (character === models[0] ? Math.PI / 2 : -Math.PI / 2) + windup.twist;
       character.group.rotation.z = (motion.lean + windup.lean) * direction;
+      if (dying) {
+        const fallen = deathPose(now - character.death.at);
+        character.group.position.copy(character.death.origin);
+        character.group.position.y += fallen.lift * (character === models[0] ? 1 : character === models[3] ? 1.6 : 1.3);
+        character.group.rotation.y = character.death.yaw;
+        character.group.rotation.z = fallen.lean * direction;
+      }
       let style = { attack: 'slash', heavy: 'chop', counter: 'thrust' }[character.effect?.kind];
       let charge = style ? attackEffects(PLAYER_IMPACT_MS - elapsed, PLAYER_IMPACT_MS, style).charge : 0;
       character.cue.visible = false;
       let strength = style ? Math.max(0, 1 - Math.abs(elapsed - PLAYER_IMPACT_MS) / 220) : 0;
-      if (character === enemy && timing && !character.effect) {
+      if (character === enemy && timing && !character.effect && !dying) {
         style = timing.style;
         const remaining = timing.impactAt - now;
         const effects = attackEffects(remaining, timing.duration, style);
@@ -327,7 +345,7 @@ export async function createScene(canvas) {
         if (node.isMesh && node.material.emissive) {
           const weapon = /Sword|Blade|Staff/i.test(node.name) || /Skeleton_(Blade|Staff)/i.test(node.parent?.name || '');
           node.material.emissive.copy(character.cue.visible ? character.cue.material.color : weapon && (strength > 0 || charge > 0) ? color : character.effect ? character.effect.color : black);
-          node.material.emissiveIntensity = character.cue.visible ? .25 : weapon ? strength * .7 + charge * .9 : character.effect ? .12 : 0;
+          node.material.emissiveIntensity = dying ? Math.max(0, 1 - (now - character.death.at) / 180) * .12 : character.cue.visible ? .25 : weapon ? strength * .7 + charge * .9 : character.effect ? .12 : 0;
         }
       });
     }
@@ -395,6 +413,10 @@ export async function createScene(canvas) {
         play(target === 'player' ? models[0] : enemy, target === 'enemy' ? 'hit' : kind, hex);
       }
     },
+    die(target, delay = 0) {
+      const character = target === 'player' ? models[0] : enemy;
+      character.death = { at: performance.now() + delay, origin: null };
+    },
     damage(amount, target, delay = 0) {
       const node = document.createElement('span');
       node.className = `damage-number ${target}`;
@@ -414,7 +436,7 @@ export async function createScene(canvas) {
       timing = null;
       recovery = null;
       counterReaction = null;
-      for (const character of models) { character.effect = null; character.burst = null; character.history = []; character.stroke = null; character.cue.visible = false; idle(character); }
+      for (const character of models) { character.effect = null; character.death = null; character.burst = null; character.history = []; character.stroke = null; character.cue.visible = false; idle(character); }
     },
   };
 }

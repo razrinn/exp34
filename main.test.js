@@ -16,10 +16,14 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     body: { classList: { remove() {} } },
     querySelector(selector) {
       if (!elements.has(selector)) elements.set(selector, {
-        style: {}, dataset: {}, clientWidth: 1280, checked: false, listeners: {}, open: false,
+        style: {}, dataset: {}, animations: [], clientWidth: 1280, checked: false, listeners: {}, open: false,
         showModal() { this.open = true; },
         close() { this.open = false; },
-        animate() { return {}; },
+        animate(frames, options) {
+          const animation = { options, cancel() { this.cancelled = true; } };
+          this.animations.push(animation); return animation;
+        },
+        getAnimations() { return this.animations.filter(animation => !animation.cancelled); },
         getBoundingClientRect() { return { left: 100, right: 200, width: 100, top: 200, height: 150 }; },
         append(node) { popups.push(node); },
         remove() {},
@@ -138,7 +142,12 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
           now = comboStart + time - 1;
           press('Space'); frame(comboStart + time + 1);
         }
-        if (round === 3) assert.equal(elements.get('#upgrades').open, false, 'finishing damage appears before rewards');
+        if (round === 3) {
+          assert.equal(elements.get('#upgrades').open, false, 'finishing damage appears before rewards');
+          const death = elements.get('#enemy-symbol').animations.at(-1).options;
+          assert.equal(death.fill, 'forwards');
+          assert.equal(death.delay, 320, 'counter collapse waits for contact');
+        }
         if (timers.size) impact();
       }
       assert.equal(elements.get('#upgrades').open, true);
@@ -147,6 +156,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
       press(key);
       assert.equal(elements.get('#upgrades').open, false);
       assert.match(elements.get('#fight-label').textContent, /Fight 2/);
+      assert.equal(elements.get('#enemy-symbol').getAnimations().length, 0, 'new stage clears held death animation');
       assert.ok(elements.get('#build').textContent.includes(expected));
       if (key === 'Digit3') assert.match(elements.get('#heavy-detail').textContent, /^26 damage/);
       elements.get('#restart').listeners.click();
