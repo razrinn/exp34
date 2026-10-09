@@ -80,9 +80,9 @@ function render() {
   document.querySelector('#attack-detail').textContent = `${state.attackDamage} damage · +1 energy`;
   attackButton.disabled = !!actionPending || state.phase !== 'player';
   document.querySelector('#build').textContent = `Counter: ${state.counterDamage} damage · Starting energy: ${state.startingEnergy}`;
-  document.querySelector('[data-upgrade=counter]').textContent = `Stronger counters · ${state.counterDamage} → ${state.counterDamage + 3} damage`;
-  document.querySelector('[data-upgrade=energy]').textContent = `Prepared · ${state.startingEnergy} → ${state.startingEnergy + 1} starting energy`;
-  document.querySelector('[data-upgrade=heavy]').textContent = `Heavy hitter · ${state.heavyDamage} → ${state.heavyDamage + 6} damage`;
+  document.querySelector('[data-upgrade=counter]').textContent = `[1] Stronger counters · ${state.counterDamage} → ${state.counterDamage + 3} damage`;
+  document.querySelector('[data-upgrade=energy]').textContent = `[2] Prepared · ${state.startingEnergy} → ${state.startingEnergy + 1} starting energy`;
+  document.querySelector('[data-upgrade=heavy]').textContent = `[3] Heavy hitter · ${state.heavyDamage} → ${state.heavyDamage + 6} damage`;
   document.querySelector('#energy').textContent = `Energy: ${state.energy}`;
   document.querySelector('#heavy-detail').textContent = `${state.heavyDamage} damage · ${HEAVY_STRIKE.cost} energy`;
   heavyButton.disabled = !!actionPending || state.phase !== 'player' || state.energy < HEAVY_STRIKE.cost;
@@ -132,6 +132,7 @@ function resolveEnemy(now, beforeInput = false) {
 }
 
 function updateEnemy(now) {
+  now = performance.now();
   resolveEnemy(now);
   if (state.phase !== 'enemy') return;
   const progress = 1 - (state.impactAt - now) / hitDuration();
@@ -183,7 +184,15 @@ function tryDefense(action) {
 parryButton.addEventListener('click', () => tryDefense(parry));
 dodgeButton.addEventListener('click', () => tryDefense(dodge));
 document.addEventListener('keydown', (event) => {
-  if (event.ctrlKey || event.altKey || event.metaKey || rewards.open || result.open) return;
+  if (event.ctrlKey || event.altKey || event.metaKey || result.open) return;
+  if (rewards.open) {
+    const upgrade = { Digit1: 'counter', Digit2: 'energy', Digit3: 'heavy', Numpad1: 'counter', Numpad2: 'energy', Numpad3: 'heavy' }[event.code];
+    if (upgrade) {
+      event.preventDefault();
+      if (!event.repeat) chooseUpgrade(upgrade);
+    }
+    return;
+  }
   if (event.code === 'Space' && event.target.matches('summary, #fullscreen, #restart, #test-sound')) return;
   if (event.target.matches('input, textarea, select, [contenteditable]')) return;
   const actions = { KeyQ: attack, KeyW: heavyStrike, KeyE: heal };
@@ -223,16 +232,19 @@ document.querySelector('#fullscreen').addEventListener('click', async () => {
   }
 });
 
+function chooseUpgrade(upgrade) {
+  if (state.phase !== 'victory') return;
+  cancelAnimationFrame(enemyFrame);
+  clearTimeout(actionTimer);
+  actionPending = false;
+  scene?.reset();
+  state = nextFight(state, upgrade);
+  saveCheckpoint();
+  render();
+}
+
 for (const button of document.querySelectorAll('[data-upgrade]')) {
-  button.addEventListener('click', () => {
-    cancelAnimationFrame(enemyFrame);
-    clearTimeout(actionTimer);
-    actionPending = false;
-    scene?.reset();
-    state = nextFight(state, button.dataset.upgrade);
-    saveCheckpoint();
-    render();
-  });
+  button.addEventListener('click', () => chooseUpgrade(button.dataset.upgrade));
 }
 
 render();

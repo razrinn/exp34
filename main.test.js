@@ -32,7 +32,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
   const impact = () => { const [id, timer] = timers.entries().next().value; timers.delete(id); now = timer.at; timer.fn(); };
   globalThis.requestAnimationFrame = fn => { frames.set(++frameId, fn); return frameId; };
   globalThis.cancelAnimationFrame = id => frames.delete(id);
-  const frame = at => { now = at; const callbacks = [...frames.values()]; frames.clear(); for (const fn of callbacks) fn(now); };
+  const frame = (at, timestamp = at) => { now = at; const callbacks = [...frames.values()]; frames.clear(); for (const fn of callbacks) fn(timestamp); };
   const press = (code, overrides = {}) => listeners.keydown({
     code, target: { matches: () => false }, preventDefault() {}, ...overrides,
   });
@@ -95,7 +95,8 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     assert.equal(timers.size, 0);
     now = start + 2080;
     press('Space');
-    frame(start + 2201);
+    // A queued RAF timestamp can predate the input; resolve against the live clock.
+    frame(start + 2201, start + 2000);
     assert.equal(elements.get('#player-hp').textContent, '37 / 40');
     assert.equal(elements.get('#parry').disabled, false);
     frame(start + 3101);
@@ -109,6 +110,27 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     press('KeyQ');
     assert.equal(timers.size, 1);
     elements.get('#restart').listeners.click();
+    for (const [key, expected] of [['Digit1', 'Counter: 7 damage'], ['Digit2', 'Starting energy: 1'], ['Digit3', 'Counter: 4 damage']]) {
+      for (let round = 0; round < 4; round++) {
+        press('KeyQ'); impact();
+        const comboStart = now;
+        const times = [[1500, 2200, 3100], [1800, 2800], [2400]][round % 3];
+        for (const time of times) {
+          now = comboStart + time - 1;
+          press('Space'); frame(comboStart + time + 1);
+        }
+        if (timers.size) impact();
+      }
+      assert.equal(elements.get('#upgrades').open, true);
+      press(key, { repeat: true });
+      assert.equal(elements.get('#upgrades').open, true);
+      press(key);
+      assert.equal(elements.get('#upgrades').open, false);
+      assert.match(elements.get('#fight-label').textContent, /Fight 2/);
+      assert.ok(elements.get('#build').textContent.includes(expected));
+      if (key === 'Digit3') assert.match(elements.get('#heavy-detail').textContent, /^26 damage/);
+      elements.get('#restart').listeners.click();
+    }
   } finally {
     Object.assign(globalThis, previous);
   }

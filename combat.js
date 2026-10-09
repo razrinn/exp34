@@ -125,7 +125,8 @@ export function dodge(state, now) {
 
 function defend(state, now, action) {
   const late = state.phase === 'enemy' && now > state.impactAt;
-  if (late) state = advanceEnemy(state, now);
+  // Input owns the inclusive impact boundary, even when rendering is behind.
+  while (state.phase === 'enemy' && now > state.impactAt) state = retaliate(state);
   if (state.phase !== 'enemy' || state.defenseResult !== null) return state;
   const remaining = state.impactAt - now;
   const window = action === 'parry' ? PARRY_WINDOW_MS : DODGE_WINDOW_MS;

@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 36
+## Checkpoint 37
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -152,3 +152,17 @@ costs live in settings and button tooltips. Characters start six world units apa
 close four units for contact, then return home; every enemy strike retreats before
 the next approach, including the 400 ms follow-ups. The portrait camera angle and
 fog distance adapt to keep both sides visible. Damage and defense timing are unchanged.
+
+
+Checkpoint 37 fixes defense at follow-up impact boundaries when frames are stale.
+Both animation and combat frame loops read the live performance clock, so delayed
+RAF timestamps cannot leave the next defense locked behind the previous strike.
+Rewards use 1 / 2 / 3 (counter / starting energy / heavy damage); number-pad keys
+work too. Holding a reward key selects only once.
+
+Attack effects follow the same impact clock: icy wind arcs for slashes, orange
+fire arcs for chops, violet lightning for thrusts, weapon glow and local light
+bursts. Hero Attack / Heavy / Counter use those same three effect families.
+The arena includes distant mountains, ruined columns, drifting embers, and a
+painted eclipse sky that keeps its proportions on portrait screens. These are
+procedural Three.js geometry and a canvas texture, with no additional downloads.

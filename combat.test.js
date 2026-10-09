@@ -427,3 +427,17 @@ test('defense can catch up stale frames and defend the current strike in its win
     assert.equal(advanceEnemy(state, 2200).playerHp, 37);
   }
 });
+
+
+test('stale frames preserve a defense exactly on every fast-combo impact', () => {
+  for (const defense of [parry, dodge]) {
+    let state = attack({ ...newCombat(), enemy: ENEMIES[1] });
+    for (const hit of state.hits) {
+      state = defense(state, hit.time);
+      assert.equal(state.defenseResult, defense === parry ? 'parry' : 'dodge');
+    }
+    state = advanceEnemy(state, 2800);
+    assert.equal(state.playerHp, 40);
+    assert.equal(state.phase, 'player');
+  }
+});
