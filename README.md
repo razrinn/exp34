@@ -389,8 +389,10 @@ session. Combat rules and saved runs are unchanged.
 ## Cloudflare Workers static hosting
 
 Run `npm ci`, then `npm run deploy` after authenticating with
-`npx --yes wrangler@4.149.0 login`. Wrangler runs `npm run build` and uploads
-`dist/` as static assets. There is no Worker script or server runtime.
+`npx cf auth login`. The `cf` CLI uses `cloudflare.config.ts` and deploys
+the static Build Output. `npm run deploy` first runs the
+asset-copy build, then calls `cf deploy`. Its installed Wrangler build tool
+packages `dist/`, using `wrangler.config.ts` for build settings. There is no Worker script or server runtime.
 The build includes the game, local Three.js modules, character/equipment assets,
 and license credits; tests, source configuration, and other dependencies are
 excluded. The build checks that copied JavaScript imports resolve locally.
@@ -398,3 +400,7 @@ excluded. The build checks that copied JavaScript imports resolve locally.
 The default deployment uses a public workers.dev URL. The current Tailscale
 site is independent. Browser saves belong to each origin, so the new URL starts
 with its own run. Connect a custom domain in Cloudflare after deployment if needed.
+
+Run `npm run deploy -- --dry-run` to validate without uploading. The cf beta is
+pinned in devDependencies for reproducible installs. `cf` is also installed
+globally on this machine.
