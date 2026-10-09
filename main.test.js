@@ -66,7 +66,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     assert.equal(elements.get('#energy').textContent, 'Energy: 1');
     assert.equal(elements.get('.actions').hidden, true);
     assert.equal(elements.get('.defenses').hidden, false);
-    assert.equal(elements.get('#attack-cue').hidden, false);
+    assert.equal(elements.get('#attack-cue').hidden, true);
     assert.equal(elements.get('#attack-cue').dataset.type, 'yellow');
     press('KeyQ');
     press('KeyW');
@@ -89,6 +89,10 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     impact();
     const start = now;
     // Late input arrives before the animation-frame loop has resolved the hit.
+    frame(start + 1000);
+    assert.equal(elements.get('#attack-cue').hidden, false);
+    frame(start + 1300);
+    assert.equal(elements.get('#attack-cue').hidden, true);
     now = start + 1501;
     press('Space');
     assert.equal(elements.get('#player-hp').textContent, '37 / 40');

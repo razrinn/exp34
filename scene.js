@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './node_modules/three/examples/jsm/loaders/GLTFLoader.js';
-import { actionPose, playerClipProgress, enemyAttackPose, ENEMY_ATTACKS, PLAYER_IMPACT_MS, HOME_X, STRIKE_REACH, ENEMY_STEP_BACK_MS, retreatDistance } from './animation.js';
+import { actionPose, attackEffects, playerClipProgress, enemyAttackPose, ENEMY_ATTACKS, PLAYER_IMPACT_MS, HOME_X, STRIKE_REACH, ENEMY_STEP_BACK_MS, retreatDistance } from './animation.js';
 
 const CLIPS = {
   attack: '1H_Melee_Attack_Slice_Horizontal', heavy: '1H_Melee_Attack_Chop',
@@ -85,6 +85,20 @@ export async function createScene(canvas) {
   motes.setAttribute('position', new THREE.BufferAttribute(motePositions, 3));
   const embers = new THREE.Points(motes, new THREE.PointsMaterial({ color: '#ffc08a', size: .035, transparent: true, opacity: .65, depthWrite: false }));
   scene.add(embers);
+  const glowCanvas = document.createElement('canvas'); glowCanvas.width = glowCanvas.height = 64;
+  const glowPaint = glowCanvas.getContext('2d');
+  const glow = glowPaint.createRadialGradient(32, 32, 0, 32, 32, 32);
+  glow.addColorStop(0, '#fff'); glow.addColorStop(.2, '#ffffffcc'); glow.addColorStop(1, '#ffffff00');
+  glowPaint.fillStyle = glow; glowPaint.fillRect(0, 0, 64, 64);
+  const glowTexture = new THREE.CanvasTexture(glowCanvas);
+  const cueTextures = ['◇', '✕'].map(symbol => {
+    const image = document.createElement('canvas'); image.width = image.height = 128;
+    const paint = image.getContext('2d'); paint.textAlign = 'center'; paint.textBaseline = 'middle';
+    paint.font = 'bold 90px sans-serif'; paint.strokeStyle = '#111'; paint.lineWidth = 8;
+    paint.strokeText(symbol, 64, 64);
+    paint.fillStyle = '#fff'; paint.shadowColor = '#fff'; paint.shadowBlur = 10; paint.fillText(symbol, 64, 64);
+    return new THREE.CanvasTexture(image);
+  });
   const loader = new GLTFLoader();
   const files = ['Knight', 'Skeleton_Warrior', 'Skeleton_Rogue', 'Skeleton_Mage'];
   let loaded;
@@ -125,10 +139,17 @@ export async function createScene(canvas) {
     trailGeometry.setIndex(indices); trailGeometry.setDrawRange(0, 0);
     const trail = new THREE.Mesh(trailGeometry, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, transparent: true, opacity: .4, depthWrite: false, blending: THREE.AdditiveBlending }));
     trail.frustumCulled = false;
-    const sparks = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(72), 3)), new THREE.LineBasicMaterial({ color: '#ffdf9c', transparent: true, opacity: 0, depthWrite: false }));
+    const sparks = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(144), 3)), new THREE.LineBasicMaterial({ color: '#ffdf9c', transparent: true, opacity: 0, depthWrite: false }));
     sparks.frustumCulled = false;
-    const vfx = new THREE.Group(); vfx.add(trail, sparks); vfx.visible = index < 2; scene.add(vfx);
-    return { group, model, mixer, actions, effect: null, attacking: false, vfx, trail, sparks, history: [], burst: null };
+    const chargeGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture, color: '#a9dfff', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+    const chargeParticles = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(108), 3)), new THREE.PointsMaterial({ map: glowTexture, color: '#a9dfff', size: .12, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+    chargeParticles.frustumCulled = false;
+    const cue = new THREE.Sprite(new THREE.SpriteMaterial({ map: cueTextures[0], color: '#ffd469', transparent: true, depthTest: false, depthWrite: false }));
+    cue.position.set(0, index === 3 ? 1.8 : 1.25, .5); cue.scale.setScalar(.9); cue.visible = false; cue.renderOrder = 10; group.add(cue);
+    const shockwave = new THREE.Mesh(new THREE.RingGeometry(.85, 1, 48), new THREE.MeshBasicMaterial({ color: '#ffbf78', transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }));
+    shockwave.rotation.x = -Math.PI / 2;
+    const vfx = new THREE.Group(); vfx.add(trail, sparks, chargeGlow, chargeParticles, shockwave); vfx.visible = index < 2; scene.add(vfx);
+    return { group, model, mixer, actions, effect: null, attacking: false, vfx, trail, sparks, chargeGlow, chargeParticles, shockwave, cue, history: [], burst: null };
 
   });
   // Skeleton models use the same hand attachment slots as the knight.
@@ -151,8 +172,6 @@ export async function createScene(canvas) {
     character.tip = new THREE.Vector3(0, length, 0);
     character.base = new THREE.Vector3(0, length * .45, 0);
   }
-  const cue = document.querySelector('#attack-cue');
-  const cuePosition = new THREE.Vector3();
   let enemy = models[1];
   let timing = null;
   let recovery = null;
@@ -225,10 +244,17 @@ export async function createScene(canvas) {
       character.group.position.y = motion.lift;
       character.group.rotation.z = motion.lean * direction;
       let style = { attack: 'slash', heavy: 'chop', counter: 'thrust' }[character.effect?.kind];
+      let charge = style ? attackEffects(PLAYER_IMPACT_MS - elapsed, PLAYER_IMPACT_MS, style).charge : 0;
+      character.cue.visible = false;
       let strength = style ? Math.max(0, 1 - Math.abs(elapsed - PLAYER_IMPACT_MS) / 220) : 0;
       if (character === enemy && timing && !character.effect) {
         style = timing.style;
         const remaining = timing.impactAt - now;
+        const effects = attackEffects(remaining, timing.duration, style);
+        charge = effects.charge;
+        character.cue.visible = effects.cue;
+        character.cue.material.color.set(timing.parryable === false ? '#ff4141' : '#ffe16b');
+        character.cue.material.map = cueTextures[timing.parryable === false ? 1 : 0];
         strength = Math.max(0, 1 - Math.abs(remaining) / ENEMY_ATTACKS[style].swingMs);
       }
       if (character.burst && now - character.burst.at < 220) {
@@ -239,6 +265,20 @@ export async function createScene(canvas) {
       character.group.updateMatrixWorld(true);
       const tip = character.weapon.localToWorld(character.tip.clone());
       const base = character.weapon.localToWorld(character.base.clone());
+      character.chargeGlow.position.copy(tip);
+      character.chargeGlow.scale.setScalar(.2 + charge * .6);
+      character.chargeGlow.material.color.copy(color);
+      character.chargeGlow.material.opacity = charge * .85;
+      character.chargeParticles.material.color.copy(color);
+      character.chargeParticles.material.opacity = charge * .85;
+      const gathering = character.chargeParticles.geometry.attributes.position;
+      for (let i = 0; i < 36; i++) {
+        const t = (now / (style === 'chop' ? 850 : 600) + i / 36) % 1;
+        const radius = (1 - t) * (.4 + charge * .6);
+        const angle = i * 2.4 + now / 350;
+        gathering.setXYZ(i, tip.x + Math.cos(angle) * radius, tip.y + Math.sin(angle) * radius, tip.z + (i % 3 - 1) * radius * .6);
+      }
+      gathering.needsUpdate = true;
       const stroke = character === enemy ? timing?.impactAt : character.effect?.started;
       if (character.stroke !== stroke || strength <= 0 || now - (character.history.at(-1)?.at || 0) > 100) character.history = [];
       character.stroke = stroke;
@@ -261,31 +301,30 @@ export async function createScene(canvas) {
         burst.point ||= tip.clone();
         character.sparks.material.color.copy(color);
         const particles = character.sparks.geometry.attributes.position;
-        for (let i = 0; i < 12; i++) {
-          const angle = i * Math.PI * 2 / 12;
-          const radius = .04 + age / 400;
+        for (let i = 0; i < 24; i++) {
+          const angle = i * Math.PI * 2 / 24;
+          const radius = .04 + age / (burst.style === 'chop' ? 220 : 320);
           const dx = Math.cos(angle), dy = Math.sin(angle), dz = (i % 3 - 1) * .45;
           for (let end = 0; end < 2; end++) {
-            const r = radius + end * .08;
+            const r = radius + end * .12;
             particles.setXYZ(i * 2 + end, burst.point.x + dx * r, burst.point.y + dy * r - age * age / 120000, burst.point.z + dz * r);
           }
         }
         particles.needsUpdate = true;
       }
 
+      character.shockwave.material.opacity = burst?.style === 'chop' && age < 160 ? .45 * (1 - age / 160) : 0;
+      if (burst?.point) {
+        character.shockwave.position.set(burst.point.x, .025, burst.point.z);
+        character.shockwave.scale.setScalar(.25 + age / 100);
+      }
       character.model.traverse(node => {
         if (node.isMesh && node.material.emissive) {
           const weapon = /Sword|Blade|Staff/i.test(node.name) || /Skeleton_(Blade|Staff)/i.test(node.parent?.name || '');
-          node.material.emissive.copy(weapon && strength > 0 ? color : character.effect ? character.effect.color : black);
-          node.material.emissiveIntensity = weapon ? strength * .5 : character.effect ? .12 : 0;
+          node.material.emissive.copy(character.cue.visible ? character.cue.material.color : weapon && (strength > 0 || charge > 0) ? color : character.effect ? character.effect.color : black);
+          node.material.emissiveIntensity = character.cue.visible ? .25 : weapon ? strength * .7 + charge * .9 : character.effect ? .12 : 0;
         }
       });
-    }
-    if (timing && cue) {
-      cuePosition.set(enemy.group.position.x, enemy === models[3] ? 4.6 : 3.9, 0).project(camera);
-      const margin = cue.offsetWidth / 2 + 12;
-      cue.style.left = `${Math.max(margin, Math.min(canvas.clientWidth - margin, (cuePosition.x + 1) * canvas.clientWidth / 2))}px`;
-      cue.style.top = `${Math.max(120, (1 - cuePosition.y) * canvas.clientHeight / 2)}px`;
     }
     renderer.render(scene, camera);
     requestAnimationFrame(draw);
@@ -330,6 +369,7 @@ export async function createScene(canvas) {
         play(models[0], kind, '#91c4ce');
         counterReaction = { at: performance.now() + PLAYER_IMPACT_MS, hex };
       } else {
+        if (kind === 'parry') models[0].burst = { at: performance.now(), style: 'thrust' };
         if (kind === 'attack' || kind === 'heavy') models[0].burst = { at: performance.now(), style: kind === 'heavy' ? 'chop' : 'slash' };
         play(target === 'player' ? models[0] : enemy, target === 'enemy' ? 'hit' : kind, hex);
       }
@@ -343,7 +383,7 @@ export async function createScene(canvas) {
       timing = null;
       recovery = null;
       counterReaction = null;
-      for (const character of models) { character.effect = null; character.burst = null; character.history = []; character.stroke = null; idle(character); }
+      for (const character of models) { character.effect = null; character.burst = null; character.history = []; character.stroke = null; character.cue.visible = false; idle(character); }
     },
   };
 }

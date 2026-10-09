@@ -75,3 +75,13 @@ export function enemyAttackPose(remaining, duration, hitIndex, style = 'chop') {
     clip: Math.max(0, Math.min(attack.contact, progress)),
   };
 }
+
+export function attackEffects(remaining, duration, style = 'slash') {
+  const lead = Math.min(650, duration - 80);
+  const end = Math.min(320, duration * .35);
+  const cue = remaining <= lead && remaining > end;
+  const chargeMs = Math.min(900, duration);
+  const charge = remaining > 0 && remaining < chargeMs
+    ? smooth(1 - remaining / chargeMs) * (style === 'chop' ? 1 : .7) : 0;
+  return { cue, charge };
+}

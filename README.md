@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 39
+## Checkpoint 40
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -180,7 +180,7 @@ fading trail. Floating rings and rotating lightning have been removed. Brief
 sparks appear at contact, with restrained weapon glow and no colored face lights.
 For follow-ups at most 500 ms apart, the enemy steps back one unit and attacks
 again instead of rushing four units home and back. Longer pauses and completed
-combos still retreat fully. The cue follows the enemy above its head on both
+combos still retreat fully. The cue briefly flashes on the enemy before each strike on both
 wide and portrait screens. Damage, timing windows, and existing saves are unchanged.
 
 
@@ -191,3 +191,14 @@ still deals damage; this does not extend its defense window. For the fastest
 400 ms follow-up, Dodge is available after that grace period (up to 320 ms before
 impact); Parry retains its 180 ms window. The first hit still penalizes an early
 attempt, and accepted attempts remain limited to one per hit.
+
+
+Checkpoint 40 adds a charge glow and gathering particles at the actual weapon tip.
+Charge grows during the wind-up and disappears at impact. Heavy hits emit a brief
+expanding ground shockwave; hits and parries have brighter, longer contact sparks.
+The yellow diamond / red cross is a sprite attached to the enemy's chest, with a
+brief matching body flash, instead of a persistent floating text badge. It appears
+roughly 650–320 ms before a normal strike, or 320–140 ms before a fast 400 ms
+follow-up. Both the 3D scene and symbol fallback use the same timing helper.
+The cue describes defense type, not the exact instant to press. Defense windows,
+late-input grace, damage, and progression are unchanged.

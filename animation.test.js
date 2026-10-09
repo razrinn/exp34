@@ -89,3 +89,19 @@ test('fast follow-ups step back briefly while slower strikes retreat fully', () 
     assert.equal(enemyAttackPose(0, duration, 1).x, STRIKE_REACH);
   }
 });
+
+
+import { attackEffects } from './animation.js';
+test('charge builds before impact and each cue is brief, including fast follow-ups', () => {
+  for (const duration of [400, 700, 1400, 2400]) {
+    const lead = Math.min(650, duration - 80);
+    const end = Math.min(320, duration * .35);
+    assert.equal(attackEffects(duration, duration).cue, false);
+    assert.equal(attackEffects((lead + end) / 2, duration).cue, true);
+    assert.equal(attackEffects(end, duration).cue, false);
+    assert.equal(attackEffects(0, duration).cue, false);
+    assert.equal(attackEffects(-20, duration).charge, 0);
+    assert.ok(attackEffects(50, duration, 'chop').charge > attackEffects(200, duration, 'chop').charge);
+    assert.ok(attackEffects(50, duration, 'chop').charge > attackEffects(50, duration, 'slash').charge);
+  }
+});

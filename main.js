@@ -1,6 +1,6 @@
 import { newCombat, nextFight, attack, heavyStrike, heal, parry, dodge, retaliate, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE, HEAL, RUN_LENGTH } from './combat.js';
 import { createScene } from './scene.js';
-import { enemyPose, PLAYER_IMPACT_MS, PLAYER_ACTION_MS } from './animation.js';
+import { enemyPose, attackEffects, PLAYER_IMPACT_MS, PLAYER_ACTION_MS } from './animation.js';
 import { playCue } from './sound.js';
 import { loadRun, saveRun, clearRun } from './save.js';
 
@@ -96,10 +96,11 @@ function render() {
   healButton.title = document.querySelector('#heal-detail').textContent;
   parryButton.disabled = state.phase !== 'enemy' || state.defenseResult !== null;
   dodgeButton.disabled = parryButton.disabled;
-  attackCue.hidden = state.phase !== 'enemy';
+  renderCue(performance.now());
   if (state.phase === 'enemy') {
     const red = state.hits[state.hitIndex].parryable === false;
-    attackCue.textContent = red ? '✕ DODGE ONLY' : '◇ PARRY / DODGE';
+    attackCue.textContent = red ? '✕' : '◇';
+    attackCue.ariaLabel = red ? 'Dodge only' : 'Parry or dodge';
     attackCue.dataset.type = red ? 'red' : 'yellow';
     document.querySelector('#parry-window').hidden = red;
     parryButton.title = red ? 'Unparryable. Dodge with Shift.' : 'Parry with Space.';
@@ -110,10 +111,21 @@ function render() {
     scene?.render(state.enemy.name);
   }
   if (state.phase === 'enemy') {
-    scene?.render(state.enemy.name, { impactAt: state.impactAt, duration: hitDuration(), hitIndex: state.hitIndex, style: state.enemy.attackStyles[state.patternIndex] });
+    scene?.render(state.enemy.name, { impactAt: state.impactAt, duration: hitDuration(), hitIndex: state.hitIndex, style: state.enemy.attackStyles[state.patternIndex], parryable: state.hits[state.hitIndex].parryable !== false });
     document.querySelector('#dodge-window').style.width = `${DODGE_WINDOW_MS / hitDuration() * 100}%`;
     document.querySelector('#parry-window').style.width = `${PARRY_WINDOW_MS / hitDuration() * 100}%`;
     document.querySelector('#hit-label').textContent = `Combo ${state.patternIndex + 1} · Strike ${state.hitIndex + 1} / ${state.hits.length} · ${state.hits[state.hitIndex].damage} damage`;
+  }
+}
+
+function renderCue(now) {
+  attackCue.hidden = state.phase !== 'enemy' || !attackEffects(state.impactAt - now, hitDuration()).cue;
+  if (!scene && !attackCue.hidden) {
+    const bounds = enemyFigure.getBoundingClientRect?.();
+    if (bounds) {
+      attackCue.style.left = `${bounds.left + bounds.width / 2}px`;
+      attackCue.style.top = `${bounds.top + bounds.height * .55}px`;
+    }
   }
 }
 
@@ -144,6 +156,7 @@ function updateEnemy(now) {
   now = performance.now();
   resolveEnemy(now);
   if (state.phase !== 'enemy') return;
+  renderCue(now);
   const progress = 1 - (state.impactAt - now) / hitDuration();
   const pose = enemyPose(state.impactAt - now, hitDuration());
   enemyFigure.style.transform = `translate(${pose.x}px, ${pose.y}px) rotate(${pose.rotation}deg)`;
