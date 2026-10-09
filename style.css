@@ -126,8 +126,8 @@ dialog::backdrop { background: #080b10aa; backdrop-filter: blur(3px); }
 .damage-number { position: absolute; z-index: 2; pointer-events: none; transform: translate(-50%, -50%); font-size: clamp(24px, 3vw, 34px); font-weight: 800; color: #ffe8ac; text-shadow: 0 2px 4px #000, 0 0 12px #000; }
 .damage-number.player { color: #ff8585; }
 
-#attack-timing { position: absolute; z-index: 3; bottom: 118px; left: 50%; transform: translateX(-50%); text-align: center; width: min(360px, calc(100% - 32px)); color: #eee5d6; text-shadow: 0 2px 8px #000; }
-#attack-timing p { margin: 0 0 36px; font: 13px Georgia, serif; letter-spacing: 1px; }
+#attack-timing { position: absolute; z-index: 3; left: 25%; top: 40%; transform: translate(-50%, -100%); text-align: center; width: 140px; color: #eee5d6; text-shadow: 0 2px 8px #000; }
+#attack-timing p { margin: 0 0 8px; font: 11px Georgia, serif; letter-spacing: .5px; }
 .timing-diamonds { display: flex; justify-content: center; gap: 18px; }
 .timing-diamonds button { position: relative; width: 84px; height: 84px; flex-shrink: 0; padding: 0; border: 0; border-radius: 0; background: transparent; opacity: .4; }
 .timing-diamonds button span { position: absolute; inset: 0; display: grid; place-items: center; font: 22px Georgia, serif; }
@@ -144,3 +144,9 @@ dialog::backdrop { background: #080b10aa; backdrop-filter: blur(3px); }
 .timing-diamonds button[data-result=miss] .timing-outline { stroke: #cc7d86; }
 .timing-diamonds button:hover:enabled { background: transparent; }
 @media (max-width: 480px) { .timing-diamonds { gap: 12px; } .timing-diamonds button { width: 76px; height: 76px; } }
+
+#timing-step { display: block; margin-top: 4px; font: 9px system-ui, sans-serif; color: var(--gold); }
+@media (prefers-reduced-motion: no-preference) {
+  .timing-diamonds button[data-active=true] { animation: prompt-arrive .15s ease-out; }
+  @keyframes prompt-arrive { from { opacity: 0; transform: scale(.8); } to { opacity: 1; transform: scale(1); } }
+}

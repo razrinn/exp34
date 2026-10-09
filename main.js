@@ -205,7 +205,7 @@ function tryAction(action) {
   if (actionPending || state.phase !== 'player' || action(state, performance.now()) === state) return;
   if (action === heal) { commitAction(action); return; }
   actionPending = 'timing';
-  timedAttack = attackTiming(performance.now());
+  timedAttack = { ...attackTiming(performance.now()), kind: action === heavyStrike ? 'heavy' : 'attack' };
   render();
   updateAttackTiming();
   actionTimer = setTimeout(() => {
@@ -224,8 +224,17 @@ function updateAttackTiming() {
   if (!timedAttack) return;
   const now = performance.now();
   timedAttack = advanceAttack(timedAttack, now);
+  const active = Math.min(2, Math.floor((now - timedAttack.startedAt) / ATTACK_BEAT_MS));
+  const prompt = document.querySelector('#attack-timing');
+  const bounds = playerFigure.getBoundingClientRect();
+  const anchor = scene?.promptPosition() || { left: bounds.left + bounds.width / 2, top: bounds.top - 12 };
+  prompt.style.left = `${Math.max(70, Math.min(document.querySelector('.arena').clientWidth - 70, anchor.left))}px`;
+  prompt.style.top = `${Math.max(150, anchor.top)}px`;
+  document.querySelector('#timing-step').textContent = `${active + 1} / 3`;
+  scene?.prepareAction(timedAttack.kind, Math.max(0, Math.min(1, (now - timedAttack.startedAt - active * ATTACK_BEAT_MS) / ATTACK_BEAT_MS)));
   timedAttack.keys.forEach((code, index) => {
     const button = document.querySelector(`#timing-${index}`);
+    button.hidden = index !== active;
     const elapsed = now - timedAttack.startedAt - index * ATTACK_BEAT_MS;
     button.dataset.result = timedAttack.results[index] === null ? 'pending' : timedAttack.results[index] ? 'hit' : 'miss';
     button.dataset.active = String(elapsed >= 0 && elapsed < ATTACK_BEAT_MS);

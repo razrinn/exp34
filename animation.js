@@ -30,6 +30,14 @@ export function actionPose(kind, elapsed) {
       : retreatDistance(elapsed - PLAYER_IMPACT_MS, PLAYER_ACTION_MS - PLAYER_IMPACT_MS);
     pose.lean = -pulse * .12;
     pose.sword = -pulse * (kind === 'heavy' ? 2.2 : 1.7);
+    if (kind === 'heavy') {
+      pose.lift = elapsed <= PLAYER_IMPACT_MS
+        ? .75 * Math.sin(Math.PI * elapsed / 500)
+        : .75 * Math.sin(Math.PI * PLAYER_IMPACT_MS / 500) * (1 - smooth((elapsed - PLAYER_IMPACT_MS) / 180));
+    } else if (kind === 'attack') {
+      pose.lift = -.15 * Math.sin(Math.PI * Math.min(1, elapsed / 500));
+      pose.lean = -pulse * .22;
+    }
   } else if (kind === 'dodge') {
     pose.x = -pulse * .65;
     pose.lean = pulse * .3;

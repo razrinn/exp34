@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './node_modules/three/examples/jsm/loaders/GLTFLoader.js';
-import { actionPose, deathClipProgress, attackEffects, playerClipProgress, enemyAttackPose, enemyWindupPose, ENEMY_ATTACKS, PLAYER_IMPACT_MS, HOME_X, STRIKE_REACH, ENEMY_STEP_BACK_MS, retreatDistance } from './animation.js';
+import { actionPose, deathClipProgress, attackEffects, playerClipProgress, enemyAttackPose, enemyWindupPose, ENEMY_ATTACKS, PLAYER_IMPACT_MS, PLAYER_ACTION_MS, HOME_X, STRIKE_REACH, ENEMY_STEP_BACK_MS, retreatDistance } from './animation.js';
 
 const CLIPS = {
-  attack: '1H_Melee_Attack_Slice_Horizontal', heavy: '1H_Melee_Attack_Chop',
+  attack: '1H_Melee_Attack_Slice_Horizontal', heavy: 'Heavy_Upper',
   counter: '1H_Melee_Attack_Stab', dodge: 'Dodge_Backward', parry: 'Block',
   hit: 'Hit_A', heal: 'Use_Item',
 };
@@ -130,6 +130,13 @@ export async function createScene(canvas) {
     group.visible = index < 2;
     const mixer = new THREE.AnimationMixer(model);
     const actions = Object.fromEntries(gltf.animations.map(clip => [clip.name, mixer.clipAction(clip)]));
+    if (index === 0) {
+      const legs = track => /^(upperleg|lowerleg|foot|toes)/.test(track.name);
+      const chop = gltf.animations.find(clip => clip.name === '1H_Melee_Attack_Chop');
+      const jump = gltf.animations.find(clip => clip.name === 'Jump_Full_Short');
+      actions.Heavy_Upper = mixer.clipAction(new THREE.AnimationClip('Heavy_Upper', chop.duration, chop.tracks.filter(track => !legs(track))));
+      actions.Heavy_Legs = mixer.clipAction(new THREE.AnimationClip('Heavy_Legs', jump.duration, jump.tracks.filter(legs)));
+    }
     actions.Idle.play();
     const trailGeometry = new THREE.BufferGeometry();
     trailGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(48), 3));
@@ -149,7 +156,7 @@ export async function createScene(canvas) {
     const shockwave = new THREE.Mesh(new THREE.RingGeometry(.85, 1, 48), new THREE.MeshBasicMaterial({ color: '#ffbf78', transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }));
     shockwave.rotation.x = -Math.PI / 2;
     const vfx = new THREE.Group(); vfx.add(trail, sparks, chargeGlow, chargeParticles, shockwave); vfx.visible = index < 2; scene.add(vfx);
-    return { group, model, mixer, actions, effect: null, death: null, attacking: false, vfx, trail, sparks, chargeGlow, chargeParticles, shockwave, cue, history: [], burst: null };
+    return { group, model, mixer, actions, effect: null, preparing: null, death: null, attacking: false, vfx, trail, sparks, chargeGlow, chargeParticles, shockwave, cue, history: [], burst: null };
 
   });
   // Skeleton models use the same hand attachment slots as the knight.
@@ -192,10 +199,13 @@ export async function createScene(canvas) {
     action.reset().setLoop(THREE.LoopOnce, 1).play();
     action.clampWhenFinished = true;
     action.paused = true;
+    if (kind === 'heavy') {
+      const legs = character.actions.Heavy_Legs;
+      legs.reset().setLoop(THREE.LoopOnce, 1).play(); legs.paused = true;
+    }
     character.effect = { kind, started: performance.now(), color: new THREE.Color(hex) };
   }
-  function sampleStrike(character, style, progress) {
-    const clip = ENEMY_ATTACKS[style].clip;
+  function sampleClip(character, clip, progress) {
     const action = character.actions[clip];
     if (character.attacking !== clip) {
       character.mixer.stopAllAction();
@@ -242,19 +252,25 @@ export async function createScene(canvas) {
         const action = character.actions.Death_B;
         action.time = action.getClip().duration * deathClipProgress(now - character.death.at);
         character.mixer.update(0);
+      } else if (character === models[0] && character.preparing) {
+        sampleClip(character, 'Jump_Start', .5 * Math.sin(Math.PI * character.preparing.progress));
       } else if (character === enemy && recovery && now < recovery.at + recovery.duration) {
         const t = Math.max(0, Math.min(1, (now - recovery.at) / recovery.duration));
         const contact = ENEMY_ATTACKS[recovery.style].contact;
-        sampleStrike(character, recovery.style, contact + (1 - contact) * t);
+        sampleClip(character, ENEMY_ATTACKS[recovery.style].clip, contact + (1 - contact) * t);
         approach = retreatDistance(now - recovery.at, recovery.duration, recovery.hold);
       } else if (character === enemy && timing && !character.effect && !dying) {
         const strike = enemyAttackPose(timing.impactAt - now, timing.duration, timing.hitIndex, timing.style);
-        sampleStrike(character, timing.style, strike.clip);
+        sampleClip(character, ENEMY_ATTACKS[timing.style].clip, strike.clip);
         approach = strike.x;
         windup = enemyWindupPose(timing.impactAt - now, timing.duration, timing.style);
       } else if (character.effect) {
         const action = character.actions[CLIPS[character.effect.kind]];
         action.time = action.getClip().duration * playerClipProgress(character.effect.kind, now - character.effect.started);
+        if (character.effect.kind === 'heavy') {
+          const legs = character.actions.Heavy_Legs;
+          legs.time = legs.getClip().duration * Math.min(1, (now - character.effect.started) / PLAYER_ACTION_MS);
+        }
         character.mixer.update(0);
       } else {
         if (character.attacking) idle(character);
@@ -429,7 +445,12 @@ export async function createScene(canvas) {
       canvas.parentElement.append(node);
       damageNumbers.push({ node, character: target === 'player' ? models[0] : enemy, at: performance.now() + delay });
     },
-    startAction(kind) { play(models[0], kind, '#91c4ce'); },
+    prepareAction(kind, progress) { models[0].preparing = { kind, progress }; },
+    promptPosition() {
+      numberPosition.copy(models[0].group.position); numberPosition.y += 2.5; numberPosition.project(camera);
+      return { left: (numberPosition.x + 1) * canvas.clientWidth / 2, top: (1 - numberPosition.y) * canvas.clientHeight / 2 };
+    },
+    startAction(kind) { models[0].preparing = null; play(models[0], kind, '#91c4ce'); },
     enemyImpact(at, finished, style, nextDelay) {
       enemy.burst = { at, style };
       recovery = { at, style, hold: !finished && nextDelay <= 500 ? STRIKE_REACH - 1 : 0, duration: finished ? 300 : ENEMY_STEP_BACK_MS };
@@ -440,7 +461,7 @@ export async function createScene(canvas) {
       timing = null;
       recovery = null;
       counterReaction = null;
-      for (const character of models) { character.effect = null; character.death = null; character.burst = null; character.history = []; character.stroke = null; character.cue.visible = false; idle(character); }
+      for (const character of models) { character.effect = null; character.preparing = null; character.death = null; character.burst = null; character.history = []; character.stroke = null; character.cue.visible = false; idle(character); }
     },
   };
 }

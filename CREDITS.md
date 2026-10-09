@@ -5,7 +5,7 @@ Character models, textures, weapons, and animations by Kay Lousberg (KayKit), CC
 - [Adventurers Character Pack 1.0](https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0): Knight. License: `assets/kaykit_character_pack_adventures-LICENSE.txt`.
 - [Skeletons Character Pack 1.0](https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0): Skeleton Warrior, Rogue, Mage, Blade, Staff, and skeleton texture. License: `assets/kaykit_character_pack_skeletons-LICENSE.txt`.
 
-The character GLBs retain nine clips used by combat; unused animation data was
+The character GLBs retain nine clips used by combat, with two extra jump clips for the knight; unused animation data was
 removed with glTF Transform `prune`. Geometry and textures are unchanged.
 
 [Three.js](https://threejs.org/) handles rendering, glTF loading, and skeletal

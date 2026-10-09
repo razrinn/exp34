@@ -15,6 +15,7 @@ test('shipped characters contain combat clips, skinning, textures, and weapon sl
     assert.equal(data.readUInt32LE(8), data.length);
     const model = JSON.parse(data.toString('utf8', 20, 20 + data.readUInt32LE(12)));
     for (const clip of required) assert.ok(model.animations.some(a => a.name === clip), `${name}: missing ${clip}`);
+    if (name === 'Knight') for (const clip of ['Jump_Start', 'Jump_Full_Short']) assert.ok(model.animations.some(a => a.name === clip));
     assert.ok(model.skins.length > 0);
     assert.ok(model.images.length > 0);
     assert.ok(model.nodes.some(n => n.name === 'handslot.r'));

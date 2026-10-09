@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 48
+## Checkpoint 49
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -256,3 +256,9 @@ Checkpoint 48 replaces shrinking diamonds with a clockwise perimeter marker and
 a gold timing segment only on the upper-left edge. The full edge matches the same
 240 ms input window; the other three edges cover the lead-in. Each of the three
 prompts independently chooses I, O, or P. Repeated keys are allowed.
+
+Checkpoint 49 shows just the current attack prompt above the hero, projected from
+its world position and clamped away from the HUD. The hero crouches during each
+preparation beat; Attack uses a low rushing slash and Heavy a jumping overhead
+chop with a landing. Heavy combines the chop upper body with skeletal jump legs.
+The same input windows, contact time, and damage fractions still apply.

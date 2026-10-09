@@ -131,3 +131,13 @@ test('death clip advances once and holds its final skeletal pose', () => {
   assert.equal(deathClipProgress(DEATH_MS), 1);
   assert.equal(deathClipProgress(DEATH_MS + 10000), 1);
 });
+
+test('basic slash stays low while Heavy jumps and lands before recovery ends', () => {
+  assert.ok(actionPose('attack', 160).lift < 0);
+  assert.ok(actionPose('heavy', 160).lift > .5);
+  assert.ok(actionPose('heavy', PLAYER_IMPACT_MS).lift > .5);
+  assert.equal(actionPose('heavy', 500).lift, 0);
+  assert.equal(actionPose('heavy', PLAYER_ACTION_MS).lift, 0);
+  assert.equal(actionPose('attack', PLAYER_IMPACT_MS).x, STRIKE_REACH);
+  assert.equal(actionPose('heavy', PLAYER_IMPACT_MS).x, STRIKE_REACH);
+});
