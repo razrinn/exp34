@@ -27,6 +27,7 @@ export const BOSS = {
 };
 export const PARRY_WINDOW_MS = 180;
 export const DODGE_WINDOW_MS = 360;
+export const LATE_INPUT_GRACE_MS = 80;
 export const HEAVY_STRIKE = { cost: 2, damage: 20 };
 export const HEAL = { cost: 2, amount: 12 };
 export const RECOVERY_HP = 10;
@@ -124,14 +125,16 @@ export function dodge(state, now) {
 }
 
 function defend(state, now, action) {
-  const late = state.phase === 'enemy' && now > state.impactAt;
   // Input owns the inclusive impact boundary, even when rendering is behind.
   while (state.phase === 'enemy' && now > state.impactAt) state = retaliate(state);
   if (state.phase !== 'enemy' || state.defenseResult !== null) return state;
   const remaining = state.impactAt - now;
   const window = action === 'parry' ? PARRY_WINDOW_MS : DODGE_WINDOW_MS;
-  // A late press for the previous hit must not spend the next hit's attempt.
-  if (late && remaining > window) return state;
+  if (state.hitIndex > 0) {
+    const previousImpact = state.comboStartedAt + state.hits[state.hitIndex - 1].time;
+    // Ignore trailing presses regardless of whether the frame loop already advanced.
+    if (now - previousImpact <= LATE_INPUT_GRACE_MS || remaining > window) return state;
+  }
   const cannotParry = action === 'parry' && state.hits[state.hitIndex].parryable === false;
   const success = !cannotParry && remaining >= 0 && remaining <= window;
   return {

@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 38
+## Checkpoint 39
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -182,3 +182,12 @@ For follow-ups at most 500 ms apart, the enemy steps back one unit and attacks
 again instead of rushing four units home and back. Longer pauses and completed
 combos still retreat fully. The cue follows the enemy above its head on both
 wide and portrait screens. Damage, timing windows, and existing saves are unchanged.
+
+
+Checkpoint 39 ignores defense presses during the first 80 ms after the preceding
+hit, whether or not the frame loop has resolved it yet. Early follow-up presses
+outside that defense's window also leave the attempt available. The missed hit
+still deals damage; this does not extend its defense window. For the fastest
+400 ms follow-up, Dodge is available after that grace period (up to 320 ms before
+impact); Parry retains its 180 ms window. The first hit still penalizes an early
+attempt, and accepted attempts remain limited to one per hit.

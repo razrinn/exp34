@@ -469,3 +469,31 @@ test('red hits reject parries, accept timed dodges, and never award a counter', 
     assert.equal(forgedParry.enemyHp, 40);
   }
 });
+
+test('late presses never spend the fast follow-up attempt, before or after its frame resolves', () => {
+  for (const defense of [parry, dodge]) {
+    for (const frameResolved of [false, true]) {
+      for (const delay of [1, 20, 60, 80]) {
+        let state = attack({ ...newCombat(), enemy: ENEMIES[1] });
+        if (frameResolved) state = advanceEnemy(state, 1200);
+        state = defense(state, 1200 + delay);
+        assert.equal(state.hitIndex, 1);
+        assert.equal(state.playerHp, 37);
+        assert.equal(state.defenseResult, null);
+        state = defense(state, 1480);
+        assert.equal(state.defenseResult, defense === parry ? 'parry' : 'dodge');
+        state = advanceEnemy(state, 1600);
+        assert.equal(state.playerHp, 37);
+        state = defense(state, 2680);
+        assert.equal(advanceEnemy(state, 2800).playerHp, 37);
+      }
+    }
+  }
+});
+
+test('early follow-up inputs stay available and a deliberate dodge after grace succeeds', () => {
+  const incoming = advanceEnemy(attack({ ...newCombat(), enemy: ENEMIES[1] }), 1200);
+  assert.equal(parry(incoming, 1350).defenseResult, null);
+  assert.equal(dodge(incoming, 1281).defenseResult, 'dodge');
+  assert.equal(advanceEnemy(dodge(incoming, 1281), 1600).playerHp, 37);
+});

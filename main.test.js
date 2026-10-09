@@ -99,6 +99,9 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     press('Space');
     // A queued RAF timestamp can predate the input; resolve against the live clock.
     frame(start + 2201, start + 2000);
+    now = start + 2220;
+    press('Space');
+    press('ShiftLeft');
     assert.equal(elements.get('#player-hp').textContent, '37 / 40');
     assert.equal(elements.get('#parry').disabled, false);
     frame(start + 3101);
