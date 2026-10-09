@@ -95,18 +95,16 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     assert.equal(timers.size, 0, 'heal and attacks cannot interrupt enemy turn');
     defend(ENEMIES[0].patterns[0]);
     runSkill('KeyQ', 2, [0]);
-    assert.equal(elements.get('#enemy-hp').textContent, '32 / 48', 'one missed strike loses that hit only');
+    assert.equal(elements.get('#enemy-hp').textContent, '24 / 48', 'one missed strike loses that hit only');
     defend(ENEMIES[0].patterns[1]);
     runSkill('KeyW', 3);
-    assert.equal(elements.get('#enemy-hp').textContent, '8 / 48');
+    assert.equal(elements.get('#enemy-hp').textContent, '0 / 48');
     assert.equal(elements.get('#energy').textContent, '0 / 3');
-    defend(ENEMIES[0].patterns[2]);
-    runSkill('KeyQ', 2);
     assert.equal(elements.get('#upgrades').open, false, 'lethal contact waits for collapse');
     impact(); assert.equal(elements.get('#upgrades').open, true);
     press('KeyQ', { repeat: true }); assert.equal(elements.get('#upgrades').open, true);
     press('KeyQ'); assert.equal(elements.get('#upgrades').open, false);
-    assert.match(elements.get('#build').textContent, /Parry charge: \+1 per parry/);
+    assert.match(elements.get('#build').textContent, /Parry charge: \+2 per parry/);
     elements.get('#restart').listeners.click();
     for (let turn = 0; turn < 3; turn++) {
       runSkill('KeyQ', 2, []); defend(ENEMIES[0].patterns[turn]);
@@ -115,7 +113,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     assert.equal(elements.get('#player-energy').value, 3);
     assert.equal(elements.get('#player-energy').max, 3);
     runSkill('KeyE', 4);
-    assert.equal(elements.get('#enemy-hp').textContent, '4 / 48');
+    assert.equal(elements.get('#enemy-hp').textContent, '0 / 48');
     assert.equal(elements.get('#energy').textContent, '0 / 3');
     elements.get('#restart').listeners.click();
     runSkill('KeyQ', 2, []); defend(ENEMIES[0].patterns[0], true);

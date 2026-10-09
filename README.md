@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 57
+## Checkpoint 58
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -358,3 +358,19 @@ restores six HP (capped by max HP), and still spends the turn.
 The simulation keeps its Resolve-focused build valid by choosing Ruin for its
 last reward once Resolve is capped. Its win rates remain assumed-input scenarios,
 not measured player performance.
+
+Checkpoint 58 rewards the narrower parry window with a 10-damage perfect-combo
+counter (up from 4) and a baseline attack charge on every successful parry.
+Without perks, each landed parry adds +1 next-attack damage, capped at +3.
+Each Reprisal rank adds another +1 per parry and +3 to the cap: rank one gains
++2 per parry with a +6 cap; rank four gains +5 with a +15 cap. Charge is still
+awarded only at hit resolution, preserved by healing and dodging, and reserved
+once when an attack starts. Partial parries and mixed red combos earn charge;
+only a completely parried yellow combo counters. Dodges earn no charge.
+Timing windows, enemy damage, energy, and critical rules stay unchanged.
+
+At assumed 85% parry success with perfect attack cues, simulated completion
+improves from 52.6/44.6/43.6% to 69.6/66.6/60% for Reprisal/Resolve/Ruin.
+Perfect parry runs now average 17.4–19 turns versus 22.9–30.5 for perfect dodge.
+These fixed-policy comparisons describe the new offensive payoff; they do not
+make equal claims about real players' parry and dodge success rates.

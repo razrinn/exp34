@@ -30,6 +30,7 @@ export const DODGE_WINDOW_MS = 360;
 export const LATE_INPUT_GRACE_MS = 80;
 export const HEAVY_STRIKE = { cost: 2, damage: 20 };
 export const MAX_ENERGY = 3;
+export const COUNTER_DAMAGE = 10;
 export const HEAL = { cost: 1, amount: 6 };
 export const RECOVERY_HP = 10;
 
@@ -187,8 +188,14 @@ function defend(state, now, action) {
   };
 }
 
+export function parryCharge(state) {
+  const gain = 1 + (state.counterDamage - 4) / 3;
+  return { gain, cap: gain * 3 };
+}
+
 export function retaliate(state) {
   if (state.phase !== 'enemy') return state;
+  const charge = parryCharge(state);
   const parried = state.defenseResult === 'parry' && state.hits[state.hitIndex].parryable !== false;
   const blocked = parried || state.defenseResult === 'dodge';
   const damage = state.hits[state.hitIndex].damage;
@@ -196,20 +203,20 @@ export function retaliate(state) {
   const allParried = state.allParried && parried;
   const hitIndex = state.hitIndex + 1;
   const finished = hitIndex === state.hits.length;
-  const enemyHp = Math.max(0, state.enemyHp - (finished && allParried ? 4 : 0));
+  const enemyHp = Math.max(0, state.enemyHp - (finished && allParried ? COUNTER_DAMAGE : 0));
   return {
     ...state,
     playerHp,
     enemyHp,
     allParried,
-    parryBonus: Math.min((state.counterDamage - 4) / 3 * 2, state.parryBonus + (parried ? (state.counterDamage - 4) / 3 : 0)),
+    parryBonus: Math.min(charge.cap, state.parryBonus + (parried ? charge.gain : 0)),
     hitIndex,
     defenseResult: null,
     impactAt: finished ? null : state.comboStartedAt + state.hits[hitIndex].time,
     phase: playerHp === 0 ? 'defeat' : enemyHp === 0 ? state.fight === RUN_LENGTH ? 'complete' : 'victory' : finished ? 'player' : 'enemy',
     message: playerHp === 0 ? 'Defeat. Try again.'
       : enemyHp === 0 ? `Parried! Your counter finishes the ${state.enemy.name}. Victory!`
-      : finished && allParried ? `Perfect combo! You counter for 4 damage. Your turn.`
+      : finished && allParried ? `Perfect combo! You counter for ${COUNTER_DAMAGE} damage. Your turn.`
       : finished ? blocked ? 'Final hit avoided. No counter. Your turn.' : `Final hit deals ${damage} damage. No counter. Your turn.`
       : blocked ? `Hit ${hitIndex} ${parried ? 'parried' : 'dodged'}! Prepare for the next strike.`
       : `Hit ${hitIndex} deals ${damage} damage. Prepare for the next strike.`,

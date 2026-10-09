@@ -1,5 +1,5 @@
 import { ATTACK_KEYS, ATTACK_BEAT_MS, ATTACK_WINDOW_MS, ATTACK_TARGET_MS, ATTACK_PROMPT_MS, attackMarker, attackTiming, advanceAttack, timeAttack } from './attack-timing.js';
-import { newCombat, nextFight, startSkill, landSkillHit, finishSkill, skillDamage, PLAYER_SKILLS, heal, parry, dodge, retaliate, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE, HEAL, MAX_ENERGY, RUN_LENGTH } from './combat.js';
+import { newCombat, nextFight, startSkill, landSkillHit, finishSkill, skillDamage, PLAYER_SKILLS, parryCharge, COUNTER_DAMAGE, heal, parry, dodge, retaliate, PARRY_WINDOW_MS, DODGE_WINDOW_MS, HEAVY_STRIKE, HEAL, MAX_ENERGY, RUN_LENGTH } from './combat.js';
 import { createScene } from './scene.js';
 import { enemyPose, attackEffects, DEATH_MS, PLAYER_IMPACT_MS, PLAYER_ACTION_MS } from './animation.js';
 import { playCue } from './sound.js';
@@ -96,7 +96,7 @@ function render() {
     .replace(/Hit \d+ deals \d+ damage\. ?/, '')
     .replace(/Final hit deals \d+ damage\. No counter\. ?/, '')
     .replace(/You counter for \d+ damage\. ?/i, '')
-    .concat(state.phase === 'player' && state.parryBonus ? ` Reprisal: +${state.parryBonus} next attack.` : '');
+    .concat(state.phase === 'player' && state.parryBonus ? ` Parry charge: +${state.parryBonus} next attack.` : '');
   document.querySelector('#message').textContent = actionPending === 'timing'
     ? '' : actionPending === 'recovery'
     ? message.replace(/Your turn\./gi, 'Recovering…') : message;
@@ -113,8 +113,9 @@ function render() {
   document.querySelector('#turn-label').textContent = actionPending === 'timing' ? 'FIND THE RHYTHM' : actionPending === 'attack' ? 'STRIKING' : actionPending ? 'RECOVERING' : state.phase === 'player' ? 'YOUR TURN' : state.phase === 'enemy' ? 'DEFEND' : 'ENCOUNTER ENDED';
   document.querySelector('#attack-detail').textContent = `2 strikes · ${skillDamage(state, 'quick')} damage · +1 energy`;
   attackButton.disabled = !!actionPending || state.phase !== 'player';
-  document.querySelector('#build').textContent = `Parry charge: +${(state.counterDamage - 4) / 3} per parry · Ready: +${state.parryBonus} · Starting energy: ${Math.min(MAX_ENERGY, state.startingEnergy)}`;
-  document.querySelector('#counter-gain').textContent = `Next attack: +${(state.counterDamage - 4) / 3} → +${(state.counterDamage - 4) / 3 + 1} per parry · up to ${((state.counterDamage - 4) / 3 + 1) * 2} damage`;
+  const charge = parryCharge(state);
+  document.querySelector('#build').textContent = `Counter: ${COUNTER_DAMAGE} · Parry charge: +${charge.gain} per parry (max ${charge.cap}) · Ready: +${state.parryBonus} · Starting energy: ${Math.min(MAX_ENERGY, state.startingEnergy)}`;
+  document.querySelector('#counter-gain').textContent = `Next attack: +${charge.gain} → +${charge.gain + 1} per parry · charge cap ${charge.cap} → ${charge.cap + 3}`;
   document.querySelector('[data-upgrade="energy"]').disabled = state.startingEnergy >= MAX_ENERGY;
   document.querySelector('#energy-gain').textContent = state.startingEnergy >= MAX_ENERGY ? 'Starting energy · 3 / 3 · MAX' : `Starting energy · ${state.startingEnergy} → ${state.startingEnergy + 1}`;
   document.querySelector('#heavy-gain').textContent = `All skills: Quickstep +1 · Flurry +6 · Onslaught +6 damage`;

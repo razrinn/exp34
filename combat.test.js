@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newCombat, nextFight, attack, heavyStrike, heal, parry, dodge, retaliate, advanceEnemy, ENEMIES, BOSS, RUN_LENGTH, PARRY_WINDOW_MS, DODGE_WINDOW_MS } from './combat.js';
+import { newCombat, nextFight, attack, heavyStrike, heal, parry, dodge, retaliate, advanceEnemy, ENEMIES, BOSS, RUN_LENGTH, PARRY_WINDOW_MS, DODGE_WINDOW_MS, COUNTER_DAMAGE } from './combat.js';
 
 function perfectCombo(state) {
   if (state.phase !== 'enemy') return state;
@@ -34,7 +34,7 @@ test('parries block individual hits; only a perfect combo counters', () => {
   assert.equal(first.defenseResult, null);
   const result = perfectCombo(incoming);
   assert.equal(result.playerHp, 40);
-  assert.equal(result.enemyHp, 36);
+  assert.equal(result.enemyHp, 30);
   assert.equal(result.phase, 'player');
 });
 
@@ -149,11 +149,12 @@ test('each enemy cycles through three patterns and only all-yellow combos counte
     assert.equal(enemy.patterns.length, 3);
     assert.deepEqual(enemy.patterns.map(pattern => pattern.length), enemy === ENEMIES[0] ? [3, 4, 5] : [5, 4, 6]);
     assert.equal(new Set(enemy.patterns.map(pattern => JSON.stringify(pattern))).size, 3);
-    let state = { ...newCombat(), enemy, enemyHp: 100, enemyMaxHp: 100 };
-    let expectedHp = 100;
+    let state = { ...newCombat(), enemy, enemyHp: 200, enemyMaxHp: 200 };
+    let expectedHp = 200;
     for (let turn = 0; turn < 4; turn++) {
+      expectedHp -= skillDamage(state, 'quick');
       state = attack(state, turn * 10000);
-      expectedHp -= 8 + (state.hits.some(hit => hit.parryable === false) ? 0 : 4);
+      expectedHp -= state.hits.some(hit => hit.parryable === false) ? 0 : COUNTER_DAMAGE;
       assert.equal(state.patternIndex, turn % 3);
       assert.deepEqual(state.hits, enemy.patterns[turn % 3].map(hit => ({ ...hit, damage: Math.ceil(hit.damage * 1.5) })));
       assert.equal(state.impactAt, turn * 10000 + state.hits[0].time);
@@ -170,16 +171,18 @@ test('each enemy cycles through three patterns and only all-yellow combos counte
   }
 });
 
-test('starting balance requires four perfect rounds and exposes all three patterns', () => {
+test('parry charge and stronger counters finish the opening fight in three basic attacks', () => {
   let state = newCombat();
-  for (let turn = 0; turn < 4; turn++) {
+  for (const [turn, hp] of [30, 9, 0].entries()) {
     state = attack(state, turn * 10000);
-    assert.equal(state.phase, 'enemy');
-    assert.equal(state.patternIndex, turn % 3);
-    state = perfectCombo(state);
+    if (turn < 2) {
+      assert.equal(state.phase, 'enemy');
+      assert.equal(state.patternIndex, turn);
+      state = perfectCombo(state);
+    }
     assert.equal(state.playerHp, 40);
-    assert.equal(state.enemyHp, 48 - (turn + 1) * 12);
-    assert.equal(state.phase, turn === 3 ? 'victory' : 'player');
+    assert.equal(state.enemyHp, hp);
+    assert.equal(state.phase, turn === 2 ? 'victory' : 'player');
   }
 });
 
@@ -227,7 +230,7 @@ test('basic attacks build energy and a heavy strike spends it and starts the ene
   }
   const result = heavyStrike(state, 30000);
   assert.equal(result.energy, 1);
-  assert.equal(result.enemyHp, state.enemyHp - 20);
+  assert.equal(result.enemyHp, state.enemyHp - skillDamage(state, 'heavy'));
   assert.equal(result.phase, 'enemy');
   assert.equal(result.impactAt, 31500);
   assert.equal(result.enemyTurns, 4);
@@ -317,7 +320,7 @@ test('boss has long mixed combos, including middle red hits, and counters only a
       assert.equal(state.phase, hit < incoming.hits.length - 1 ? 'enemy' : 'player');
       assert.equal(state.playerHp, 40);
     }
-    assert.equal(state.enemyHp, patternIndex === 0 ? 36 : 40);
+    assert.equal(state.enemyHp, patternIndex === 0 ? 30 : 40);
     assert.equal(advanceEnemy(incoming, 99999).playerHp, Math.max(0, 40 - incoming.hits.reduce((sum, hit) => sum + hit.damage, 0)));
     let dodged = incoming;
     while (dodged.phase === 'enemy') dodged = advanceEnemy(dodge(dodged, dodged.impactAt), dodged.impactAt);
@@ -387,8 +390,8 @@ test('combat uses rewarded damage and Prepared unlocks earlier skills', () => {
   const won = { ...newCombat(), enemyHp: 0, phase: 'victory' };
   const counterBuild = nextFight(won, 'counter');
   const answered = perfectCombo(attack({ ...counterBuild, enemy: ENEMIES[0] }));
-  assert.equal(answered.enemyHp, 48);
-  assert.equal(answered.parryBonus, 2);
+  assert.equal(answered.enemyHp, 42);
+  assert.equal(answered.parryBonus, 6);
   const heavyBuild = nextFight(won, 'heavy');
   assert.equal(heavyStrike({ ...heavyBuild, energy: 3 }).enemyHp, 34);
   const prepared = nextFight(won, 'energy');
@@ -535,7 +538,7 @@ test('enemy misses are punishing: opening hits are stronger and a full boss comb
   assert.equal(perfectCombo(boss).playerHp, 40);
 });
 
-import { PLAYER_SKILLS, startSkill, landSkillHit, finishSkill } from './combat.js';
+import { PLAYER_SKILLS, skillDamage, startSkill, landSkillHit, finishSkill } from './combat.js';
 test('2/3/4 strike skills spend energy once and resolve damage at each contact', () => {
   for (const [skill, count, cost, total] of [['quick', 2, 0, 8], ['heavy', 3, 2, 20], ['onslaught', 4, 3, 32]]) {
     let state = startSkill({ ...newCombat(), energy: 3, enemyHp: 100 }, skill);
@@ -590,17 +593,17 @@ test('Reprisal charges on landed parries, works in red combos, caps, and is spen
     state = advanceEnemy(prepared, state.impactAt);
   }
   assert.equal(state.enemyHp, 52, 'red dodge still forfeits the counter');
-  assert.equal(state.parryBonus, 2);
+  assert.equal(state.parryBonus, 6);
   const healed = heal({ ...state, energy: 2, playerHp: 20 });
-  assert.equal(healed.parryBonus, 2, 'healing preserves charge');
+  assert.equal(healed.parryBonus, 6, 'healing preserves charge');
   state = perfectCombo(healed);
-  assert.equal(state.parryBonus, 2, 'charge cannot grow by farming heals');
+  assert.equal(state.parryBonus, 6, 'charge cannot grow by farming heals');
   const started = startSkill(state, 'quick');
   assert.equal(started.parryBonus, 0);
-  assert.equal(started.skillBonus, 2);
+  assert.equal(started.skillBonus, 6);
   let struck = landSkillHit(started, 0, true, () => .5);
   struck = landSkillHit(struck, 1, true, () => .5);
-  assert.equal(state.enemyHp - struck.enemyHp, 10);
+  assert.equal(state.enemyHp - struck.enemyHp, 14);
   const missed = landSkillHit(landSkillHit(started, 0, false), 1, false);
   assert.equal(missed.parryBonus, 0, 'missed attacks spend their reserved charge');
   const poor = { ...state, energy: 0 };
@@ -625,13 +628,13 @@ test('Reprisal stacks by rank and failed defenses or dodges add no charge', () =
   for (let rank = 1; rank <= 4; rank++) {
     let state = attack({ ...newCombat(), counterDamage: 4 + 3 * rank });
     state = advanceEnemy(parry(state, state.impactAt), state.impactAt);
-    assert.equal(state.parryBonus, rank);
+    assert.equal(state.parryBonus, rank + 1);
     state = advanceEnemy(dodge(state, state.impactAt), state.impactAt);
-    assert.equal(state.parryBonus, rank);
+    assert.equal(state.parryBonus, rank + 1);
     state = advanceEnemy(state, state.impactAt);
-    assert.equal(state.parryBonus, rank);
+    assert.equal(state.parryBonus, rank + 1);
     state = perfectCombo(heal({ ...state, energy: 2, playerHp: 20 }));
-    assert.equal(state.parryBonus, rank * 2);
+    assert.equal(state.parryBonus, (rank + 1) * 3);
   }
 });
 
@@ -659,4 +662,22 @@ test('1.5x critical rounds odd combo damage once at final contact', () => {
   assert.equal(first.critical, false);
   const final = landSkillHit(first, 1, true, () => .249);
   assert.equal(48 - final.enemyHp, 14);
+});
+
+test('unupgraded parries earn charge even with a miss or a mandatory red dodge', () => {
+  let partial = attack(newCombat());
+  partial = advanceEnemy(parry(partial, partial.impactAt), partial.impactAt);
+  assert.equal(partial.parryBonus, 1);
+  partial = advanceEnemy(partial, partial.impactAt);
+  partial = advanceEnemy(parry(partial, partial.impactAt), partial.impactAt);
+  assert.equal(partial.enemyHp, 40, 'missed hit forfeits counter');
+  assert.equal(partial.parryBonus, 2, 'successful parries still pay off');
+  const mixed = perfectCombo(attack({ ...newCombat(), enemy: ENEMIES[1] }));
+  assert.equal(mixed.enemyHp, 40, 'mandatory red dodge forfeits counter');
+  assert.equal(mixed.parryBonus, 3);
+  let dodged = attack(newCombat());
+  while (dodged.phase === 'enemy') dodged = advanceEnemy(dodge(dodged, dodged.impactAt), dodged.impactAt);
+  assert.equal(dodged.parryBonus, 0);
+  assert.equal(dodged.enemyHp, 40);
+  assert.equal(skillDamage(mixed, 'quick'), 11);
 });
