@@ -61,18 +61,27 @@
         </div>
       </div>
     </footer>
-    <dialog id="upgrades" aria-labelledby="reward-title">
-      <p class="eyebrow">ENCOUNTER CLEARED</p><h2 id="reward-title">Choose your edge.</h2>
-      <p>Recover up to 10 HP with any reward. Your build carries into the next fight.</p>
-      <div class="reward-options">
-        <button type="button" data-upgrade="counter" aria-keyshortcuts="1">Stronger counters</button>
-        <button type="button" data-upgrade="energy" aria-keyshortcuts="2">Prepared</button>
-        <button type="button" data-upgrade="heavy" aria-keyshortcuts="3">Heavy hitter</button>
+    <dialog id="upgrades" class="interlude" aria-labelledby="reward-title">
+      <div class="interlude-content">
+        <p class="eyebrow">THE ROAD CONTINUES</p>
+        <h2 id="reward-title">Carry the fire.</h2>
+        <p class="interlude-note">One battle behind you. Choose what remains.</p>
+        <div class="reward-options">
+          <button type="button" data-upgrade="counter" aria-keyshortcuts="1"><span class="reward-sigil" aria-hidden="true">✧</span><kbd>1</kbd><strong>Reprisal</strong><span class="reward-flavor">Their strike. Your answer.</span><span id="counter-gain" class="reward-gain"></span></button>
+          <button type="button" data-upgrade="energy" aria-keyshortcuts="2"><span class="reward-sigil" aria-hidden="true">☼</span><kbd>2</kbd><strong>Resolve</strong><span class="reward-flavor">Begin with a spark.</span><span id="energy-gain" class="reward-gain"></span></button>
+          <button type="button" data-upgrade="heavy" aria-keyshortcuts="3"><span class="reward-sigil" aria-hidden="true">⚔</span><kbd>3</kbd><strong>Ruin</strong><span class="reward-flavor">Make the next blow count.</span><span id="heavy-gain" class="reward-gain"></span></button>
+        </div>
+        <p class="interlude-foot">Recover up to 10 HP · Choose with 1 / 2 / 3</p>
       </div>
     </dialog>
-    <dialog id="run-complete" aria-labelledby="result-title">
-      <p class="eyebrow">EXPEDITION 34</p><h2 id="result-title">Expedition complete.</h2>
-      <p id="result-text"></p><button id="result-restart" type="button">Begin a new run</button>
+    <dialog id="run-complete" class="interlude" aria-labelledby="result-title">
+      <div class="interlude-content">
+        <p class="eyebrow">EXPEDITION XXXIV</p>
+        <div class="result-sigil" aria-hidden="true">✧</div>
+        <h2 id="result-title">Dawn breaks.</h2>
+        <p id="result-text" class="interlude-note"></p>
+        <button id="result-restart" class="journey-button" type="button">Walk again <span aria-hidden="true">→</span></button>
+      </div>
     </dialog>
   </main>
   <script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js"}}</script>

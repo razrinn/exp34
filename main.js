@@ -97,17 +97,18 @@ function render() {
     if (!rewards.open) rewards.showModal();
   } else if (rewards.open) rewards.close();
   if ((state.phase === 'complete' || state.phase === 'defeat') && !actionPending) {
-    document.querySelector('#result-title').textContent = state.phase === 'complete' ? 'Expedition complete.' : 'Expedition fallen.';
-    document.querySelector('#result-text').textContent = state.phase === 'complete' ? 'The Warden is defeated. All five encounters cleared.' : `Your expedition ended at fight ${state.fight}. Learn the rhythm and try again.`;
+    document.querySelector('#result-title').textContent = state.phase === 'complete' ? 'Dawn breaks.' : 'The light fades.';
+    document.querySelector('#result-text').textContent = state.phase === 'complete' ? 'The Warden falls. Five battles won. The road is yours.' : `Fallen at encounter ${state.fight} of ${RUN_LENGTH}. The road will remember you.`;
+    result.dataset.outcome = state.phase;
     if (!result.open) result.showModal();
   } else if (result.open) result.close();
   document.querySelector('#turn-label').textContent = actionPending === 'attack' ? 'STRIKING' : actionPending ? 'RECOVERING' : state.phase === 'player' ? 'YOUR TURN' : state.phase === 'enemy' ? 'DEFEND' : 'ENCOUNTER ENDED';
   document.querySelector('#attack-detail').textContent = `${state.attackDamage} damage · +1 energy`;
   attackButton.disabled = !!actionPending || state.phase !== 'player';
   document.querySelector('#build').textContent = `Counter: ${state.counterDamage} damage · Starting energy: ${state.startingEnergy}`;
-  document.querySelector('[data-upgrade=counter]').textContent = `[1] Stronger counters · ${state.counterDamage} → ${state.counterDamage + 3} damage`;
-  document.querySelector('[data-upgrade=energy]').textContent = `[2] Prepared · ${state.startingEnergy} → ${state.startingEnergy + 1} starting energy`;
-  document.querySelector('[data-upgrade=heavy]').textContent = `[3] Heavy hitter · ${state.heavyDamage} → ${state.heavyDamage + 6} damage`;
+  document.querySelector('#counter-gain').textContent = `Counter · ${state.counterDamage} → ${state.counterDamage + 3} damage`;
+  document.querySelector('#energy-gain').textContent = `Starting energy · ${state.startingEnergy} → ${state.startingEnergy + 1}`;
+  document.querySelector('#heavy-gain').textContent = `Heavy strike · ${state.heavyDamage} → ${state.heavyDamage + 6} damage`;
   document.querySelector('#energy').textContent = `Energy: ${state.energy}`;
   document.querySelector('#heavy-detail').textContent = `${state.heavyDamage} damage · ${HEAVY_STRIKE.cost} energy`;
   heavyButton.disabled = !!actionPending || state.phase !== 'player' || state.energy < HEAVY_STRIKE.cost;

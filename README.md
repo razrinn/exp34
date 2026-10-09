@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 44
+## Checkpoint 45
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -234,3 +234,9 @@ then holds the final pose. Results wait for the collapse; stage reset restores i
 
 Checkpoint 44 keeps yellow/red warnings on the brief chest indicator only,
 removing the warning tint from the enemy body.
+
+Checkpoint 45 turns rewards and run endings into full-screen expedition interludes.
+Reprisal, Resolve, and Ruin preserve the three upgrades and 1/2/3 shortcuts, with
+explicit stat changes. Gold victory and crimson defeat treatments share the arena
+backdrop, restrained sigils, and serif titles. Mobile uses compact stacked choices;
+reduced-motion preferences disable the entrance animation.
