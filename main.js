@@ -49,6 +49,20 @@ function feedback(kind, target) {
   if (sound.checked) playSound(kind);
 }
 
+function showDamage(amount, target, delay = 0) {
+  if (amount <= 0) return;
+  if (scene) { scene.damage(amount, target === playerFigure ? 'player' : 'enemy', delay); return; }
+  const number = document.createElement('span');
+  number.className = `damage-number ${target === playerFigure ? 'player' : 'enemy'}`;
+  number.textContent = String(amount); number.setAttribute('role', 'status');
+  number.ariaLabel = `${amount} damage to ${target === playerFigure ? 'you' : 'the enemy'}`;
+  const bounds = target.getBoundingClientRect();
+  number.style.left = `${Math.min(document.querySelector('.arena').clientWidth - 24, bounds.right + 16)}px`;
+  number.style.top = `${bounds.top + bounds.height / 2}px`;
+  document.querySelector('.arena').append(number);
+  number.animate([{ opacity: 1, transform: 'translate(-50%, -50%)' }, { opacity: 0, transform: 'translate(-50%, calc(-50% - 50px))' }], { duration: 700 }).onfinish = () => number.remove();
+}
+
 async function playSound(kind) {
   const played = await playCue(kind);
   document.querySelector('#sound-status').textContent = played
@@ -66,13 +80,18 @@ function render() {
   document.querySelector('#enemy-health').max = state.enemyMaxHp;
   document.querySelector('#player-health').value = state.playerHp;
   document.querySelector('#enemy-health').value = state.enemyHp;
+  const message = state.message
+    .replace(/You deal \d+ damage\. ?/, '')
+    .replace(/Hit \d+ deals \d+ damage\. ?/, '')
+    .replace(/Final hit deals \d+ damage\. No counter\. ?/, '')
+    .replace(/You counter for \d+ damage\. ?/i, '');
   document.querySelector('#message').textContent = actionPending === 'recovery'
-    ? state.message.replace(/Your turn\./gi, 'Recovering…') : state.message;
+    ? message.replace(/Your turn\./gi, 'Recovering…') : message;
   document.querySelector('#fight-label').textContent = `Fight ${state.fight} / ${RUN_LENGTH}${state.fight === RUN_LENGTH ? ' · FINAL BOSS' : ''}`;
-  if (state.phase === 'victory') {
+  if (state.phase === 'victory' && !actionPending) {
     if (!rewards.open) rewards.showModal();
   } else if (rewards.open) rewards.close();
-  if (state.phase === 'complete' || state.phase === 'defeat') {
+  if ((state.phase === 'complete' || state.phase === 'defeat') && !actionPending) {
     document.querySelector('#result-title').textContent = state.phase === 'complete' ? 'Expedition complete.' : 'Expedition fallen.';
     document.querySelector('#result-text').textContent = state.phase === 'complete' ? 'The Warden is defeated. All five encounters cleared.' : `Your expedition ended at fight ${state.fight}. Learn the rhythm and try again.`;
     if (!result.open) result.showModal();
@@ -140,11 +159,16 @@ function resolveEnemy(now, beforeInput = false) {
     const next = retaliate(state);
     scene?.enemyImpact(state.impactAt, next.phase !== 'enemy', state.enemy.attackStyles[state.patternIndex], next.phase === 'enemy' ? next.impactAt - state.impactAt : null);
     feedback(state.defenseResult === 'parry' ? 'parry' : state.defenseResult === 'dodge' ? 'dodge' : 'hit', playerFigure);
+    showDamage(state.playerHp - next.playerHp, playerFigure);
     const countered = next.enemyHp < state.enemyHp;
+    if (countered) showDamage(state.enemyHp - next.enemyHp, enemyFigure, PLAYER_IMPACT_MS);
     if (countered) feedback('counter', enemyFigure);
-    if (next.phase === 'player') {
+    if (next.phase !== 'enemy') {
       actionPending = 'recovery';
-      actionTimer = setTimeout(() => { actionPending = false; render(); }, countered ? PLAYER_ACTION_MS : 300);
+      const duration = next.phase === 'player'
+        ? countered ? PLAYER_ACTION_MS : 300
+        : countered ? PLAYER_IMPACT_MS + 700 : 700;
+      actionTimer = setTimeout(() => { actionPending = false; render(); }, duration);
     }
     state = next;
     changed = true;
@@ -180,6 +204,11 @@ function commitAction(action) {
   const next = action(state, performance.now());
   if (next === state) return;
   feedback(action === heal ? 'heal' : action === heavyStrike ? 'heavy' : 'attack', action === heal ? playerFigure : enemyFigure);
+  showDamage(state.enemyHp - next.enemyHp, enemyFigure);
+  if (['victory', 'complete'].includes(next.phase)) {
+    actionPending = 'recovery';
+    actionTimer = setTimeout(() => { actionPending = false; render(); }, 700);
+  }
   state = next;
   saveIfEnded();
   render();
@@ -234,6 +263,7 @@ function restartRun() {
   clearTimeout(actionTimer);
   actionPending = false;
   scene?.reset();
+  for (const number of document.querySelectorAll('.damage-number')) number.remove();
   state = newCombat();
   document.querySelector('#save-status').textContent = clearRun()
     ? 'New run. Save cleared.' : 'Could not clear the saved run. Browser storage is unavailable.';
@@ -260,6 +290,7 @@ function chooseUpgrade(upgrade) {
   clearTimeout(actionTimer);
   actionPending = false;
   scene?.reset();
+  for (const number of document.querySelectorAll('.damage-number')) number.remove();
   state = nextFight(state, upgrade);
   saveCheckpoint();
   render();

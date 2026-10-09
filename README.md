@@ -4,7 +4,7 @@ A combat learning project inspired by turn-based battles with active defense.
 
 Play at https://exp34.rzrn.dev while connected to Tailscale.
 
-## Checkpoint 40
+## Checkpoint 41
 
 The hero is an armored knight. Sentinel, Duelist, and Warden use distinct skeleton
 warrior, rogue, and mage models from KayKit, with textures and equipped weapons.
@@ -202,3 +202,19 @@ roughly 650–320 ms before a normal strike, or 320–140 ms before a fast 400 m
 follow-up. Both the 3D scene and symbol fallback use the same timing helper.
 The cue describes defense type, not the exact instant to press. Defense windows,
 late-input grace, damage, and progression are unchanged.
+
+
+Checkpoint 41 displays damage as number-only popups beside the fighter taking the
+hit. Basic/heavy hits, individual enemy hits, and counters show actual HP lost;
+blocked hits create no popup. Counter numbers wait for the visual contact, and
+multiple combo numbers can coexist. They follow the fighter, rise and fade, and
+clear on restart or a new stage. The symbol fallback also gets numeric popups.
+Damage amounts no longer repeat in the bottom message; screen readers receive
+an accessible damage description. Results wait briefly so the finishing number
+and attack animation remain visible before the modal appears.
+
+Enemy intent is shown through posture: slash coils sideways, chop lifts the
+weapon overhead early, and thrust pulls back into a forward stance. Each prepares
+quickly and holds until its existing swing, then releases the extra body pose at
+contact. No attack-name labels were added. Impact deadlines, defense windows,
+damage, and progression are unchanged.

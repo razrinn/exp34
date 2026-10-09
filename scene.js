@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from './node_modules/three/examples/jsm/loaders/GLTFLoader.js';
-import { actionPose, attackEffects, playerClipProgress, enemyAttackPose, ENEMY_ATTACKS, PLAYER_IMPACT_MS, HOME_X, STRIKE_REACH, ENEMY_STEP_BACK_MS, retreatDistance } from './animation.js';
+import { actionPose, attackEffects, playerClipProgress, enemyAttackPose, enemyWindupPose, ENEMY_ATTACKS, PLAYER_IMPACT_MS, HOME_X, STRIKE_REACH, ENEMY_STEP_BACK_MS, retreatDistance } from './animation.js';
 
 const CLIPS = {
   attack: '1H_Melee_Attack_Slice_Horizontal', heavy: '1H_Melee_Attack_Chop',
@@ -178,6 +178,8 @@ export async function createScene(canvas) {
   let counterReaction = null;
   let previous = performance.now();
   const black = new THREE.Color(0);
+  const damageNumbers = [];
+  const numberPosition = new THREE.Vector3();
   function idle(character) {
     character.mixer.stopAllAction();
     character.actions.Idle.reset().play();
@@ -223,6 +225,7 @@ export async function createScene(canvas) {
       }
       const direction = character === models[0] ? 1 : -1;
       let approach = 0;
+      let windup = { lean: 0, twist: 0, lift: 0 };
       if (character === enemy && recovery && now < recovery.at + recovery.duration) {
         const t = Math.max(0, Math.min(1, (now - recovery.at) / recovery.duration));
         const contact = ENEMY_ATTACKS[recovery.style].contact;
@@ -232,6 +235,7 @@ export async function createScene(canvas) {
         const strike = enemyAttackPose(timing.impactAt - now, timing.duration, timing.hitIndex, timing.style);
         sampleStrike(character, timing.style, strike.clip);
         approach = strike.x;
+        windup = enemyWindupPose(timing.impactAt - now, timing.duration, timing.style);
       } else if (character.effect) {
         const action = character.actions[CLIPS[character.effect.kind]];
         action.time = action.getClip().duration * playerClipProgress(character.effect.kind, now - character.effect.started);
@@ -241,8 +245,9 @@ export async function createScene(canvas) {
         character.mixer.update(delta);
       }
       character.group.position.x = direction * (-HOME_X + motion.x + approach);
-      character.group.position.y = motion.lift;
-      character.group.rotation.z = motion.lean * direction;
+      character.group.position.y = motion.lift + windup.lift;
+      character.group.rotation.y = (character === models[0] ? Math.PI / 2 : -Math.PI / 2) + windup.twist;
+      character.group.rotation.z = (motion.lean + windup.lean) * direction;
       let style = { attack: 'slash', heavy: 'chop', counter: 'thrust' }[character.effect?.kind];
       let charge = style ? attackEffects(PLAYER_IMPACT_MS - elapsed, PLAYER_IMPACT_MS, style).charge : 0;
       character.cue.visible = false;
@@ -326,6 +331,22 @@ export async function createScene(canvas) {
         }
       });
     }
+    for (let i = damageNumbers.length - 1; i >= 0; i--) {
+      const number = damageNumbers[i];
+      const age = now - number.at;
+      if (age >= 700) { number.node.remove(); damageNumbers.splice(i, 1); continue; }
+      number.node.hidden = age < 0;
+      if (age < 0) continue;
+      const character = number.character;
+      numberPosition.copy(character.group.position);
+      numberPosition.y += character === models[3] ? 1.8 : 1.3;
+      numberPosition.project(camera);
+      const x = (numberPosition.x + 1) * canvas.clientWidth / 2 + 90;
+      const y = (1 - numberPosition.y) * canvas.clientHeight / 2 - age / 14;
+      number.node.style.left = `${Math.min(canvas.clientWidth - 24, Math.max(24, x))}px`;
+      number.node.style.top = `${y}px`;
+      number.node.style.opacity = Math.min(1, (700 - age) / 180);
+    }
     renderer.render(scene, camera);
     requestAnimationFrame(draw);
   }
@@ -374,12 +395,22 @@ export async function createScene(canvas) {
         play(target === 'player' ? models[0] : enemy, target === 'enemy' ? 'hit' : kind, hex);
       }
     },
+    damage(amount, target, delay = 0) {
+      const node = document.createElement('span');
+      node.className = `damage-number ${target}`;
+      node.textContent = String(amount); node.setAttribute('role', 'status');
+      node.ariaLabel = `${amount} damage to ${target === 'player' ? 'you' : 'the enemy'}`; node.hidden = true;
+      canvas.parentElement.append(node);
+      damageNumbers.push({ node, character: target === 'player' ? models[0] : enemy, at: performance.now() + delay });
+    },
     startAction(kind) { play(models[0], kind, '#91c4ce'); },
     enemyImpact(at, finished, style, nextDelay) {
       enemy.burst = { at, style };
       recovery = { at, style, hold: !finished && nextDelay <= 500 ? STRIKE_REACH - 1 : 0, duration: finished ? 300 : ENEMY_STEP_BACK_MS };
     },
     reset() {
+      for (const number of damageNumbers) number.node.remove();
+      damageNumbers.length = 0;
       timing = null;
       recovery = null;
       counterReaction = null;

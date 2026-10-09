@@ -81,3 +81,6 @@ dialog p { color: var(--muted); font-size: 14px; line-height: 1.6; }
 #attack-cue { position: absolute; left: 74%; top: 48%; transform: translate(-50%, -50%); z-index: 1; font-size: 64px; line-height: 1; pointer-events: none; color: #ffd469; text-shadow: 0 0 14px currentColor, 0 0 30px currentColor; }
 #attack-cue[data-type=red] { color: #ff6868; }
 .has-webgl #attack-cue { opacity: 0; }
+
+.damage-number { position: absolute; z-index: 2; pointer-events: none; transform: translate(-50%, -50%); font-size: clamp(24px, 3vw, 34px); font-weight: 800; color: #ffe8ac; text-shadow: 0 2px 4px #000, 0 0 12px #000; }
+.damage-number.player { color: #ff8585; }

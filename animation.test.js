@@ -105,3 +105,19 @@ test('charge builds before impact and each cue is brief, including fast follow-u
     assert.ok(attackEffects(50, duration, 'chop').charge > attackEffects(50, duration, 'slash').charge);
   }
 });
+
+
+import { enemyWindupPose } from './animation.js';
+test('three wind-ups prepare early, hold distinct stances, and release at contact', () => {
+  const poses = ['slash', 'chop', 'thrust'].map(style => enemyWindupPose(900, 1500, style));
+  assert.ok(poses[0].twist > 0);
+  assert.ok(poses[1].lift > 0);
+  assert.ok(poses[2].lean < poses[0].lean);
+  assert.ok(poses[2].twist < 0);
+  for (const style of ['slash', 'chop', 'thrust']) {
+    assert.deepEqual(enemyWindupPose(900, 1500, style), enemyWindupPose(600, 1500, style));
+    const contact = enemyWindupPose(0, 1500, style);
+    for (const value of Object.values(contact)) assert.equal(Math.abs(value), 0);
+    assert.equal(enemyAttackPose(900, 1500, 0, style).clip, ENEMY_ATTACKS[style].windup);
+  }
+});

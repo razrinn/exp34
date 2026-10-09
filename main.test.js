@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 test('keyboard actions respect turns, costs, held keys, and browser controls', async () => {
   const elements = new Map();
+  const popups = [];
   const listeners = {};
   const timers = new Map();
   let timerId = 0;
@@ -11,13 +12,16 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
   let frameId = 0;
   const previous = { performance: globalThis.performance, setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout, document: globalThis.document, requestAnimationFrame: globalThis.requestAnimationFrame, cancelAnimationFrame: globalThis.cancelAnimationFrame };
   globalThis.document = {
+    createElement: () => ({ style: {}, setAttribute() {}, animate: () => ({}), remove() {} }),
     body: { classList: { remove() {} } },
     querySelector(selector) {
       if (!elements.has(selector)) elements.set(selector, {
-        style: {}, dataset: {}, checked: false, listeners: {}, open: false,
+        style: {}, dataset: {}, clientWidth: 1280, checked: false, listeners: {}, open: false,
         showModal() { this.open = true; },
         close() { this.open = false; },
-        animate() {},
+        animate() { return {}; },
+        getBoundingClientRect() { return { left: 100, right: 200, width: 100, top: 200, height: 150 }; },
+        append(node) { popups.push(node); },
         remove() {},
         addEventListener(type, handler) { this.listeners[type] = handler; },
       });
@@ -63,6 +67,9 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     assert.equal(timers.size, 1);
     impact();
     assert.equal(elements.get('#enemy-hp').textContent, '40 / 48');
+    assert.equal(popups.at(-1).textContent, '8');
+    assert.ok(popups.at(-1).className.includes('enemy'));
+    assert.doesNotMatch(elements.get('#message').textContent, /8 damage/);
     assert.equal(elements.get('#energy').textContent, 'Energy: 1');
     assert.equal(elements.get('.actions').hidden, true);
     assert.equal(elements.get('.defenses').hidden, false);
@@ -96,6 +103,8 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     now = start + 1501;
     press('Space');
     assert.equal(elements.get('#player-hp').textContent, '37 / 40');
+    assert.equal(popups.at(-1).textContent, '3');
+    assert.ok(popups.at(-1).className.includes('player'));
     assert.equal(elements.get('#parry').disabled, false);
     press('KeyQ');
     assert.equal(timers.size, 0);
@@ -129,6 +138,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
           now = comboStart + time - 1;
           press('Space'); frame(comboStart + time + 1);
         }
+        if (round === 3) assert.equal(elements.get('#upgrades').open, false, 'finishing damage appears before rewards');
         if (timers.size) impact();
       }
       assert.equal(elements.get('#upgrades').open, true);

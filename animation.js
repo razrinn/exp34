@@ -64,7 +64,7 @@ export function enemyAttackPose(remaining, duration, hitIndex, style = 'chop') {
   const swing = Math.min(attack.swingMs, duration);
   const windupDuration = Math.max(1, duration - swing);
   // The thrust pulls back early and holds, instead of creeping toward impact.
-  const prepare = style === 'thrust' ? Math.min(450, windupDuration) : windupDuration;
+  const prepare = Math.min({ slash: 300, chop: 500, thrust: 450 }[style], windupDuration);
   const progress = remaining > swing
     ? attack.windup * smooth((duration - remaining) / prepare)
     : attack.windup + (attack.contact - attack.windup) * smooth(1 - remaining / swing);
@@ -84,4 +84,14 @@ export function attackEffects(remaining, duration, style = 'slash') {
   const charge = remaining > 0 && remaining < chargeMs
     ? smooth(1 - remaining / chargeMs) * (style === 'chop' ? 1 : .7) : 0;
   return { cue, charge };
+}
+
+
+export function enemyWindupPose(remaining, duration, style) {
+  const swing = Math.min(ENEMY_ATTACKS[style].swingMs, duration);
+  const prepare = Math.min({ slash: 300, chop: 500, thrust: 450 }[style], Math.max(1, duration - swing));
+  const amount = smooth((duration - remaining) / prepare) * smooth(remaining / swing);
+  const poses = { slash: { lean: -.08, twist: .32, lift: 0 }, chop: { lean: .12, twist: 0, lift: .06 }, thrust: { lean: -.16, twist: -.15, lift: 0 } };
+  const pose = poses[style];
+  return { lean: pose.lean * amount, twist: pose.twist * amount, lift: pose.lift * amount };
 }
