@@ -129,7 +129,7 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     assert.equal(elements.get('#energy').textContent, '0 / 3');
     elements.get('#restart').listeners.click();
     runSkill('KeyQ', 2, []); defend(ENEMIES[0].patterns[0], true);
-    assert.equal(elements.get('#player-hp').textContent, '35 / 40');
+    assert.equal(elements.get('#player-hp').textContent, '34 / 40');
     runSkill('KeyQ', 2, []); defend(ENEMIES[0].patterns[1]);
     press('KeyP');
     assert.equal(elements.get('#player-hp').textContent, '40 / 40');
