@@ -11,7 +11,9 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
   let now = 0;
   const frames = new Map();
   let frameId = 0;
-  const previous = { performance: globalThis.performance, setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout, document: globalThis.document, requestAnimationFrame: globalThis.requestAnimationFrame, cancelAnimationFrame: globalThis.cancelAnimationFrame };
+  const previous = { localStorage: globalThis.localStorage, performance: globalThis.performance, setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout, document: globalThis.document, requestAnimationFrame: globalThis.requestAnimationFrame, cancelAnimationFrame: globalThis.cancelAnimationFrame };
+  const storage = new Map();
+  globalThis.localStorage = { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) };
   globalThis.document = {
     createElement: () => ({ style: {}, setAttribute() {}, animate: () => ({}), remove() {} }),
     body: { classList: { remove() {} } },
@@ -83,6 +85,16 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
   };
   try {
     await import('./main.js');
+    const guide = elements.get('#guide');
+    assert.equal(guide.open, true, 'first visit shows the skippable guide');
+    press('KeyQ'); press('KeyI');
+    assert.equal(timers.size, 0, 'guide keyboard input cannot start combat');
+    guide.close(); guide.listeners.close();
+    assert.equal(storage.get('exp34-guide-seen'), '1', 'closing or skipping remembers the guide');
+    const setItem = globalThis.localStorage.setItem;
+    globalThis.localStorage.setItem = () => { throw new Error('Storage blocked'); };
+    assert.doesNotThrow(() => guide.listeners.close());
+    globalThis.localStorage.setItem = setItem;
     assert.equal(elements.get('.actions').hidden, false);
     assert.equal(elements.get('#parry').hidden, true);
     for (const overrides of [{ repeat: true }, { ctrlKey: true }, { altKey: true }, { metaKey: true }, { target: { matches: () => true } }]) press('KeyQ', overrides);
@@ -131,6 +143,12 @@ test('keyboard actions respect turns, costs, held keys, and browser controls', a
     assert.equal(elements.get('#timing-step').textContent, '2 / 2', 'a stalled frame expires only the current cue');
     assert.equal(elements.get('main').classList['timing-focus'], true);
     elements.get('#restart').listeners.click();
+    await import('./main.js?returning-player');
+    assert.equal(guide.open, false, 'returning players do not see the guide again');
+    globalThis.localStorage.getItem = () => { throw new Error('Storage blocked'); };
+    await import('./main.js?blocked-storage');
+    assert.equal(guide.open, true, 'blocked storage still allows a first-visit guide');
+    guide.close(); guide.listeners.close();
   } finally {
     Math.random = previousRandom;
     Object.assign(globalThis, previous);

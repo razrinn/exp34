@@ -33,6 +33,10 @@ const result = document.querySelector('#run-complete');
 const attackCue = document.querySelector('#attack-cue');
 const playerFigure = document.querySelector('#player-symbol');
 const sound = document.querySelector('#sound');
+const guide = document.querySelector('#guide');
+guide.addEventListener('close', () => {
+  try { localStorage.setItem('exp34-guide-seen', '1'); } catch {}
+});
 const music = document.querySelector('#music');
 let audioStarted = false;
 async function updateMusic() {
@@ -358,6 +362,7 @@ parryButton.addEventListener('click', () => tryDefense(parry));
 dodgeButton.addEventListener('click', () => tryDefense(dodge));
 document.addEventListener('keydown', (event) => {
   if (!audioStarted) startAudio();
+  if (guide.open) return;
   if (event.ctrlKey || event.altKey || event.metaKey) return;
   if (event.target.matches('input, textarea, select, [contenteditable]')) return;
   if (result.open) {
@@ -440,3 +445,7 @@ if (state.playerHp === 0) die(playerFigure);
 if (state.enemyHp === 0) die(enemyFigure);
 document.body.classList.remove('loading');
 document.querySelector('#loading').remove();
+
+try {
+  if (localStorage.getItem('exp34-guide-seen') !== '1') guide.showModal();
+} catch { guide.showModal(); }

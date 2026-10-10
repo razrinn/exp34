@@ -18,6 +18,7 @@ On mobile, tap the matching button. Defend just before enemy impact:
 yellow attacks allow parry or dodge; red attacks require dodge.
 Parries charge your next attack, and a fully parried yellow combo earns a counter.
 
+A short guide appears on your first visit; Play, Skip, or Escape dismisses it.
 Help & settings includes a practice timing bar, sound effects, music, and volume.
 Audio starts after your first interaction. Progress saves in your browser between
 encounters; refreshing during combat restarts that encounter.

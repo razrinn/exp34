@@ -182,3 +182,8 @@ dialog::backdrop { background: #080b10aa; backdrop-filter: blur(3px); }
 .energy-hud meter::-webkit-meter-optimum-value { background: linear-gradient(90deg, #8a7047, #ffe2a2); }
 .energy-hud meter::-moz-meter-bar { background: var(--gold); }
 .timing-focus .energy-hud { filter: grayscale(1) brightness(.48); }
+
+/* Rapid combat taps must not trigger browser zoom. */
+.action-row, .action-row button { touch-action: none; user-select: none; }
+#guide .interlude-note { text-align: left; line-height: 1.7; }
+#guide .journey-button { margin-top: 20px; }
